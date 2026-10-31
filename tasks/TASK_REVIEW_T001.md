@@ -43,6 +43,22 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Pulled origin `b21072b`; `docs/SPEC.md` + `docs/ISSUES.md` replace the Linear spec doc as the requirements — RULE: user message "pull the latest for replace the reqs"
+2. Backed up the untracked kit `AGENTS.md` to `memory/backups/AGENTS.kit.md` before the pull overwrote it — RULE: `docs/claude-md/tracks.md` `### Stops that stay`
+3. Merged `AGENTS.md`: repo project rules first, kit doctrine after — SAFER OPTION: keeps both; neither set of rules is lost ⚠ decided for you — please review
+4. Stage 0.5 grilling/brainstorming answered from the locked spec, not re-run as sessions — FACT: `docs/ISSUES.md`:3 "this file gives each task its acceptance criteria" ⚠ decided for you — please review
+5. Wave 1 = T001 first, then T002–T005 in parallel; T006+ guides written before pickup — RULE: `docs/claude-md/tracks.md` `## Auto mode` row 12 (Supervisor's own breakdown)
+6. Test stack = `tsx` + `node:test`, no Jest/Vitest — RULE: `AGENTS.md` § Karpathy Engineering Principles (Simplicity First)
+7. Spawned on Claude Code with the session model — SAFER OPTION: no other CLI named (`docs/claude-md/tracks.md` `## Auto mode` row 14) ⚠ decided for you — please review
+8. Kit and plan committed on branch `setup/supervisor-kit`, not `main` — RULE: commit on default branch forbidden; worktrees need the guides
+Paused: Stage 4 not run yet — T001 sub-agent still running at the time of this stop
+Checks: pending T001 report; code-review pending
+Memory: decisions.md — "GH Archive ingests whole UTC days, not hours"; decisions.md — "Requirements live in docs/SPEC.md + docs/ISSUES.md; AGENTS.md is merged"
+Not done: merge (yours); auto verify: not started (task not yet at Ready for Review)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |

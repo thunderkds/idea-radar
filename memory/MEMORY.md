@@ -21,3 +21,5 @@
 <!-- Format: - [Title](cold-file.md#section) — one-line summary.
      Target ≤150 chars/entry. Advisory: reported by the size test, never enforced.
      The enforced gate is the 42,000-character whole-file budget above. -->
+- [GH Archive day-at-a-time](decisions.md#2026-10-31--gh-archive-ingests-whole-utc-days-not-hours) — T004 writes repo_daily once per completed UTC day (exact distinct_actors)
+- [Requirements + merged AGENTS.md](decisions.md#2026-10-31--requirements-live-in-docsspecmd--docsissuesmd-agentsmd-is-merged) — docs/SPEC.md + docs/ISSUES.md are the PRD; Txxx↔HUN map on the board
