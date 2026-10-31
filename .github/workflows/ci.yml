@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # Switch to --frozen-lockfile once pnpm-lock.yaml is committed.
+      - run: pnpm install
+      - run: pnpm --filter "./packages/**" --filter "@idea-radar/worker" --filter "@idea-radar/api" build
+      - run: pnpm --filter @idea-radar/dashboard typecheck
