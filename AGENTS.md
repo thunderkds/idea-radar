@@ -30,7 +30,7 @@ Node 22+, pnpm 9. Commit `pnpm-lock.yaml`.
 | `packages/connectors` | One file per source + `buildRegistry()` |
 | `packages/db` | SQL migrations, pool, data-access functions |
 | `apps/worker` | Scheduler / job runner (connectors + scoring) |
-| `apps/api` | Read-only HTTP API for the dashboard |
+| `apps/api` | HTTP API for the dashboard: read-only GET routes plus one admin `POST /rescrape` (needs `ADMIN_TOKEN`) |
 | `apps/dashboard` | Next.js dashboard |
 
 ## Rules

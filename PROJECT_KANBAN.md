@@ -18,9 +18,9 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-174-rescrape-button` | Started 2026-10-31: branch `hun-174-rescrape-button` (stacked on `hun-173-idea-groups`)
 
 ### Ready for Review
+- [ ] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-174-rescrape-button` | Started 2026-10-31: branch `hun-174-rescrape-button` (stacked on `hun-173-idea-groups`)
 - [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-172-search-discovery` | Started 2026-10-31: branch `hun-172-search-discovery` (stacked on `hun-t024-star-snapshots`)
 
 ### Done
