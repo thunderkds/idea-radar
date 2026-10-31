@@ -175,3 +175,19 @@ export const consensusConfig = {
 export function consensusBoostFactor(consensusCount: number): number {
   return 1 + consensusConfig.trendingBoostPerSource * Math.max(consensusCount - 1, 0);
 }
+
+export type TrackingPriority = "leader" | "normal" | "parked";
+
+/**
+ * Tracked repos and API snapshots (T024, `docs/SPEC.md` § Tracking strategy). `cadenceDays` is how long after a
+ * snapshot a repo is due again; `null` (`parked`) means only when a request marks it due.
+ */
+export const trackingConfig = {
+  cadenceDays: { leader: 1, normal: 7, parked: null } as Record<TrackingPriority, number | null>,
+  /** Repos per GraphQL snapshot query. */
+  batchSize: 100,
+  /** Most repos the `snapshot` job refreshes in one run (100 queries at the batch size). */
+  dailyCap: 10_000,
+  /** Window of default-branch commits stored as `commits_30d`. */
+  commitWindowDays: 30,
+};
