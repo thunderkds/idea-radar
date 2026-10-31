@@ -32,7 +32,7 @@
         ]
       },
       {
-        "description": "Advanced event tracing — append every tool call to memory/event-trace/<task>.jsonl",
+        "description": "Advanced event tracing \u2014 append every tool call to memory/event-trace/<task>.jsonl",
         "matcher": ".*",
         "hooks": [
           {
@@ -74,7 +74,7 @@
         ]
       },
       {
-        "description": "Deterministic guardrail — kill a task's run after CLAUDE_STEP_LIMIT tool calls to prevent infinite loops / token waste",
+        "description": "Deterministic guardrail \u2014 kill a task's run after CLAUDE_STEP_LIMIT tool calls to prevent infinite loops / token waste",
         "matcher": ".*",
         "hooks": [
           {
@@ -95,7 +95,7 @@
         ]
       },
       {
-        "description": "Auto mode (T180 D8): block the stop until the final report holds up — report file, Advocates per Risk, Stage 4",
+        "description": "Auto mode (T180 D8): block the stop until the final report holds up \u2014 report file, Advocates per Risk, Stage 4",
         "hooks": [
           {
             "type": "command",
@@ -119,5 +119,9 @@
       "Edit(~/.claude/harness-anchors/**)",
       "Bash(*harness-anchors*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "easy-memory",
+    "easy-verifier"
+  ]
 }
