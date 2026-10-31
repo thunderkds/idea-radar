@@ -42,21 +42,34 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — no test run in memory/event-trace/T003.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T003" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop
+
+## Auto decisions
+
+Mode: auto
+1. `normalize()` returns `[]` and metadata goes to `repos` via `toRepo()`, overriding AC 4's "returns the expected Signal" — RULE: `tasks/TASK_GUIDE_T003.md` § Acceptance Criteria AC 9 (later, gap-driven criterion wins over the scaffold behaviour)
+2. No Octokit; global `fetch` with injectable `fetchImpl` — RULE: `tasks/TASK_GUIDE_T003.md` § Approach ("no Octokit dependency")
+3. Retry-After / secondary-limit backoff and a cross-process budget left out — RULE: `tasks/TASK_GUIDE_T003.md` § Approach cut list ("persistent / cross-process rate-limit budget (T007, gap A6)")
+4. Approved the agent's tdd plan as matching the guide — RULE: `docs/claude-md/tracks.md` `### Every user stop and its auto rule` (row 15: "The Supervisor approves a `tdd` plan that matches the guide")
+Checks: tests `pnpm --filter @idea-radar/connectors test` — 21/21 pass, integration test skipped (no `GITHUB_TOKEN`); reviews code-review — P0 0, P1 0, P2 3 (legacy node-id encoding `base64("010:Repository" + id)` unverified against the real API — run the guarded integration test once with a token before T007; one failed batch rejects the whole `fetchByIds` call; a 403 secondary-limit throws without honouring `Retry-After`), security-review — no findings ≥ 8/10 (names passed as GraphQL variables, aliases from batch index only, token only in the Authorization header and redacted from errors, endpoint fixed in production); real run: none possible without a token (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: ☑ pass (session ca6bbe3b-870c-4bd2-abdb-42932f31418b, commit affa5b17bd1efb0cc3d65b5935d8cae813ac67d0, log .claude/verify-runs/T003-affa5b17bd1e.log); one real-API run with `GITHUB_TOKEN` (yours)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session ca6bbe3b-870c-4bd2-abdb-42932f31418b, commit affa5b17bd1efb0cc3d65b5935d8cae813ac67d0); Gates 5 and 6 checked
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-api.test.ts` (21 unit tests, AC 1–6, 8–11; AC 7 integration test present, skipped without `GITHUB_TOKEN`). Output: `ℹ tests 21 ℹ pass 21 ℹ fail 0` |
+| Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` → 21/21; agent: `pnpm typecheck` 6/6 workspaces Done |
+| Negative cases hold | ☑ pass | 401/403/500/502, GraphQL `errors[]` and network errors throw without the token; no-token call throws before any request; invalid names go to `notFound` |
+| verify | ☑ pass | auto-run by hook, session ca6bbe3b-870c-4bd2-abdb-42932f31418b, commit affa5b17bd1efb0cc3d65b5935d8cae813ac67d0, log .claude/verify-runs/T003-affa5b17bd1e.log — pass |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-api.ts`, its test and fixture, caller `packages/connectors/src/index.ts:24` (constructor unchanged). `lane: C2, 3 files, 595 lines, EXCEEDS (lines 595 > 500)` — tests are ~300 of those lines; label kept at C2 |
+| Full smoke suite still green (no regression) | ☑ pass | connectors suite 21/21; no other package touched |
+| **Companion score (easy-verifier)** | ☑ N/A | not run in this session; offered for the merge decision |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: connector only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: connector only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: connector only |
 
 ---
 
@@ -67,12 +80,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured 2026-10-31 05:37:18 UTC, before any implementation commit:
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+$ date -u; pnpm --filter @idea-radar/connectors test; grep -n TODO packages/connectors/src/github-api.ts
+Sat Oct 31 05:37:18 AM UTC 2026
+> tsx --conditions=source --test "src/**/*.test.ts"
+ℹ tests 0
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+36:    // TODO(HUN-145): batch repo IDs from the candidate shortlist into GraphQL
+```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**AFTER**: Supervisor rerun, 2026-10-31 05:39:24 UTC and again after review:
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+```
+$ pnpm --filter @idea-radar/connectors test
+﹣ integration (real GitHub) # SKIP        <- GITHUB_TOKEN not set
+ℹ tests 21
+ℹ pass 21
+ℹ fail 0
+```
+
+**DELTA**: The worker can now fetch canonical repo metadata by numeric id or `owner/name` in batches of 100, within the GitHub rate budget, without leaking the token.
+
+**WITNESS**: Supervisor session, 2026-10-31 05:39 UTC, T003 worktree (trace `memory/event-trace/T003.jsonl`).
