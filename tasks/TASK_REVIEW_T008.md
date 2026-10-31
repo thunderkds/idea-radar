@@ -42,22 +42,33 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
-Paused: auto-mode check failed — tasks/TASK_REVIEW_T008.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T008.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T008" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
+
+## Auto decisions
+
+Mode: auto
+1. Folded the missing wiring (select candidates → fetch metadata → fetch content) into one daily `shortlist` job, because no job called `selectCandidates` or `fetchByIds` — RULE: `docs/ISSUES.md` § HUN-148 ("Shortlist = repos with any tier candidate signal in the last 7 days") plus gap A1 in `docs/analysis/2026-10-31-gaps.md`
+2. Raised T008 from P2 to P1, because T009 can only score repos that have a `repos` row — FACT: `packages/db/src/scores.ts` doc comment "Only repos with a `repos` row … are scored" (T009 branch)
+3. The shortlist reads the GH Archive cursor as its day (usually D−2 when it runs at 00:00 UTC), and T009 now ends score windows at the same cursor — SAFER OPTION: both jobs work on the last ingested day, not on a day with no data ⚠ decided for you — please review
+4. Work is written every 200 repos, and `shortlist` gets a 6 h stuck-job timeout like `gh_archive` (a rate-limit pause can last an hour) — SAFER OPTION: a retry redoes only what is not fresh, and a live job is not reclaimed mid-pause ⚠ decided for you — please review
+5. README = first present of 6 root names; files over the cap (README 100 KB, manifest 50 KB) are truncated, not dropped; NUL characters stripped — RULE: `tasks/TASK_GUIDE_T008.md` § Acceptance Criteria (AC 1 caps)
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 66/67 (1 pre-existing live-GitHub skip), db 57/57, worker 24/24, exit 0; reviews code-review — P0 0, P1 0, P2 2 (live GraphQL content path unverified without a token, including a repo with no HEAD; repos GitHub cannot return are retried every day with no give-up mark), P3 1 (`FetchedRepoContent` duplicates db `RepoContent`; move it to core later); real run: none — needs a GitHub token (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: running (T182)
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-api.test.ts` (8 new `fetchContent` tests: batching, caps, absent manifests, missing repo), `packages/connectors/src/stack-tags.test.ts`, `packages/db/src/content.test.ts`, `apps/worker/src/worker.test.ts` (6 shortlist tests incl. score waits for shortlist). connectors `ℹ tests 67 ℹ fail 0`, worker `ℹ tests 24 ℹ fail 0` |
+| Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T008); `pnpm typecheck` clean (agent) |
+| Negative cases hold | ☑ pass | no cursor → skip; no token → select only, no `github_api` health row; invalid JSON/TOML manifests give no tags, never throw; missing repo listed in `missing` |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-api.ts`, `stack-tags.ts`, `content.ts`, `scoring.ts` (`contentMaxAgeDays`), worker handlers/index + tests. `lane: C2, 12 files, 894 lines, EXCEEDS (lines 894 > 500); unpredicted: apps/worker/src/index.ts, apps/worker/src/worker.test.ts, packages/connectors/src/github-api.test.ts, packages/connectors/src/stack-tags.test.ts, packages/db/src/content.test.ts, packages/db/src/index.ts` — about half is tests |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: worker job only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: worker job only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: worker job only |
 
 ---
 
@@ -96,5 +107,4 @@ pnpm typecheck: all 6 workspace projects Done
 
 **DELTA**: The daily job now selects the day's candidates, fetches their metadata and README, manifests and file tree, and stores stack tags, so every candidate has a `repos` row and `repo_content` row before scoring.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session, 2026-10-31T07:52:25Z: reran `TEST_DATABASE_URL=… pnpm test` under T008 (exit 0, recorded in `memory/event-trace/T008.jsonl`) and read the handler and query diff.
