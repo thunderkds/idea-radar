@@ -1,4 +1,4 @@
-import { fakeStarConfig } from "@idea-radar/core";
+import { fakeStarConfig, trackingConfig } from "@idea-radar/core";
 import type { Repo, SourceConnector, Signal, StargazerAccount } from "@idea-radar/core";
 import { deriveStackTags, MANIFEST_FILES } from "./stack-tags.js";
 
@@ -52,6 +52,22 @@ export interface FetchContentResult {
   missing: number[];
 }
 
+/** One `repo_snapshots` reading as fetched. Same shape as `SnapshotInput` in `@idea-radar/db` (connectors do not depend on db). */
+export interface RepoSnapshot {
+  repoId: number;
+  stars: number;
+  forks: number;
+  pushedAt: Date | null;
+  /** Commits on the default branch in the last `trackingConfig.commitWindowDays` days; 0 for a repo with no default branch. */
+  commits30d: number;
+}
+
+export interface FetchSnapshotsResult {
+  snapshots: RepoSnapshot[];
+  /** Ids that could not be fetched (bad id, deleted, private). */
+  missing: number[];
+}
+
 export interface ResolveNamesResult {
   /** Keyed by the name as requested, even if GitHub followed a rename redirect. */
   resolved: Map<string, Repo>;
@@ -59,6 +75,14 @@ export interface ResolveNamesResult {
 }
 
 type ContentNode = Record<string, unknown> & { databaseId: number };
+
+interface SnapshotNode {
+  databaseId: number;
+  stargazerCount: number;
+  forkCount: number;
+  pushedAt: string | null;
+  defaultBranchRef: { target: { history?: { totalCount: number } } | null } | null;
+}
 
 interface StargazerNode {
   stargazers?: {
@@ -127,6 +151,9 @@ const STARGAZER_FIELDS = `
       }
     }
   }`;
+const SNAPSHOT_FIELDS = `
+  databaseId stargazerCount forkCount pushedAt
+  defaultBranchRef { target { ... on Commit { history(since: $since) { totalCount } } } }`;
 const RATE_LIMIT_FIELDS = "rateLimit { cost remaining limit resetAt }";
 
 /**
@@ -319,6 +346,51 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
     );
     return {
       contents: batches.flatMap((b) => b.contents),
+      missing: [...missing, ...batches.flatMap((b) => b.gone)],
+    };
+  }
+
+  /**
+   * Star, fork, `pushedAt` and 30-day default-branch commit counts for numeric repo ids (T024), ≤`trackingConfig.batchSize`
+   * (100) per GraphQL query, through the same rate-limit state as `fetchByIds`. A deleted, private or unencodable
+   * id is returned in `missing`; a repo with no default branch (empty) has 0 commits.
+   */
+  async fetchSnapshots(ids: number[]): Promise<FetchSnapshotsResult> {
+    const missing: number[] = [];
+    const encodable: { id: number; nodeId: string }[] = [];
+    for (const id of ids) {
+      const nodeId = toNodeId(id);
+      if (nodeId === null) missing.push(id);
+      else encodable.push({ id, nodeId });
+    }
+
+    const since = new Date(this.now() - trackingConfig.commitWindowDays * 24 * 3_600_000).toISOString();
+    const query = `query($ids: [ID!]!, $since: GitTimestamp!) { nodes(ids: $ids) { ... on Repository {${SNAPSHOT_FIELDS} } } ${RATE_LIMIT_FIELDS} }`;
+    const batches = await Promise.all(
+      chunk(encodable, trackingConfig.batchSize).map(async (batch) => {
+        const data = await this.request<{ nodes: (SnapshotNode | null)[] }>(query, {
+          ids: batch.map((b) => b.nodeId),
+          since,
+        });
+        const snapshots: RepoSnapshot[] = [];
+        const gone: number[] = [];
+        batch.forEach((b, i) => {
+          const node = data.nodes[i];
+          if (node && typeof node.databaseId === "number") {
+            snapshots.push({
+              repoId: node.databaseId,
+              stars: node.stargazerCount,
+              forks: node.forkCount,
+              pushedAt: node.pushedAt === null ? null : new Date(node.pushedAt),
+              commits30d: node.defaultBranchRef?.target?.history?.totalCount ?? 0,
+            });
+          } else gone.push(b.id);
+        });
+        return { snapshots, gone };
+      }),
+    );
+    return {
+      snapshots: batches.flatMap((b) => b.snapshots),
       missing: [...missing, ...batches.flatMap((b) => b.gone)],
     };
   }
