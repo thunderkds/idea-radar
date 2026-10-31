@@ -191,3 +191,29 @@ export const trackingConfig = {
   /** Window of default-branch commits stored as `commits_30d`. */
   commitWindowDays: 30,
 };
+
+/**
+ * Idea groups and leader picks (T026, `docs/SPEC.md` § Tracking strategy). Starting points; tune with real data.
+ */
+export const groupingConfig = {
+  /** Top repos of each group that become `leader` (snapshot daily). The rest of the group are `normal`. */
+  leadersPerGroup: 2,
+  /** Topics that say nothing about the idea. Compared after lowercasing. */
+  genericTopics: ["awesome", "awesome-list", "github", "hacktoberfest", "open-source", "opensource", "hacktoberfest-accepted"],
+  /** Event topics with a year (`hacktoberfest2025`) are generic too. */
+  genericTopicPattern: /^hacktoberfest\d+$/,
+  /** Topics kept in the key (the most specific ones; see `ideaGroupKey`). */
+  topicsInKey: 2,
+  /** Stack tags that name a language (`deriveStackTags` kinds). A framework tag is the primary stack tag before any of these. */
+  languageStackTags: ["go", "java", "node", "python", "rust"],
+  /**
+   * Leader ranking inside a group: `score` (latest `repo_scores.score`) and `commits30d` (latest snapshot in the
+   * last 30 days) are each divided by the group's maximum, so tiers with different score scales compare,
+   * then weighted. A repo whose rank is 0 (no score and no commits) never becomes a leader.
+   */
+  leaderWeights: { score: 0.6, commits30d: 0.4 },
+  /** A repo with no score and no snapshot in this many days before the regroup date is `parked`. */
+  activeWindowDays: 30,
+  /** After a repo's first snapshot it is due again this many days later, whatever its priority (not `parked`), so velocity shows after 1 day. */
+  firstSnapshotFollowUpDays: 1,
+};
