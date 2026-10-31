@@ -13,5 +13,9 @@
     "@idea-radar/connectors": "workspace:*",
     "@idea-radar/core": "workspace:*",
     "@idea-radar/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "pg": "^8.13.0"
   }
 }

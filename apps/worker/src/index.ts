@@ -1,51 +1,46 @@
+import { pathToFileURL } from "node:url";
 import { buildRegistry } from "@idea-radar/connectors";
-import type { ConnectorRunResult, SourceConnector } from "@idea-radar/core";
+import * as db from "@idea-radar/db";
+import { buildCaps, buildHandlers } from "./handlers.js";
+import { runWorker } from "./runner.js";
 
-/**
- * Minimal scheduler. GH Archive runs hourly; everything else daily; scoring
- * daily after ingestion. Swap for a queue-backed runner in HUN-144.
- */
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
+export { runWorker } from "./runner.js";
 
-async function runConnector(c: SourceConnector, since: Date): Promise<ConnectorRunResult> {
-  const startedAt = new Date();
-  let signalsWritten = 0;
+async function main(): Promise<void> {
+  const once = process.argv.includes("--once");
+  const pool = db.createPool(); // throws "DATABASE_URL is not set" without it
+  const abort = new AbortController();
+  for (const sig of ["SIGINT", "SIGTERM"] as const) process.once(sig, () => abort.abort());
+
   try {
-    for await (const item of c.fetch(since)) {
-      const signals = c.normalize(item);
-      // TODO(HUN-142): resolve fullName → repoId and insert into `signals`.
-      signalsWritten += signals.length;
+    const client = await pool.connect();
+    try {
+      for (const file of await db.applyMigrations(client)) console.log(`applied ${file}`);
+    } finally {
+      client.release();
     }
-    return { connectorId: c.id, startedAt, finishedAt: new Date(), signalsWritten, status: "ok" };
-  } catch (err) {
-    return {
-      connectorId: c.id,
-      startedAt,
-      finishedAt: new Date(),
-      signalsWritten,
-      status: "error",
-      error: err instanceof Error ? err.message : String(err),
-    };
+    const connectors = buildRegistry();
+    // syncSources (HUN-143) may not be merged yet; skip it until it is.
+    const syncSources = (db as unknown as Record<string, unknown>).syncSources;
+    if (typeof syncSources === "function") await syncSources(pool, connectors);
+
+    await runWorker({
+      db: pool,
+      handlers: buildHandlers({ connectors }),
+      caps: buildCaps(connectors),
+      once,
+      signal: abort.signal,
+      log: (line) => console.log(line),
+    });
+  } finally {
+    await pool.end();
   }
 }
 
-async function tick(schedule: "hourly" | "daily"): Promise<void> {
-  const since = new Date(Date.now() - (schedule === "hourly" ? HOUR : DAY));
-  const connectors = buildRegistry().filter((c) => c.enabled && c.schedule === schedule);
-  for (const c of connectors) {
-    const result = await runConnector(c, since);
-    console.log(JSON.stringify(result));
-  }
-  if (schedule === "daily") {
-    // TODO(HUN-149): run tier classification + lowkey scoring into repo_scores.
-  }
-}
-
-const once = process.argv.includes("--once");
-await tick("hourly");
-await tick("daily");
-if (!once) {
-  setInterval(() => void tick("hourly"), HOUR);
-  setInterval(() => void tick("daily"), DAY);
+// Only run when started as a program, so tests can import `runWorker`.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main().catch((err) => {
+    console.error(`worker failed: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
 }
