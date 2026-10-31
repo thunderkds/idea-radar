@@ -108,6 +108,39 @@ export async function recordSnapshots(
   }
 }
 
+/** The daily job that snapshots the due tracked repos; its name is the worker's `SNAPSHOT_JOB` (apps/worker/src/handlers.ts). */
+const SNAPSHOT_JOB = "snapshot";
+
+/** What a re-scrape request names: one tracked repo, or every tracked repo of an idea group. */
+export type RescrapeTarget = { repoId: number } | { groupKey: string };
+
+/**
+ * Re-scrape on request (T027). Make the named tracked repo (or every tracked repo of the group) due at `now` and queue
+ * today's `snapshot` job (keyed on the UTC date of `now`). It never changes `priority`: a `parked` repo is snapshotted
+ * once and the snapshot job then puts it back to `infinity`. A job that already ran (`ok` or `failed`) is re-opened:
+ * `pending`, `run_after = now`, unlocked, unfinished; `attempts` stays, because `(id, attempts)` fences each run. A
+ * `running` job is not touched (its run ends and the repo is due on the next run) and neither is a `pending` one.
+ * One statement, so the repos and the job change together. Returns how many tracked repos were marked; 0 means
+ * the repo or group is unknown, and then no job is queued.
+ */
+export async function requestRescrape(db: Queryable, target: RescrapeTarget, now: Date): Promise<number> {
+  const [column, value] = "repoId" in target ? ["repo_id", target.repoId] : ["group_key", target.groupKey];
+  const res = await db.query<{ n: number }>(
+    `WITH due AS (
+       UPDATE tracked_repos SET next_due_at = $1::timestamptz WHERE ${column} = $2 RETURNING repo_id
+     ), queued AS (
+       INSERT INTO jobs (name, data_key, run_after)
+       SELECT $3, $4, $1::timestamptz WHERE EXISTS (SELECT 1 FROM due)
+       ON CONFLICT (name, data_key) DO UPDATE
+         SET status = 'pending', run_after = $1::timestamptz, locked_at = NULL, finished_at = NULL
+         WHERE jobs.status IN ('ok', 'failed')
+     )
+     SELECT count(*)::int AS n FROM due`,
+    [now.toISOString(), value, SNAPSHOT_JOB, now.toISOString().slice(0, 10)],
+  );
+  return res.rows[0]?.n ?? 0;
+}
+
 /**
  * SQL for a CTE body: one row `(repo_id, date, stars_new)` per repo and day in (`from`, `to`], where `from` and
  * `to` are SQL date expressions. Stars per day come from `repo_star_gains` (snapshot differences) where a snapshot

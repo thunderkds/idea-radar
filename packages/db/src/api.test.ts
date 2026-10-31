@@ -68,7 +68,7 @@ describe("query functions of the read-only API (needs TEST_DATABASE_URL)", { ski
   beforeEach(async () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
-    await pool.query("TRUNCATE repo_scores, repo_daily, signals, repos, repo_content, sources");
+    await pool.query("TRUNCATE repo_scores, repo_daily, signals, repos, repo_content, sources, tracked_repos");
     await pool.query(
       `INSERT INTO sources (id, name, displayable) VALUES
          ('github_trending','GitHub Trending',TRUE),('ossinsight','OSS Insight',TRUE),('hackernews','Hacker News',TRUE),('trendshift','Trendshift',FALSE)`,
@@ -143,6 +143,61 @@ describe("query functions of the read-only API (needs TEST_DATABASE_URL)", { ski
       assert.equal(score!.consensusCount, 1);
       assert.equal(score!.fakeStarFlag, true);
       assert.ok(!("consensusBoost" in score!.components));
+    });
+  });
+
+  describe("getRepoDetail: tracking (T027)", () => {
+    const trackIn = (repoId: number, priority: string, group: string | null, due: string, last: string | null) =>
+      pool.query(
+        "INSERT INTO tracked_repos (repo_id, priority, group_key, added_reason, next_due_at, last_snapshot_at) VALUES ($1, $2, $3, 'signal', $4, $5)",
+        [repoId, priority, group, due, last],
+      );
+
+    it("is null and the group list empty for a repo that is not tracked", async () => {
+      const d = (await getRepoDetail(pool, 1))!;
+      assert.equal(d.tracking, null);
+      assert.deepEqual(d.groupRepos, []);
+    });
+
+    it("carries priority, group key, last snapshot and next due time; the group's other repos lead with leaders", async () => {
+      await trackIn(1, "normal", "cli|go", "2026-11-05T00:00:00Z", "2026-10-30T03:00:00Z");
+      await trackIn(2, "parked", "cli|go", "infinity", null);
+      await trackIn(3, "leader", "cli|go", "2026-11-01T00:00:00Z", null);
+      await trackIn(4, "leader", "other|x", "2026-11-01T00:00:00Z", null); // another group
+      await pool.query("INSERT INTO repos (repo_id, full_name, stars) VALUES (4, 'a/four', 1)");
+      const d = (await getRepoDetail(pool, 1))!;
+      assert.deepEqual(d.tracking, {
+        priority: "normal",
+        groupKey: "cli|go",
+        lastSnapshotAt: new Date("2026-10-30T03:00:00Z"),
+        nextDueAt: new Date("2026-11-05T00:00:00Z"),
+      });
+      assert.deepEqual(d.groupRepos, [
+        { repoId: 3, fullName: "a/three", priority: "leader" },
+        { repoId: 2, fullName: "a/two", priority: "parked" },
+      ]);
+    });
+
+    it("reports nextDueAt null for a parked repo ('only on request', not the Infinity date) and no group list without a group", async () => {
+      await trackIn(1, "parked", null, "infinity", null);
+      await trackIn(2, "normal", null, "2026-11-05T00:00:00Z", null);
+      const d = (await getRepoDetail(pool, 1))!;
+      assert.deepEqual(d.tracking, { priority: "parked", groupKey: null, lastSnapshotAt: null, nextDueAt: null });
+      assert.deepEqual(d.groupRepos, []);
+      assert.equal(JSON.stringify(d).includes("nextDueAt\":null"), true);
+    });
+
+    it("leaves out a group member that has no repos row, and caps the list", async () => {
+      await trackIn(1, "normal", "g", "2026-11-05T00:00:00Z", null);
+      await trackIn(2, "normal", "g", "2026-11-05T00:00:00Z", null);
+      await trackIn(77, "normal", "g", "2026-11-05T00:00:00Z", null); // tracked before its metadata was fetched
+      for (let i = 100; i < 140; i++) {
+        await pool.query("INSERT INTO repos (repo_id, full_name, stars) VALUES ($1, $2, 1)", [i, `b/r${i}`]);
+        await trackIn(i, "normal", "g", "2026-11-05T00:00:00Z", null);
+      }
+      const d = (await getRepoDetail(pool, 1))!;
+      assert.equal(d.groupRepos.length, 20);
+      assert.ok(!d.groupRepos.some((g) => g.repoId === 77 || g.repoId === 1));
     });
   });
 

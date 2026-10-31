@@ -2,7 +2,7 @@ import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
-import { applyMigrations, listDueTracked, recordSnapshots, regroupTracked, trackCandidates } from "./index.js";
+import { applyMigrations, listDueTracked, recordSnapshots, regroupTracked, requestRescrape, trackCandidates } from "./index.js";
 import type { SnapshotInput } from "./index.js";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -69,7 +69,7 @@ describe("tracked repos and snapshots (needs TEST_DATABASE_URL)", { skip }, () =
   beforeEach(async () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
-    await pool.query("TRUNCATE tracked_repos, repo_snapshots, candidates, repos, repo_content, repo_scores");
+    await pool.query("TRUNCATE tracked_repos, repo_snapshots, candidates, repos, repo_content, repo_scores, jobs");
   });
 
   describe("trackCandidates (AC 3)", () => {
@@ -367,6 +367,87 @@ describe("tracked repos and snapshots (needs TEST_DATABASE_URL)", { skip }, () =
       assert.equal(JSON.stringify(await state()), before);
       assert.deepEqual({ ...second, promoted: 0 }, { ...first, promoted: 0 });
       assert.equal(second.promoted, 0, "no one is newly promoted the second time");
+    });
+  });
+
+  describe("requestRescrape (T027)", () => {
+    const RNOW = new Date("2026-10-31T09:30:00Z");
+    const job = async () => (await pool.query("SELECT status, attempts, run_after, locked_at, finished_at FROM jobs WHERE name = 'snapshot' AND data_key = '2026-10-31'")).rows;
+    const state = async () =>
+      Object.fromEntries((await pool.query("SELECT repo_id, priority, next_due_at FROM tracked_repos")).rows.map((r) => [r.repo_id, r]));
+    const trackIn = (repoId: number, priority: string, due: string, group: string | null) =>
+      pool.query("INSERT INTO tracked_repos (repo_id, priority, group_key, added_reason, next_due_at) VALUES ($1, $2, $3, 'signal', $4)", [repoId, priority, group, due]);
+
+    it("makes one repo due now without changing its priority (a parked repo included) and queues today's snapshot job", async () => {
+      await trackIn(1, "parked", "infinity", "g|x");
+      await trackIn(2, "normal", "2026-11-05T00:00:00Z", "g|x");
+      assert.equal(await requestRescrape(pool, { repoId: 1 }, RNOW), 1);
+      const st = await state();
+      assert.equal(st[1].next_due_at.getTime(), RNOW.getTime());
+      assert.equal(st[1].priority, "parked", "the snapshot job parks it again; the request must not change the priority");
+      assert.equal(st[2].next_due_at.toISOString(), "2026-11-05T00:00:00.000Z", "the other repo is untouched");
+      assert.deepEqual((await job()).map((j) => [j.status, j.attempts]), [["pending", 0]]);
+      assert.equal((await job())[0].run_after.getTime(), RNOW.getTime());
+      assert.deepEqual(await listDueTracked(pool, RNOW), [1]);
+    });
+
+    it("marks every tracked repo of a group, and only that group", async () => {
+      await trackIn(1, "leader", "2026-11-01T00:00:00Z", "g|x");
+      await trackIn(2, "parked", "infinity", "g|x");
+      await trackIn(3, "normal", "2026-11-05T00:00:00Z", "other|y");
+      await trackIn(4, "normal", "2026-11-05T00:00:00Z", null);
+      assert.equal(await requestRescrape(pool, { groupKey: "g|x" }, RNOW), 2);
+      assert.deepEqual(await listDueTracked(pool, RNOW), [1, 2]);
+      assert.equal((await state())[3].next_due_at.toISOString(), "2026-11-05T00:00:00.000Z");
+    });
+
+    it("returns 0 and changes nothing for an unknown repo or group (no job is queued)", async () => {
+      await trackIn(1, "normal", "2026-11-05T00:00:00Z", "g|x");
+      assert.equal(await requestRescrape(pool, { repoId: 99 }, RNOW), 0);
+      assert.equal(await requestRescrape(pool, { groupKey: "nope" }, RNOW), 0);
+      assert.equal((await state())[1].next_due_at.toISOString(), "2026-11-05T00:00:00.000Z");
+      assert.deepEqual(await job(), []);
+    });
+
+    it("re-opens a snapshot job that is ok or failed: pending, due now, unlocked, unfinished, attempts kept", async () => {
+      await trackIn(1, "normal", "2026-11-05T00:00:00Z", null);
+      for (const status of ["ok", "failed"]) {
+        await pool.query("DELETE FROM jobs");
+        await pool.query(
+          "INSERT INTO jobs (name, data_key, status, attempts, run_after, finished_at, last_error) VALUES ('snapshot', '2026-10-31', $1, 2, '2026-10-31T02:00:00Z', '2026-10-31T03:00:00Z', 'boom')",
+          [status],
+        );
+        await requestRescrape(pool, { repoId: 1 }, RNOW);
+        const [j] = await job();
+        assert.equal(j.status, "pending", status);
+        assert.equal(j.attempts, 2, "attempts are the run token: never reset");
+        assert.equal(j.run_after.getTime(), RNOW.getTime());
+        assert.equal(j.locked_at, null);
+        assert.equal(j.finished_at, null);
+      }
+    });
+
+    it("never touches a running snapshot job, and leaves a pending one waiting for its own time", async () => {
+      await trackIn(1, "normal", "2026-11-05T00:00:00Z", null);
+      await pool.query(
+        "INSERT INTO jobs (name, data_key, status, attempts, run_after, locked_at) VALUES ('snapshot', '2026-10-31', 'running', 1, '2026-10-31T02:00:00Z', '2026-10-31T09:00:00Z')",
+      );
+      await requestRescrape(pool, { repoId: 1 }, RNOW);
+      let [j] = await job();
+      assert.deepEqual([j.status, j.attempts, j.locked_at.toISOString()], ["running", 1, "2026-10-31T09:00:00.000Z"]);
+      assert.equal((await state())[1].next_due_at.getTime(), RNOW.getTime(), "the repo is still due");
+
+      await pool.query("UPDATE jobs SET status = 'pending', locked_at = NULL, run_after = '2026-10-31T10:00:00Z'");
+      await requestRescrape(pool, { repoId: 1 }, RNOW);
+      [j] = await job();
+      assert.equal(j.run_after.toISOString(), "2026-10-31T10:00:00.000Z");
+    });
+
+    it("keys the job on the UTC date of now, and a second request changes nothing more", async () => {
+      await trackIn(1, "normal", "2026-11-05T00:00:00Z", null);
+      await requestRescrape(pool, { repoId: 1 }, new Date("2026-10-31T23:59:59Z"));
+      await requestRescrape(pool, { repoId: 1 }, new Date("2026-10-31T23:59:59Z"));
+      assert.deepEqual((await pool.query("SELECT data_key, status FROM jobs")).rows, [{ data_key: "2026-10-31", status: "pending" }]);
     });
   });
 });
