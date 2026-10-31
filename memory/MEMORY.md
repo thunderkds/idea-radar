@@ -17,6 +17,8 @@
 ---
 
 ## Index
+- [Tracking strategy: snapshots, idea groups, leaders](decisions.md#2026-10-31--tracking-strategy-github-api-snapshots-idea-groups-leaders-t024t027) — GH Archive shrank ~55×; star velocity from daily GitHub API snapshots; 1–2 leaders per idea group daily, rest weekly, parked on request
+- [Re-scrape via ADMIN_TOKEN; keep dashboard private](decisions.md#2026-10-31--re-scrape-on-request-via-admin_token-dashboard-must-stay-private-until-auth-t027) — only write route `POST /rescrape`; the dashboard server action is public, so no public launch before login/rate limit
 - [Job queue: Postgres + run token, BullMQ deferred](decisions.md#2026-10-31--job-queue-stays-on-postgres-bullmq-deferred-t023) — T023 fencing by `attempts` + heartbeat; revisit BullMQ only on multi-host lost runs
 
 <!-- Format: - [Title](cold-file.md#section) — one-line summary.
