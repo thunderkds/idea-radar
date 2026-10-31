@@ -1,0 +1,15 @@
+{
+  "type": "sql_endpoint",
+  "data": {
+    "columns": [
+      {"col": "id", "data_type": "BIGINT", "nullable": false},
+      {"col": "name", "data_type": "VARCHAR", "nullable": false}
+    ],
+    "rows": [
+      {"id": "10001", "name": "Artificial Intelligence"},
+      {"id": "10003", "name": "Database"},
+      {"id": "10007", "name": "JavaScript Framework"}
+    ],
+    "result": {"row_count": 3}
+  }
+}

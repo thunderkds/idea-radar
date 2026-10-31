@@ -1,0 +1,19 @@
+{
+  "type": "sql_endpoint",
+  "data": {
+    "columns": [
+      {"col": "repo_id", "data_type": "BIGINT", "nullable": false},
+      {"col": "repo_name", "data_type": "VARCHAR", "nullable": false},
+      {"col": "primary_language", "data_type": "VARCHAR", "nullable": true},
+      {"col": "stars", "data_type": "BIGINT", "nullable": true},
+      {"col": "total_score", "data_type": "DECIMAL", "nullable": true},
+      {"col": "collection_names", "data_type": "VARCHAR", "nullable": true}
+    ],
+    "rows": [
+      {"repo_id": "41986369", "repo_name": "pingcap/tidb", "primary_language": "Go", "stars": "38000", "total_score": "412.5", "collection_names": "Database,Cloud Native"},
+      {"repo_id": "10270250", "repo_name": "facebook/react", "primary_language": "JavaScript", "stars": "230000", "total_score": "389.1", "collection_names": null},
+      {"repo_id": "999001", "repo_name": "example/untagged", "primary_language": null, "stars": "12", "total_score": "3.2", "collection_names": null}
+    ],
+    "result": {"row_count": 3}
+  }
+}

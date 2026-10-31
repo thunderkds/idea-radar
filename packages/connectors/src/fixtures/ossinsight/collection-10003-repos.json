@@ -1,0 +1,14 @@
+{
+  "type": "sql_endpoint",
+  "data": {
+    "columns": [
+      {"col": "repo_id", "data_type": "BIGINT", "nullable": false},
+      {"col": "repo_name", "data_type": "VARCHAR", "nullable": false}
+    ],
+    "rows": [
+      {"repo_id": "41986369", "repo_name": "pingcap/tidb"},
+      {"repo_id": "7777", "repo_name": "other/db"}
+    ],
+    "result": {"row_count": 2}
+  }
+}
