@@ -43,20 +43,29 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Code registry wins over the DB for `enabled` / `displayable` — RULE: `tasks/TASK_GUIDE_T006.md` § Requirement (gaps A10, A19)
+2. Accepted the agent's choice to leave a stale source's `displayable` unchanged (only `enabled = false`), as the AC asks — SAFER OPTION: smallest change that meets AC 3; flagged as a P2 below ⚠ decided for you — please review
+Checks: tests `TEST_DATABASE_URL=… pnpm test` — db 23/23, connectors 49/49 (+1 skip); reviews code-review — P0 0, P1 0, P2 2 (a stale source keeps `displayable = TRUE` and would fail open if re-enabled by hand; upsert and disable are two statements with no transaction); real run: none (wired into the worker by T007) (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/db/src/sources.test.ts` (4 DB tests, AC 1–3, 5) and `packages/connectors/src/index.test.ts` (4 env-flag tests, AC 4). Output: db `ℹ tests 23 ℹ pass 23 ℹ fail 0`; connectors `ℹ pass 49 ℹ fail 0` |
+| Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` (see AFTER); agent: `pnpm typecheck` all Done |
+| Negative cases hold | ☑ pass | Trendshift without key stays disabled; stale source disabled, not deleted; suite skips without `TEST_DATABASE_URL` |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `packages/db/src/sources.ts`, its test, `index.ts` export, connectors env test. `lane: C1, 4 files, 189 lines, FITS` |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 (core 6, db 23, connectors 49 + 1 skip) |
+| **Companion score (easy-verifier)** | ☑ N/A | not run: Risk Low |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: database sync only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: database sync only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: database sync only |
 
 ---
 
@@ -67,12 +76,27 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured before any implementation commit (`date -u; ls packages/db/src; grep -n "syncSources" -r packages || echo "no syncSources"`):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+Sat Oct 31 06:21:51 AM UTC 2026
+index.ts
+migrate.ts
+migrations.ts
+repository.test.ts
+repository.ts
+no syncSources
+```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**AFTER**: Supervisor rerun, 2026-10-31, fresh Postgres 16 on port 5434:
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+```
+$ TEST_DATABASE_URL=postgres://radar:radar@localhost:5434/radar pnpm test
+packages/db test: ✔ syncSources (needs TEST_DATABASE_URL)
+packages/db test: ℹ tests 23 ℹ pass 23 ℹ fail 0
+packages/connectors test: ℹ tests 50 ℹ pass 49 ℹ fail 0 ℹ skipped 1
+```
+
+**DELTA**: The `sources` table can now be made to match the code registry, so `enabled` and `displayable` come from code, not from the fail-open column default.
+
+**WITNESS**: Supervisor session, 2026-10-31, T006 worktree (trace `memory/event-trace/T006.jsonl`).
