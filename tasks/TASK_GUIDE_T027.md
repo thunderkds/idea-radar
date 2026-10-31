@@ -5,7 +5,7 @@
 **Priority**: P1
 **Assigned agent**: frontend-developer
 **Agent guide**: `agents/frontend.md`
-**Linear**: none yet (`docs/SPEC.md` § Tracking strategy)
+**Linear**: HUN-174
 
 ---
 
