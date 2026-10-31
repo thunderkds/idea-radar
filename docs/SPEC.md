@@ -61,7 +61,7 @@ flowchart LR
   N --> PG[(Postgres<br/>repos, signals, repo_daily)]
   E --> PG
   PG --> S[Daily scoring<br/>tiers, lowkey, consensus]
-  S --> API[API<br/>read-only, filters]
+  S --> API[API<br/>read-only, filters,<br/>one admin write]
   API --> D[Dashboard<br/>tiers, topics, repo detail]
 ```
 
@@ -133,7 +133,10 @@ Added 2026-10-31. **Why:** GH Archive's public event feed has shrunk about 55× 
 - **Snapshots.** A daily `snapshot` job reads, for every tracked repo that is due, its star count, fork count, `pushed_at` and default-branch commits in the last 30 days, in GraphQL batches of 100, and writes one `repo_snapshots` row per repo per day. Star velocity = the difference between snapshots, spread evenly over the days between them. GH Archive `stars_new` stays as a fallback signal for days with no snapshot.
 - **Idea groups.** Repos are grouped by idea: v1 key = their normalised GitHub topics plus detected stack tags (OSS Insight collections as a hint); v2 may swap in README similarity. Each week, every group's top 1–2 repos (active, good direction: the tier score plus recent activity) become `leader`s; the rest of the group become `normal`.
 - **Cadence.** `leader`: snapshot daily. `normal`: weekly. `parked` (no group activity, archived, or never scored): only on request. A weekly regroup re-picks leaders, so a rising repo can move up. A repo's first snapshot is followed by a second one the next UTC day whatever its priority (not `parked`), so its star velocity shows after 1 day. The regroup is the `regroup` job, weekly (keyed `W` + the UTC Monday of the week, so a failed run never blocks that day's `score`): it sets `tracked_repos.group_key` from `ideaGroupKey` (two most specific non-generic topics plus the primary stack tag; a repo with no specific topic is in no group and keeps its priority), ranks a group by its latest score and 30-day commits (`groupingConfig` in `scoring.ts`), and parks archived repos and repos that were snapshotted before but have no score and no snapshot in 30 days (a repo never snapshotted yet is new, not inactive).
-- **Re-scrape on request.** The dashboard has a refresh button on a repo and on a group. It calls the API's one write endpoint, which marks the repo (or every repo of the group) due now and queues the job. The endpoint needs an admin token (`ADMIN_TOKEN`); without it the button is hidden and the endpoint returns 404.
+- **Re-scrape on request.** The repo detail page has a "Refresh now" button for the repo and a "Refresh group now" button for its idea group. Each calls the API's one write endpoint, `POST /rescrape`, which marks the repo (or every tracked repo of the group) due now and queues today's `snapshot` job. The endpoint needs an admin token: `ADMIN_TOKEN` in the API's environment, sent as `Authorization: Bearer <token>` and compared in constant time. Without `ADMIN_TOKEN` the endpoint returns 404 and the dashboard hides the buttons.
+  - **Request and answers.** Body `{ "repoId": n }` or `{ "groupKey": "…" }` (exactly one). `202 { "queued": n }` (n = tracked repos marked); `400` bad body; `401` missing or wrong token; `404` unknown or untracked repo or group, or `ADMIN_TOKEN` unset; `405` any other method on `/rescrape`. Every other route stays GET-only.
+  - **What it changes.** `tracked_repos.next_due_at = now()` for the named repos; `priority` is not changed, so a `parked` repo is snapshotted once and the snapshot job parks it again. Today's `snapshot` job (key = UTC date) is created, or re-opened (`pending`, due now) when it is `ok` or `failed`; a `running` or `pending` job is left alone, and a repo requested while the job runs is due on the next run.
+  - **Dashboard.** The button calls a Next.js server action, which runs on the dashboard server and adds the header there. `ADMIN_TOKEN` must be set in the dashboard server's environment too (same value as the API's); it never reaches the browser. Anyone who can open the dashboard can press the button, so the dashboard must be reachable only by people trusted with it (there are no user accounts in v1).
 
 ## Dashboard views
 
@@ -142,7 +145,7 @@ Five views ship in v1; the lowkey tab is the default landing view.
 | View | What it shows |
 | --- | --- |
 | Tier tabs | Trending / Medium / Lowkey lists; filters for language, topic, OSS Insight collection, date window |
-| Repo detail | Star history (own data; Star History embed optional), score breakdown, source-consensus timeline, README excerpt, detected stack |
+| Repo detail | Star history (own data; Star History embed optional), score breakdown, source-consensus timeline, README excerpt, detected stack; tracking priority, last and next refresh, the idea group's other repos, and the "Refresh now" / "Refresh group now" buttons (shown only when the dashboard server has `ADMIN_TOKEN`) |
 | Rising topics | Topics and dependencies with the fastest growth in new repos over 7/30 days |
 | Source consensus | Repos flagged by 2+ sources, with who flagged them first |
 | Ops | Connector health, last run, rate-limit usage, ingest lag |
