@@ -42,7 +42,6 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
-Paused: auto-mode check failed — tasks/TASK_REVIEW_T005.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T005.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T005" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
 ## Auto decisions
 
@@ -53,7 +52,7 @@ Mode: auto
 4. Left the two P2 review findings (rank counts parsed rows only; one non-200 page aborts the rest of the run) for T007's retry design rather than fixing now — SAFER OPTION: both are behaviour choices the scheduler task owns ⚠ decided for you — please review
 Checks: tests `pnpm --filter @idea-radar/connectors test` — 7/7 pass (Supervisor rerun 05:38 UTC); reviews code-review — P0 0, P1 0, P2 2 (rank = parsed-row position, so a skipped row shifts later ranks; one non-200 aborts all remaining language × period pages), P3 0; real run: fixture saved from one live `curl` of github.com/trending (HTTP 200, 15 rows) (auto-checked, not /verify)
 Memory: nothing new
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 69e6caea-9bd0-4d38-b6fd-bf91bb849567, commit 905b237dfff5c4fd32bd3064667ad65a0513a083, log .claude/verify-runs/T005-905b237dfff5.log)
 
 ## Evidence
 
@@ -62,7 +61,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-trending.test.ts` (7 tests, AC 1–5). Supervisor rerun 05:38:29 UTC: `ℹ tests 7 ℹ pass 7 ℹ fail 0` |
 | Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` → 7/7 pass; agent: `pnpm typecheck` 0 errors |
 | Negative cases hold | ☑ pass | `✔ throws TrendingParseError on a page with no repo rows`; `✔ fetch throws with URL and status on a non-200 response` |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 69e6caea-9bd0-4d38-b6fd-bf91bb849567, commit 905b237dfff5c4fd32bd3064667ad65a0513a083, log .claude/verify-runs/T005-905b237dfff5.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-trending.ts`, its test, fixture, caller `packages/connectors/src/index.ts` (constructor still compatible). `lane: C1, 3 files, 3912 lines, EXCEEDS (lines 3912 > 250)` — 3,751 of those lines are the saved HTML fixture; label kept at C1 |
 | Full smoke suite still green (no regression) | ☑ pass | connectors suite 7/7; no other package touched |
 | **Companion score (easy-verifier)** | ☑ N/A | not run: Risk Low, single-connector change |
