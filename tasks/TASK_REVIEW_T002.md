@@ -53,7 +53,8 @@ Mode: auto
 4. Approved the agent's tdd plan as matching the guide — RULE: `docs/claude-md/tracks.md` `### Every user stop and its auto rule` (row 15: "The Supervisor approves a `tdd` plan that matches the guide")
 Checks: tests `pnpm --filter @idea-radar/db test` — 19/19 pass with Postgres 16, suite skips cleanly without `TEST_DATABASE_URL`; reviews migration-safety — GO (additive only, rollback SQL in header, up→down→up tested by agent on seeded scratch DB; no production data exists yet, so no prod-like dry run), code-review — P0 0, P1 0, P2 3 (global `pg` type parsers are a process-wide side effect of importing `@idea-radar/db`; `insertSignals` is not atomic across `signals`/`pending_signals` unless the caller passes a transaction client; `repo_daily.date` still parses as a local-time `Date` on read — T016 should set a DATE parser or cast), security-review — no findings ≥ 8/10 (all SQL parameterised, migration path fixed, `recordSourceRun` creates unknown sources as non-displayable); real run `pnpm db:migrate` twice on a fresh DB (agent) — applied 001 and 002, then nothing (auto-checked, not /verify)
 Memory: nothing new
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 59b2aa68-37fc-4c91-b452-72bd8023ea64, commit 1924d5fd1ebf5ba42ae5336a76e7d942d5f4e45a, log .claude/verify-runs/T002-1924d5fd1ebf.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 59b2aa68-37fc-4c91-b452-72bd8023ea64, commit 1924d5fd1ebf5ba42ae5336a76e7d942d5f4e45a); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/db/src/repository.test.ts` (19 integration tests, AC 1–14, incl. concurrent-migrate lock test). Output with DB: `ℹ tests 19 ℹ pass 19 ℹ fail 0` |
 | Verification command run | ☑ pass | DB run 19/19; skip run exits 0 with the suite skipped (see AFTER); agent: `pnpm typecheck` exit 0, `pnpm db:migrate` twice on a fresh DB — second run applied nothing |
 | Negative cases hold | ☑ pass | `repoId: 0` with no `fullName` throws before any SQL; dead-port `TEST_DATABASE_URL` skips, 0 fail; agent mutation check: advisory-lock line removed → concurrent-migrate test fails (18/19) |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 59b2aa68-37fc-4c91-b452-72bd8023ea64, commit 1924d5fd1ebf5ba42ae5336a76e7d942d5f4e45a, log .claude/verify-runs/T002-1924d5fd1ebf.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `packages/db/**`, `packages/core/src/types.ts` and its users (`github-api.ts` `toRepo` compiles with nullable `createdAt`). `lane: C2, 8 files, 807 lines, EXCEEDS (lines 807 > 500)` — 380 are tests; label kept at C2 |
 | Full smoke suite still green (no regression) | ☑ pass | agent: `TEST_DATABASE_URL= pnpm test` whole repo exit 0 (core 6 pass) |
 | **Companion score (easy-verifier)** | ☑ N/A | not run in this session; offered for the merge decision |
