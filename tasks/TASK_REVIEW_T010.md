@@ -42,22 +42,21 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
-Paused: auto-mode check failed — tasks/TASK_REVIEW_T010.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T010.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T010" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/core/src/lowkey.test.ts` (each component at 0, its full point, above, missing input; README fixtures good, bare, headings only), `packages/db/src/scores.test.ts` (lowkey score = weighted sum, trending/medium unchanged), `packages/db/src/tuning.test.ts` (spawns `pnpm label` and `pnpm precision` on a temp schema). core `ℹ tests 37 ℹ fail 0`, db `ℹ tests 79 ℹ fail 0` |
+| Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T010); `pnpm typecheck` clean (agent) |
+| Negative cases hold | ☑ pass | empty README → 0; flat velocity → 0; values clamp at 1; an unknown label value throws; no labels → precision prints n/a |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | core `lowkey.ts` + config, db `scores.ts` lowkey branch and `tuning.ts`, two scripts, root `package.json`. `lane: C2, 13 files, 861 lines, EXCEEDS (lines 861 > 500)` — mostly tests |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: scoring only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: scoring only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: scoring only |
 
 ---
 
@@ -118,5 +117,4 @@ labelled 3 of the 3 top-scored lowkey rows of 2026-10-31
 
 **DELTA**: lowkey rows now carry the SPEC's weighted score with its five 0..1 components stored, and the owner can run `pnpm label` to export a sheet to label and `pnpm precision` to get precision@50 of the ranking.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session, 2026-10-31T08:38:05Z: reran `TEST_DATABASE_URL=… pnpm test` under T010 (exit 0, recorded in `memory/event-trace/T010.jsonl`) and read `packages/core/src/lowkey.ts`.
