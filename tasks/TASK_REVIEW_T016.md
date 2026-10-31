@@ -86,9 +86,15 @@ GET /ops/sources   -> {"items":[]} [200]
 ```
 The API has no tests and every route returns an empty body.
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (2026-10-31T07:46:37Z, `createApi` served on port 47318 over a temp schema seeded with one non-displayable source `trendshift`; bodies cut):
+```
+GET /tiers/lowkey?limit=1 -> [200] {"tier":"lowkey","date":"2026-10-30","items":[{"repoId":1,"fullName":"a/one",...,"score":0.9,"starsGained":15,"components":{"velocityLift":0.8},"stackTags":[]}],"nextCursor":"eyJzY29yZSI6IjAuOSIsInJlcG9JZCI6MX0"}
+GET /repos/abc -> [400] {"error":"id: must be a numeric repo id"}
+GET /ops/sources -> [200] {"items":[{"id":"github_api","name":"GitHub API","enabled":true,"lastRunAt":null,"lastStatus":"ok","lastError":null}]}
+```
+The `trendshift_boost` component and the `trendshift` source are absent. `TEST_DATABASE_URL=... pnpm test`: apps/api 15 tests, 15 pass (BEFORE: 0); whole suite 143 tests, 142 pass, 1 skipped (pre-existing connectors skip); `pnpm typecheck` exit 0.
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**DELTA**: The dashboard can now page through a tier with filters, open a repo's detail and read source health, and no response carries data from a non-displayable source.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
