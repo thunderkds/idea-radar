@@ -21,9 +21,9 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T024** — Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots`
 
 ### Ready for Review
+- [ ] **T024** — Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots`
 
 ### Done
 - [x] **T023** — Job queue run token + heartbeat (no double run after stuck-job reclaim) | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-t023-job-fencing` | Started 2026-10-31: branch `hun-t023-job-fencing` | Done 2026-10-31: auto verify pass (session caa06316-710d-4618-94b6-c5f054bcc071, commit 60d4de7189f256124707bad69c264dcc0941cb88)
