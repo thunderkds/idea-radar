@@ -26,6 +26,8 @@ const skip = await skipReason();
 
 /** The non-displayable source. Its id, name and counts must appear in no response. */
 const HIDDEN = "trendshift";
+/** The admin token of the main test server. Must appear in no response. */
+const TOKEN = "t027-admin-token-0123456789abcdef";
 
 describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
   const schema = `test_${randomBytes(6).toString("hex")}`;
@@ -33,6 +35,9 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
   let pool: Pool;
   let server: Server;
   let base: string;
+  let openServer: Server;
+  /** A second server started without ADMIN_TOKEN. */
+  let openBase: string;
 
   const get = async (path: string): Promise<{ status: number; text: string; body: any }> => {
     const res = await fetch(`${base}${path}`);
@@ -51,13 +56,17 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
     } finally {
       client.release();
     }
-    server = createServer(createApi(pool));
+    server = createServer(createApi(pool, { adminToken: TOKEN }));
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    openServer = createServer(createApi(pool));
+    await new Promise<void>((resolve) => openServer.listen(0, "127.0.0.1", resolve));
+    openBase = `http://127.0.0.1:${(openServer.address() as AddressInfo).port}`;
   });
 
   after(async () => {
     await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()));
+    await new Promise<void>((resolve) => (openServer ? openServer.close(() => resolve()) : resolve()));
     await pool?.end();
     await admin?.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
     await admin?.end();
@@ -66,7 +75,7 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
   beforeEach(async () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
-    await pool.query("TRUNCATE repos, repo_daily, signals, repo_content, repo_scores, sources");
+    await pool.query("TRUNCATE repos, repo_daily, signals, repo_content, repo_scores, sources, tracked_repos, jobs");
     await seed();
   });
 
@@ -425,6 +434,159 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       const trending = body.items.find((s: any) => s.id === "github_trending");
       assert.equal(trending.enabled, false);
       assert.equal(trending.lastRunAt, null);
+    });
+  });
+
+  describe("GET /repos/:id: tracking (T027 AC 2)", () => {
+    it("carries tracking and the group's other repos, and null / [] for a repo that is not tracked", async () => {
+      assert.deepEqual((await get("/repos/1")).body.tracking, null);
+      assert.deepEqual((await get("/repos/1")).body.groupRepos, []);
+      await pool.query(
+        `INSERT INTO tracked_repos (repo_id, priority, group_key, added_reason, next_due_at, last_snapshot_at) VALUES
+           (1, 'normal', 'cli|go', 'signal', '2026-11-05T00:00:00Z', '2026-10-30T03:00:00Z'),
+           (2, 'leader', 'cli|go', 'signal', '2026-11-01T00:00:00Z', NULL),
+           (3, 'parked', 'cli|go', 'signal', 'infinity', NULL)`,
+      );
+      const { body } = await get("/repos/1");
+      assert.deepEqual(body.tracking, {
+        priority: "normal",
+        groupKey: "cli|go",
+        lastSnapshotAt: "2026-10-30T03:00:00.000Z",
+        nextDueAt: "2026-11-05T00:00:00.000Z",
+      });
+      assert.deepEqual(body.groupRepos, [
+        { repoId: 2, fullName: "a/two", priority: "leader" },
+        { repoId: 3, fullName: "a/three", priority: "parked" },
+      ]);
+      assert.equal((await get("/repos/3")).body.tracking.nextDueAt, null, "parked: only on request");
+    });
+  });
+
+  describe("POST /rescrape (T027 AC 1)", () => {
+    const post = async (rawBody: string | undefined, headers: Record<string, string> = {}, at = base) => {
+      const res = await fetch(`${at}/rescrape`, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: rawBody });
+      const text = await res.text();
+      return { status: res.status, text, body: JSON.parse(text) };
+    };
+    const auth = { authorization: `Bearer ${TOKEN}` };
+    const rescrape = (body: unknown, headers: Record<string, string> = auth) => post(JSON.stringify(body), headers);
+    const track = (repoId: number, priority: string, group: string | null, due: string) =>
+      pool.query("INSERT INTO tracked_repos (repo_id, priority, group_key, added_reason, next_due_at) VALUES ($1, $2, $3, 'signal', $4)", [repoId, priority, group, due]);
+    const tracked = async () =>
+      Object.fromEntries((await pool.query("SELECT repo_id, priority, next_due_at FROM tracked_repos")).rows.map((r) => [r.repo_id, r]));
+    const jobs = async () => (await pool.query("SELECT name, data_key, status, attempts FROM jobs ORDER BY id")).rows;
+
+    beforeEach(async () => {
+      await track(1, "normal", "cli|go", "2026-12-01T00:00:00Z");
+      await track(2, "parked", "cli|go", "infinity");
+      await track(3, "leader", "other|x", "2026-12-01T00:00:00Z");
+    });
+
+    it("repoId: 202 { queued: 1 }, due now, priority kept, today's snapshot job queued", async () => {
+      const before = Date.now();
+      const r = await rescrape({ repoId: 2 });
+      assert.equal(r.status, 202);
+      assert.deepEqual(r.body, { queued: 1 });
+      const st = await tracked();
+      assert.ok(Math.abs(st[2].next_due_at.getTime() - before) < 10_000, "a parked repo is due now");
+      assert.equal(st[2].priority, "parked");
+      assert.equal(st[1].next_due_at.toISOString(), "2026-12-01T00:00:00.000Z", "the other repo is untouched");
+      assert.deepEqual(await jobs(), [{ name: "snapshot", data_key: new Date().toISOString().slice(0, 10), status: "pending", attempts: 0 }]);
+    });
+
+    it("groupKey: marks every tracked repo of the group, and only that group", async () => {
+      const r = await rescrape({ groupKey: "cli|go" });
+      assert.deepEqual([r.status, r.body], [202, { queued: 2 }]);
+      const st = await tracked();
+      assert.ok(Math.abs(st[1].next_due_at.getTime() - Date.now()) < 10_000);
+      assert.ok(Math.abs(st[2].next_due_at.getTime() - Date.now()) < 10_000);
+      assert.equal(st[3].next_due_at.toISOString(), "2026-12-01T00:00:00.000Z");
+    });
+
+    it("re-opens today's snapshot job that already ran (ok -> pending), keeping its attempts", async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      await pool.query("INSERT INTO jobs (name, data_key, status, attempts, finished_at) VALUES ('snapshot', $1, 'ok', 1, now())", [today]);
+      assert.equal((await rescrape({ repoId: 1 })).status, 202);
+      assert.deepEqual(await jobs(), [{ name: "snapshot", data_key: today, status: "pending", attempts: 1 }]);
+    });
+
+    it("404 for a repo or group that is not tracked, and no job is queued", async () => {
+      for (const body of [{ repoId: 99 }, { repoId: 4 }, { groupKey: "nope" }]) {
+        const r = await rescrape(body);
+        assert.equal(r.status, 404, JSON.stringify(body));
+        assert.ok(typeof r.body.error === "string");
+      }
+      assert.deepEqual(await jobs(), []);
+    });
+
+    it("400 for a body that is not exactly one of { repoId } or { groupKey }, naming the problem", async () => {
+      const bad: unknown[] = [
+        {}, [], null, "x", 5, { repoId: 1, groupKey: "cli|go" },
+        { repoId: "1" }, { repoId: 0 }, { repoId: -1 }, { repoId: 1.5 }, { repoId: Number.MAX_SAFE_INTEGER + 1 }, { repoId: null },
+        { groupKey: "" }, { groupKey: "   " }, { groupKey: 5 }, { groupKey: "x".repeat(201) }, { other: 1 },
+      ];
+      for (const body of bad) {
+        const r = await rescrape(body);
+        assert.equal(r.status, 400, JSON.stringify(body));
+        assert.ok(typeof r.body.error === "string");
+      }
+      for (const raw of ["", "{", "not json"]) assert.equal((await post(raw, auth)).status, 400, JSON.stringify(raw));
+      assert.equal((await post(JSON.stringify({ groupKey: "x".repeat(10_000) }), auth)).status, 400, "a body over the size cap");
+      assert.deepEqual(await jobs(), []);
+      assert.equal((await tracked())[1].next_due_at.toISOString(), "2026-12-01T00:00:00.000Z");
+    });
+
+    it("401 for a missing or wrong token, before the body is looked at, and changes nothing", async () => {
+      const wrong: Record<string, string>[] = [
+        {},
+        { authorization: "" },
+        { authorization: "Bearer " },
+        { authorization: "Bearer wrong" },
+        { authorization: `Bearer ${TOKEN}x` },
+        { authorization: `Bearer ${TOKEN.slice(0, -1)}` },
+        { authorization: TOKEN },
+        { authorization: `Basic ${TOKEN}` },
+        { authorization: `Bearer ${TOKEN.toUpperCase()}` },
+      ];
+      for (const headers of wrong) {
+        const r = await rescrape({ repoId: 1 }, headers);
+        assert.equal(r.status, 401, JSON.stringify(headers));
+        assert.ok(!r.text.includes(TOKEN));
+      }
+      assert.equal((await post("{", {})).status, 401, "a bad body without a token is 401, not 400");
+      assert.deepEqual(await jobs(), []);
+      assert.equal((await tracked())[1].next_due_at.toISOString(), "2026-12-01T00:00:00.000Z");
+    });
+
+    it("404 for the route when ADMIN_TOKEN is not set: with a token, without one, any method, any body", async () => {
+      assert.equal((await post(JSON.stringify({ repoId: 1 }), auth, openBase)).status, 404);
+      assert.equal((await post(JSON.stringify({ repoId: 1 }), {}, openBase)).status, 404);
+      assert.equal((await post("{", {}, openBase)).status, 404);
+      assert.equal((await fetch(`${openBase}/rescrape`)).status, 404);
+      assert.deepEqual(await jobs(), []);
+      assert.equal((await tracked())[1].next_due_at.toISOString(), "2026-12-01T00:00:00.000Z");
+      // an empty ADMIN_TOKEN is "not set"
+      const empty = createServer(createApi(pool, { adminToken: "" }));
+      await new Promise<void>((resolve) => empty.listen(0, "127.0.0.1", resolve));
+      try {
+        const at = `http://127.0.0.1:${(empty.address() as AddressInfo).port}`;
+        assert.equal((await post(JSON.stringify({ repoId: 1 }), { authorization: "Bearer " }, at)).status, 404);
+      } finally {
+        await new Promise<void>((resolve) => empty.close(() => resolve()));
+      }
+    });
+
+    it("/rescrape takes POST only, and every other route stays GET-only", async () => {
+      for (const method of ["GET", "PUT", "PATCH", "DELETE"]) {
+        assert.equal((await fetch(`${base}/rescrape`, { method, headers: auth })).status, 405, method);
+      }
+      for (const path of ["/health", "/tiers/lowkey", "/repos/1", "/consensus", "/ops/sources", "/topics/rising", "/nope"]) {
+        for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+          const res = await fetch(`${base}${path}`, { method, headers: auth, body: JSON.stringify({ repoId: 1 }) });
+          assert.equal(res.status, 405, `${method} ${path}`);
+        }
+      }
+      assert.deepEqual(await jobs(), []);
     });
   });
 

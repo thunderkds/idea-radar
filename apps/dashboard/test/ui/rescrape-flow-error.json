@@ -1,0 +1,140 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T027 button flow: error (API rejects the token; dashboard server unreachable)"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "API rejects the dashboard's token: 'Refresh failed: unauthorized' in the error colour; button usable again"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3429/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "Object.keys(document.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps'))",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": "role=button[name=\"Refresh now\"]"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').textContent !== ''",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').textContent === 'Refresh failed: unauthorized'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').classList.contains('rescrape__status--error') && document.querySelector('.rescrape__status').getAttribute('role') === 'status'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape button').disabled === false && document.querySelector('.rescrape button').textContent === 'Refresh now'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!document.documentElement.outerHTML.includes('wrong-token')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Server action call fails (dashboard server unreachable): error line, the page stays up"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "Object.keys(document.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps'))",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { const f = window.fetch; window.fetch = (u, o) => (o && o.headers && (o.headers['Next-Action'] || o.headers['next-action'])) ? Promise.reject(new TypeError('fetch failed')) : f(u, o); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": "role=button[name=\"Refresh group now\"]"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape__status')[1].textContent !== ''",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape__status')[1].textContent === 'Refresh failed: Could not reach the dashboard server'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('h1.page-title') !== null && document.querySelectorAll('.rescrape button').length === 2"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

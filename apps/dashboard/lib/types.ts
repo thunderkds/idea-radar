@@ -58,7 +58,24 @@ export interface RepoResponse {
   readmeExcerpt: string | null;
   signals: { source: string; signalType: string; value: Record<string, unknown>; observedAt: string }[];
   timeline?: TimelineEntry[];
+  /** The repo's tracking row (T027); null when not tracked. `nextDueAt` null = only on request. */
+  tracking?: {
+    priority: TrackingPriority;
+    groupKey: string | null;
+    lastSnapshotAt: string | null;
+    nextDueAt: string | null;
+  } | null;
+  /** The other repos of the same idea group. */
+  groupRepos?: { repoId: number; fullName: string; priority: TrackingPriority }[];
 }
+
+export type TrackingPriority = "leader" | "normal" | "parked";
+
+/** What a refresh request names: one repo, or every tracked repo of an idea group. */
+export type RescrapeTarget = { repoId: number } | { groupKey: string };
+
+/** What the refresh server action returns to the button: when it was queued, or why it was not. */
+export type RescrapeResult = { ok: true; queued: number; at: string } | { ok: false; message: string };
 
 export const TIERS: { id: Tier; label: string; blurb: string }[] = [
   { id: "lowkey", label: "Lowkey", blurb: "Under ~200 stars, active, growing faster than their own baseline" },

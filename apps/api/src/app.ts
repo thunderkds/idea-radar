@@ -1,18 +1,21 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { ConsensusQuery, Queryable, StarsWindow, TierQuery } from "@idea-radar/db";
-import { getRepoDetail, listConsensus, listDisplayableSources, listTier } from "@idea-radar/db";
+import type { ConsensusQuery, Queryable, RescrapeTarget, StarsWindow, TierQuery } from "@idea-radar/db";
+import { getRepoDetail, listConsensus, listDisplayableSources, listTier, requestRescrape } from "@idea-radar/db";
 import type { Tier } from "@idea-radar/core";
 
 /**
- * Read-only API for the dashboard (HUN-156). `createApi(db)` returns a plain Node request handler so
+ * API for the dashboard (HUN-156). `createApi(db)` returns a plain Node request handler so
  * tests can serve it on port 0; `index.ts` only owns the pool, the server and the listener.
- * Data-access SQL lives in packages/db/src/api.ts.
+ * Data-access SQL lives in packages/db/src/api.ts. Every route is GET-only except `POST /rescrape` (T027),
+ * which needs `ADMIN_TOKEN`; with no token configured that route answers 404.
  */
 const TIERS: Tier[] = ["trending", "medium", "lowkey"];
 const WINDOWS: StarsWindow[] = ["7d", "30d"];
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 const MAX_TEXT = 200;
+const MAX_BODY_BYTES = 4096;
 
 class BadRequest extends Error {}
 
@@ -88,13 +91,59 @@ function parseTierQuery(tier: Tier, params: URLSearchParams): TierQuery {
   };
 }
 
-export function createApi(db: Queryable): (req: IncomingMessage, res: ServerResponse) => void {
+export interface ApiOptions {
+  /** Bearer token that `POST /rescrape` requires. Unset or blank: the route answers 404. */
+  adminToken?: string;
+}
+
+/** The JSON body of a request, at most `MAX_BODY_BYTES`; the rest of a longer body is read and dropped so the 400 can be sent. */
+function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size <= MAX_BODY_BYTES) chunks.push(chunk);
+    });
+    req.on("error", reject);
+    req.on("end", () => {
+      if (size > MAX_BODY_BYTES) return reject(new BadRequest(`body: must be at most ${MAX_BODY_BYTES} bytes`));
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      } catch {
+        reject(new BadRequest("body: must be JSON"));
+      }
+    });
+  });
+}
+
+/** Exactly one of `{ repoId }` (a positive safe integer) or `{ groupKey }` (1-MAX_TEXT characters). */
+function parseRescrapeTarget(body: unknown): RescrapeTarget {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) throw new BadRequest("body: must be a JSON object");
+  const { repoId, groupKey } = body as Record<string, unknown>;
+  if ((repoId === undefined) === (groupKey === undefined)) throw new BadRequest("body: give exactly one of repoId or groupKey");
+  if (repoId !== undefined) {
+    if (typeof repoId !== "number" || !Number.isSafeInteger(repoId) || repoId < 1) throw new BadRequest("repoId: must be a positive integer");
+    return { repoId };
+  }
+  if (typeof groupKey !== "string" || groupKey.trim() === "" || groupKey.length > MAX_TEXT) throw new BadRequest(`groupKey: must be 1-${MAX_TEXT} characters`);
+  return { groupKey };
+}
+
+/** Constant-time check of `Authorization: Bearer <token>`: both sides are hashed first, so the compared buffers have equal length. */
+function bearerMatches(header: string | undefined, expected: string): boolean {
+  const given = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
+  return timingSafeEqual(createHash("sha256").update(given).digest(), createHash("sha256").update(expected).digest());
+}
+
+export function createApi(db: Queryable, options: ApiOptions = {}): (req: IncomingMessage, res: ServerResponse) => void {
+  const adminToken = options.adminToken?.trim() || undefined;
   return (req, res) => {
     const send = (status: number, body: unknown) => {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(body));
     };
-    handle(db, req)
+    handle(db, req, adminToken)
       .then(([status, body]) => send(status, body))
       .catch((err: unknown) => {
         if (err instanceof BadRequest) return send(400, { error: err.message });
@@ -104,10 +153,20 @@ export function createApi(db: Queryable): (req: IncomingMessage, res: ServerResp
   };
 }
 
-async function handle(db: Queryable, req: IncomingMessage): Promise<[number, unknown]> {
-  if (req.method !== "GET") return [405, { error: "method not allowed" }];
+async function handle(db: Queryable, req: IncomingMessage, adminToken: string | undefined): Promise<[number, unknown]> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname;
+
+  if (path === "/rescrape") {
+    if (adminToken === undefined) return [404, { error: "not found" }];
+    if (req.method !== "POST") return [405, { error: "method not allowed" }];
+    if (!bearerMatches(req.headers.authorization, adminToken)) return [401, { error: "unauthorized" }];
+    const target = parseRescrapeTarget(await readJsonBody(req));
+    const queued = await requestRescrape(db, target, new Date());
+    return queued > 0 ? [202, { queued }] : [404, { error: "repo or group is not tracked" }];
+  }
+
+  if (req.method !== "GET") return [405, { error: "method not allowed" }];
 
   if (path === "/health") {
     try {

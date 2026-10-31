@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatCount, formatDate, formatGained, formatScore, formatText } from "./format";
+import { formatCount, formatDate, formatDateTime, formatGained, formatScore, formatText } from "./format";
 
 describe("formatCount", () => {
   it("groups thousands", () => {
@@ -55,5 +55,18 @@ describe("formatText", () => {
     assert.equal(formatText(""), null);
     assert.equal(formatText("   "), null);
     assert.equal(formatText("Rust"), "Rust");
+  });
+});
+
+describe("formatDateTime", () => {
+  it("shows an ISO timestamp as UTC to the minute", () => {
+    assert.equal(formatDateTime("2026-10-31T15:55:48.264Z"), "2026-10-31 15:55 UTC");
+    assert.equal(formatDateTime("2026-10-31T23:30:00+02:00"), "2026-10-31 21:30 UTC");
+  });
+  it("returns null for a missing or invalid value", () => {
+    assert.equal(formatDateTime(null), null);
+    assert.equal(formatDateTime(undefined), null);
+    assert.equal(formatDateTime(""), null);
+    assert.equal(formatDateTime("nope"), null);
   });
 });

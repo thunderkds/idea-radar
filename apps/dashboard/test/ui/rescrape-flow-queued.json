@@ -1,0 +1,175 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T027 button flow: queued (repo, then group), button disabled while the request runs"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Repo button: disabled with 'Refreshing\u2026' while the request runs, then 'Refresh queued <time>'"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1003"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "Object.keys(document.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps'))",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape button').textContent === 'Refresh now' && document.querySelector('.rescrape__status').textContent === ''"
+  }
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { const f = window.fetch; window.fetch = (u, o) => (o && o.headers && (o.headers['Next-Action'] || o.headers['next-action'])) ? new Promise(r => setTimeout(() => r(f(u, o)), 1500)) : f(u, o); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": ".rescrape-actions > .rescrape:first-child button"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape button').disabled === true && document.querySelector('.rescrape button').textContent === 'Refreshing\u2026' && document.querySelector('.rescrape button').getAttribute('aria-busy') === 'true'"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').textContent !== ''",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^Refresh queued \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC$/.test(document.querySelector('.rescrape__status').textContent)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape button').disabled === false && document.querySelector('.rescrape button').textContent === 'Refresh now' && document.querySelector('.rescrape button').getAttribute('aria-busy') === 'false'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').getAttribute('role') === 'status' && !document.querySelector('.rescrape__status').classList.contains('rescrape__status--error')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Group button on repo 1001: 'Refresh queued for 3 repos <time>' under the group button only"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "Object.keys(document.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps'))",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": "role=button[name=\"Refresh group now\"]"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape__status')[1].textContent !== ''",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^Refresh queued for 3 repos \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC$/.test(document.querySelectorAll('.rescrape__status')[1].textContent)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape__status')[0].textContent === ''"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "The repo's tracking line shows the new due time after a reload (parked 1003 is due now; priority unchanged)"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1003"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^priority parked \u00b7 last refresh no data \u00b7 next refresh \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC$/.test(document.querySelector('[aria-labelledby=h-tracking] .meta').textContent)"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

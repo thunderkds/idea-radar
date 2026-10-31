@@ -27,6 +27,7 @@ const CONSENSUS_DAYS = consensusConfig.windowDays;
 const SERIES_DAYS = 90;
 const README_EXCERPT_CHARS = 2000;
 const DETAIL_SIGNAL_LIMIT = 100;
+const GROUP_REPOS_LIMIT = 20;
 
 /**
  * The consensus window, the same one `applyConsensus` and `scoreDay` use: [score date - days 00:00Z, score
@@ -212,6 +213,10 @@ export interface RepoDetail {
   stackTags: string[];
   readmeExcerpt: string | null;
   signals: { source: string; signalType: string; value: Record<string, unknown>; observedAt: Date }[];
+  /** The repo's `tracked_repos` row (T027), or null when it is not tracked. `nextDueAt` null = only on request (`parked`). */
+  tracking: { priority: "leader" | "normal" | "parked"; groupKey: string | null; lastSnapshotAt: Date | null; nextDueAt: Date | null } | null;
+  /** The other repos of the same idea group, leaders first, at most `GROUP_REPOS_LIMIT`; empty without a group. */
+  groupRepos: { repoId: number; fullName: string; priority: "leader" | "normal" | "parked" }[];
 }
 
 /** One repo with its latest score, 90-day star series, README excerpt and displayable signals; null if unknown. */
@@ -227,7 +232,7 @@ export async function getRepoDetail(db: Queryable, repoId: number): Promise<Repo
   const r = repoRes.rows[0];
   if (!r) return null;
 
-  const [scoreRes, seriesRes, signalRes, timelineRes, hidden] = await Promise.all([
+  const [scoreRes, seriesRes, signalRes, timelineRes, trackingRes, hidden] = await Promise.all([
     db.query(
       `SELECT s.date::text AS date, s.tier, s.score, s.components, s.fake_star_flag,
               ${displayableConsensusCount("s.date", "s.repo_id", "$2")} AS consensus_count
@@ -253,8 +258,25 @@ export async function getRepoDetail(db: Queryable, repoId: number): Promise<Repo
         WHERE v.repo_id = $1 ORDER BY v.first_seen_at, v.source`,
       [repoId],
     ),
+    db.query(
+      `SELECT priority, group_key, last_snapshot_at,
+              CASE WHEN next_due_at = 'infinity' THEN NULL ELSE next_due_at END AS next_due_at
+         FROM tracked_repos WHERE repo_id = $1`,
+      [repoId],
+    ),
     hiddenSourceIds(db),
   ]);
+  const t = trackingRes.rows[0];
+  const groupRes = t?.group_key
+    ? await db.query(
+        `SELECT t.repo_id, r.full_name, t.priority
+           FROM tracked_repos t JOIN repos r ON r.repo_id = t.repo_id
+          WHERE t.group_key = $1 AND t.repo_id <> $2
+          ORDER BY CASE t.priority WHEN 'leader' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, r.full_name, t.repo_id
+          LIMIT $3`,
+        [t.group_key, repoId, GROUP_REPOS_LIMIT],
+      )
+    : { rows: [] };
 
   const s = scoreRes.rows[0];
   return {
@@ -291,6 +313,10 @@ export async function getRepoDetail(db: Queryable, repoId: number): Promise<Repo
       value: g.value,
       observedAt: g.observed_at,
     })),
+    tracking: t
+      ? { priority: t.priority, groupKey: t.group_key, lastSnapshotAt: t.last_snapshot_at, nextDueAt: t.next_due_at }
+      : null,
+    groupRepos: groupRes.rows.map((g) => ({ repoId: g.repo_id, fullName: g.full_name, priority: g.priority })),
   };
 }
 
