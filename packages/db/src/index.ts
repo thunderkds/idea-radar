@@ -15,7 +15,7 @@ export function createPool(connectionString = process.env.DATABASE_URL): Pool {
   return new pg.Pool({ connectionString });
 }
 
-export { applyMigrations } from "./migrations.js";
+export { applyMigrations, rollbackMigration } from "./migrations.js";
 export * from "./repository.js";
 export * from "./sources.js";
 export * from "./candidates.js";

@@ -24,7 +24,7 @@ const url = process.env.TEST_DATABASE_URL;
 
 /** Every shipped migration file; the tests count against the directory so a new migration needs no edit here. */
 const migrationFiles = readdirSync(new URL("../migrations", import.meta.url))
-  .filter((f) => f.endsWith(".sql"))
+  .filter((f) => f.endsWith(".sql") && !f.endsWith(".down.sql"))
   .sort();
 
 /** Returns why the DB tests must skip, or undefined when Postgres answers. */
