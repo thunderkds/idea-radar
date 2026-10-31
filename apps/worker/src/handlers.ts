@@ -119,7 +119,14 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
       },
     };
   }
-  handlers[SCORE_JOB] = { sourceId: null, run: async ({ db, job }) => void (await scoreDay(db, job.dataKey)) };
+  // Windows end at the last ingested GH Archive day when it lags behind the last complete UTC day.
+  handlers[SCORE_JOB] = {
+    sourceId: null,
+    async run({ db, job }) {
+      const cursor = await getCursor(db, GH_ARCHIVE_ID);
+      await scoreDay(db, job.dataKey, cursor ? { windowEnd: cursor } : {});
+    },
+  };
   return handlers;
 }
 

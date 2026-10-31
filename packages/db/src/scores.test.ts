@@ -217,6 +217,14 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(res.skippedNoMetadata, 2);
     });
 
+    it("ends the windows at an earlier windowEnd (GH Archive lag); a later one is ignored", async () => {
+      await repo(71, { stars: 800 });
+      await signal(71, "ossinsight", `${E}T12:00:00Z`);
+      assert.equal((await scoreDay(pool, DATE)).scored, 1);
+      assert.equal((await scoreDay(pool, DATE, { windowEnd: DATE })).scored, 1);
+      assert.equal((await scoreDay(pool, DATE, { windowEnd: dayBefore(1) })).scored, 0);
+    });
+
     it("ignores data from the scoring date itself (windows end at date - 1)", async () => {
       await repo(70, { stars: 800 });
       await day(70, DATE, 5000);

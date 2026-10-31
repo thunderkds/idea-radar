@@ -40,9 +40,12 @@ interface InputRow {
  * no `repo_daily` row in the baseline window, so its baseline rate is unknown (gap A3). Lowkey scores are
  * interim until T010 (`components.interim = 1`). `consensus_count` and `fake_star_flag` are 0 / false until
  * T015 and T011. `db` may be a pool, or a client that is not inside a transaction.
+ * `windowEnd` (e.g. the GH Archive cursor, the last ingested day) moves the windows earlier when the
+ * last complete day is not ingested yet; a value after `date` - 1 is ignored.
  */
-export async function scoreDay(db: Queryable, date: string): Promise<ScoreRun> {
-  const windowEnd = new Date(Date.parse(`${date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+export async function scoreDay(db: Queryable, date: string, opts: { windowEnd?: string } = {}): Promise<ScoreRun> {
+  const lastComplete = new Date(Date.parse(`${date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+  const windowEnd = opts.windowEnd && opts.windowEnd < lastComplete ? opts.windowEnd : lastComplete;
   // A Pool has no `release`; a PoolClient does. Borrow a client from a pool so BEGIN..COMMIT share one connection.
   const borrowed = "release" in db ? undefined : await db.connect();
   const client = borrowed ?? db;
