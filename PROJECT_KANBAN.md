@@ -32,12 +32,12 @@
 - [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | Risk: Med | P0 | Started 2026-10-31: branch `hun-142-db-access`
 - [ ] **T003** — HUN-145 GitHub API connector (metadata, name resolution, rate limit) | backend-developer | C2 | Risk: Med | P0 | Started 2026-10-31: branch `hun-145-github-api`
 - [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | Risk: Low | P1 | Started 2026-10-31: branch `hun-146-gh-archive`
-- [ ] **T005** — HUN-147 GitHub Trending page scraper | backend-developer | C1 | Risk: Low | P1 | Started 2026-10-31: branch `hun-147-trending-scraper`
 
 ### Ready for Review
-- [ ] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | PR/branch: `hun-t001-test-runner` | Started 2026-10-31: branch `hun-t001-test-runner`
+- [ ] **T005** — HUN-147 GitHub Trending page scraper | backend-developer | C1 | PR/branch: `hun-147-trending-scraper` | Started 2026-10-31: branch `hun-147-trending-scraper`
 
 ### Done
+- [x] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | PR/branch: `hun-t001-test-runner` | Started 2026-10-31: branch `hun-t001-test-runner` | Done 2026-10-31: auto verify pass (session 602b7bbf-f688-42c1-9e5c-580c17f21a07, commit 422e1463c39880a38ca0665e9845fca7e6244f8e)
 
 ---
 
