@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T007.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T007" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode); Risk Medium, but the trace has no `security-review` Skill call
 
 ## Auto decisions
 
@@ -72,8 +73,33 @@ Mode: auto
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured before any implementation commit (cmd: `date -u; sed -n 1,20p apps/worker/src/index.ts; ls packages/db/migrations`):
+
+```
+Sat Oct 31 06:21:48 AM UTC 2026
+import { buildRegistry } from "@idea-radar/connectors";
+import type { ConnectorRunResult, SourceConnector } from "@idea-radar/core";
+
+/**
+ * Minimal scheduler. GH Archive runs hourly; everything else daily; scoring
+ * daily after ingestion. Swap for a queue-backed runner in HUN-144.
+ */
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+
+async function runConnector(c: SourceConnector, since: Date): Promise<ConnectorRunResult> {
+  const startedAt = new Date();
+  let signalsWritten = 0;
+  try {
+    for await (const item of c.fetch(since)) {
+      const signals = c.normalize(item);
+      // TODO(HUN-142): resolve fullName -> repoId and insert into `signals`.
+      signalsWritten += signals.length;
+    }
+    return { connectorId: c.id, startedAt, finishedAt: new Date(), signalsWritten, status: "ok" };
+001_init.sql
+002_pending_signals_and_cursors.sql
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
