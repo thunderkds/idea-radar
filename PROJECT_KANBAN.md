@@ -29,10 +29,10 @@
 - [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1
 
 ### In Progress
-- [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | Risk: Med | P0 | Started 2026-10-31: branch `hun-142-db-access`
 - [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | Risk: Low | P1 | Started 2026-10-31: branch `hun-146-gh-archive`
 
 ### Ready for Review
+- [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | PR/branch: `hun-142-db-access` | Started 2026-10-31: branch `hun-142-db-access`
 - [ ] **T003** — HUN-145 GitHub API connector (metadata, name resolution, rate limit) | backend-developer | C2 | PR/branch: `hun-145-github-api` | Started 2026-10-31: branch `hun-145-github-api`
 - [ ] **T005** — HUN-147 GitHub Trending page scraper | backend-developer | C1 | PR/branch: `hun-147-trending-scraper` | Started 2026-10-31: branch `hun-147-trending-scraper`
 
