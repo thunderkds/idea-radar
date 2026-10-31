@@ -19,10 +19,10 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-173-idea-groups` | Started 2026-10-31: branch `hun-173-idea-groups` (stacked on `hun-t024-star-snapshots`)
 - [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-172-search-discovery` | Started 2026-10-31: branch `hun-172-search-discovery` (stacked on `hun-t024-star-snapshots`)
 
 ### Ready for Review
+- [ ] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-173-idea-groups` | Started 2026-10-31: branch `hun-173-idea-groups` (stacked on `hun-t024-star-snapshots`)
 
 ### Done
 - [x] **T024** — HUN-171 Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots` | Done 2026-10-31: auto verify pass (session e3465657-3348-46ea-bf97-c984f413ff60, commit 937d891d3473e8a6a8d6f1487d6be50dccdc91f1)
