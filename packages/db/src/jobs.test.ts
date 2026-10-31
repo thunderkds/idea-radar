@@ -2,7 +2,7 @@ import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
-import { applyMigrations, claimNext, completeJob, enqueueDue, failJob, MAX_JOB_ATTEMPTS } from "./index.js";
+import { applyMigrations, claimNext, completeJob, enqueueDue, failJob, heartbeatJob, MAX_JOB_ATTEMPTS } from "./index.js";
 
 const url = process.env.TEST_DATABASE_URL;
 
@@ -34,6 +34,11 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
   const rows = async (where = "TRUE") =>
     (await pool.query(`SELECT * FROM jobs WHERE ${where} ORDER BY id`)).rows as Record<string, any>[];
   const byName = async (name: string) => (await rows(`name = '${name}'`))[0]!;
+  /** The claim token of a row, as `claimNext` would return it. */
+  const claim = async (name: string) => {
+    const r = await byName(name);
+    return { id: r.id as number, attempts: r.attempts as number };
+  };
 
   before(async () => {
     admin = new pg.Client({ connectionString: url });
@@ -76,7 +81,7 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
     it("never recreates a job that already ran", async () => {
       await enqueueDue(pool, T0, { hourly: [], daily: ["ossinsight"] });
       const job = (await claimNext(pool, {}, T0))!;
-      await completeJob(pool, job.id, T0);
+      await completeJob(pool, job, T0);
       assert.equal(await enqueueDue(pool, new Date("2026-10-31T23:00:00Z"), { hourly: [], daily: ["ossinsight"] }), 0);
       assert.equal((await byName("ossinsight")).status, "ok");
     });
@@ -105,8 +110,7 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
       // a is at its cap, so the next claim skips a/2 and takes b/1.
       assert.equal((await claimNext(pool, caps, T0))?.name, "b");
       assert.equal(await claimNext(pool, caps, T0), null);
-      const done = (await byName("a")).id;
-      await completeJob(pool, done, T0);
+      await completeJob(pool, await claim("a"), T0);
       assert.equal((await claimNext(pool, caps, T0))?.dataKey, "2");
     });
 
@@ -135,7 +139,7 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
       let now = T0;
       for (const waitS of [30, 60, 120, 240]) {
         const job = (await claimNext(pool, {}, now))!;
-        assert.equal(await failJob(pool, job.id, "boom", now), "pending");
+        assert.equal(await failJob(pool, job, "boom", now), "pending");
         const row = await byName("a");
         assert.equal(row.status, "pending");
         assert.equal(row.last_error, "boom");
@@ -152,7 +156,7 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
       for (let i = 0; i < MAX_JOB_ATTEMPTS; i++) {
         const job = (await claimNext(pool, {}, now))!;
         assert.ok(job, `attempt ${i + 1} claimable`);
-        status = await failJob(pool, job.id, `err ${i}`, now);
+        status = await failJob(pool, job, `err ${i}`, now);
         now = new Date(now.getTime() + 2 * 3_600_000);
       }
       assert.equal(status, "failed");
@@ -166,7 +170,7 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
 
     it("ignores a job that is not running", async () => {
       await pool.query("INSERT INTO jobs (name, data_key, run_after) VALUES ('a','1',$1)", [T0]);
-      assert.equal(await failJob(pool, (await byName("a")).id, "x", T0), null);
+      assert.equal(await failJob(pool, await claim("a"), "x", T0), null);
       assert.equal((await byName("a")).attempts, 0);
     });
   });
@@ -225,10 +229,10 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.deepEqual(claimed.sort(), ["gh_archive", "ossinsight"]);
       assert.equal((await byName("score")).status, "pending");
 
-      await completeJob(pool, (await byName("gh_archive")).id, afterDelay);
+      await completeJob(pool, await claim("gh_archive"), afterDelay);
       assert.equal(await claimNext(pool, caps, afterDelay), null, "ossinsight still running");
 
-      await completeJob(pool, (await byName("ossinsight")).id, afterDelay);
+      await completeJob(pool, await claim("ossinsight"), afterDelay);
       assert.equal((await claimNext(pool, caps, afterDelay))?.name, "score");
     });
 
@@ -236,9 +240,9 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
       await enqueueDue(pool, afterDelay, names);
       const gh = (await claimNext(pool, caps, afterDelay))!;
       assert.equal(gh.name, "gh_archive");
-      await failJob(pool, gh.id, "x", afterDelay);
+      await failJob(pool, gh, "x", afterDelay);
       const oss = (await claimNext(pool, caps, afterDelay))!;
-      await completeJob(pool, oss.id, afterDelay);
+      await completeJob(pool, oss, afterDelay);
       assert.equal(await claimNext(pool, caps, afterDelay), null);
     });
 
@@ -254,6 +258,68 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
       await enqueueDue(pool, new Date("2026-10-31T00:05:00Z"), { hourly: [], daily: ["score"] });
       assert.equal(await claimNext(pool, caps, new Date("2026-10-31T01:59:00Z")), null);
       assert.equal((await claimNext(pool, caps, new Date("2026-10-31T02:00:00Z")))?.name, "score");
+    });
+  });
+
+  describe("run token (T023 AC 1-4)", () => {
+    const HOUR = 3_600_000;
+    const afterTimeout = new Date(T0.getTime() + 2 * HOUR + 1000);
+    const insertA = () => pool.query("INSERT INTO jobs (name, data_key, run_after) VALUES ('a','1',$1)", [T0]);
+
+    it("a stale run's completeJob and failJob change nothing; the current run's completeJob applies", async () => {
+      await insertA();
+      const first = (await claimNext(pool, {}, T0))!;
+      const second = (await claimNext(pool, {}, afterTimeout))!;
+      assert.equal(second.id, first.id);
+      assert.notEqual(second.attempts, first.attempts);
+
+      assert.equal(await completeJob(pool, first, afterTimeout), false);
+      assert.equal(await failJob(pool, first, "stale", afterTimeout), null);
+      const row = await byName("a");
+      assert.equal(row.status, "running");
+      assert.equal(row.attempts, second.attempts);
+      assert.equal(row.locked_at.getTime(), afterTimeout.getTime());
+      assert.equal(row.last_error, null);
+
+      assert.equal(await completeJob(pool, second, afterTimeout), true);
+      assert.equal((await byName("a")).status, "ok");
+      assert.equal(await completeJob(pool, second, afterTimeout), false, "already completed");
+    });
+
+    it("failJob with the current token records the failure", async () => {
+      await insertA();
+      const job = (await claimNext(pool, {}, T0))!;
+      assert.equal(await failJob(pool, job, "boom", T0), "pending");
+      assert.equal((await byName("a")).attempts, 1);
+    });
+
+    it("a heartbeat keeps a slow job from being reclaimed", async () => {
+      await insertA();
+      const job = (await claimNext(pool, {}, T0))!;
+      const beat = new Date(T0.getTime() + 1 * HOUR + 50 * 60_000);
+      assert.equal(await heartbeatJob(pool, job, beat), true);
+      assert.equal((await byName("a")).locked_at.getTime(), beat.getTime());
+      assert.equal(await claimNext(pool, {}, new Date(T0.getTime() + 2 * HOUR + 10 * 60_000)), null);
+    });
+
+    it("without a heartbeat the same job is reclaimed", async () => {
+      await insertA();
+      await claimNext(pool, {}, T0);
+      assert.ok(await claimNext(pool, {}, new Date(T0.getTime() + 2 * HOUR + 10 * 60_000)));
+    });
+
+    it("a heartbeat with a stale token returns false and leaves locked_at unchanged", async () => {
+      await insertA();
+      const first = (await claimNext(pool, {}, T0))!;
+      await claimNext(pool, {}, afterTimeout);
+      const later = new Date(afterTimeout.getTime() + 60_000);
+      assert.equal(await heartbeatJob(pool, first, later), false);
+      assert.equal((await byName("a")).locked_at.getTime(), afterTimeout.getTime());
+    });
+
+    it("a heartbeat on a job that is not running returns false", async () => {
+      await insertA();
+      assert.equal(await heartbeatJob(pool, await claim("a"), T0), false);
     });
   });
 });

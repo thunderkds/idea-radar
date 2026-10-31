@@ -143,22 +143,46 @@ export async function claimNext(pool: Pool, caps: ClaimCaps = {}, now: Date = ne
   }
 }
 
-/** Mark a running job `ok`. A job no longer running (already completed, or reclaimed) is left alone. */
-export async function completeJob(db: Queryable, id: number, now: Date = new Date()): Promise<void> {
-  await db.query(
-    `UPDATE jobs SET status = 'ok', locked_at = NULL, last_error = NULL, finished_at = $2::timestamptz
-     WHERE id = $1 AND status = 'running'`,
-    [id, now.toISOString()],
+/**
+ * The run token of a claim: `claimNext` returns a distinct `attempts` for every claim of a row (a
+ * failure adds 1, a stuck-job reclaim adds 1), so `(id, attempts)` identifies one run of a job.
+ */
+export type JobClaim = Pick<Job, "id" | "attempts">;
+
+/**
+ * Mark the claimed job `ok`. Applies only while the job is still running under this claim's token;
+ * returns `false` when it did not (already completed, or reclaimed by a newer run: the run lost the job).
+ */
+export async function completeJob(db: Queryable, job: JobClaim, now: Date = new Date()): Promise<boolean> {
+  const res = await db.query(
+    `UPDATE jobs SET status = 'ok', locked_at = NULL, last_error = NULL, finished_at = $3::timestamptz
+     WHERE id = $1 AND attempts = $2 AND status = 'running'`,
+    [job.id, job.attempts, now.toISOString()],
   );
+  return (res.rowCount ?? 0) > 0;
+}
+
+/**
+ * Keep the claimed job alive: set `locked_at = now` so the stuck-job timeout counts from the last
+ * heartbeat. Applies only under this claim's token; returns `false` when the run lost the job.
+ */
+export async function heartbeatJob(db: Queryable, job: JobClaim, now: Date = new Date()): Promise<boolean> {
+  const res = await db.query(
+    `UPDATE jobs SET locked_at = $3::timestamptz
+     WHERE id = $1 AND attempts = $2 AND status = 'running'`,
+    [job.id, job.attempts, now.toISOString()],
+  );
+  return (res.rowCount ?? 0) > 0;
 }
 
 /**
  * Record a failed run: `attempts + 1`, retry after `min(2^attempts x 30s, 1h)` (attempts before this
- * failure), or status `failed` once `MAX_JOB_ATTEMPTS` is reached. Returns the new status.
+ * failure), or status `failed` once `MAX_JOB_ATTEMPTS` is reached. Returns the new status, or `null`
+ * when the job is not running under this claim's token (the run lost the job).
  */
 export async function failJob(
   db: Queryable,
-  id: number,
+  job: JobClaim,
   error: string,
   now: Date = new Date(),
 ): Promise<"pending" | "failed" | null> {
@@ -170,9 +194,9 @@ export async function failJob(
                         ELSE $2::timestamptz + least(power(2, attempts) * $4, $5) * interval '1 second' END,
        finished_at = CASE WHEN attempts + 1 >= $3 THEN $2::timestamptz END,
        last_error = $6, locked_at = NULL
-     WHERE id = $1 AND status = 'running'
+     WHERE id = $1 AND attempts = $7 AND status = 'running'
      RETURNING status`,
-    [id, now.toISOString(), MAX_JOB_ATTEMPTS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_SECONDS, error],
+    [job.id, now.toISOString(), MAX_JOB_ATTEMPTS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_SECONDS, error, job.attempts],
   );
   return res.rows[0]?.status ?? null;
 }
