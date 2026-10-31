@@ -116,7 +116,7 @@ dashboard lint (2026-10-31T10:55:56Z):
 lint exit 0
 ```
 
-**AFTER** (captured 2026-10-31T11:00Z, HEAD `7de13ec` plus the step-file port edits; same command , same ports, database `dash_t017` reseeded with the fixed seed). Session passed; the badge assert, the warning assert and the timeline assert all pass; the `ui_check` that failed in BEFORE now passes. Report: `/home/hungnguyenhuu/workspace/pets/hungnguyen111/easy-ui-mcp/reports/session-20261031-110059-t017-r1-after-consensus-badges-fake-star-c382fc32.html`.
+**AFTER** (captured 2026-10-31T11:00Z, HEAD `7de13ec` plus the step-file port edits; same command (`python3 -I scripts/easy_ui.py batch`), same ports, database `dash_t017` reseeded with the fixed seed). Session passed; the badge assert, the warning assert and the timeline assert all pass; the `ui_check` that failed in BEFORE now passes. Report: `/home/hungnguyenhuu/workspace/pets/hungnguyen111/easy-ui-mcp/reports/session-20261031-110059-t017-r1-after-consensus-badges-fake-star-c382fc32.html`.
 
 ```
 AFTER captured 2026-10-31T11:00:59Z (HEAD 7de13ec + uncommitted step-file port edits; dashboard :3448, API :4418, DB dash_t017 reseeded)
