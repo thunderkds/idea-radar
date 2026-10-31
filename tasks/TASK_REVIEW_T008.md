@@ -53,7 +53,8 @@ Mode: auto
 5. README = first present of 6 root names; files over the cap (README 100 KB, manifest 50 KB) are truncated, not dropped; NUL characters stripped — RULE: `tasks/TASK_GUIDE_T008.md` § Acceptance Criteria (AC 1 caps)
 Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 66/67 (1 pre-existing live-GitHub skip), db 57/57, worker 24/24, exit 0; reviews code-review — P0 0, P1 0, P2 2 (live GraphQL content path unverified without a token, including a repo with no HEAD; repos GitHub cannot return are retried every day with no give-up mark), P3 1 (`FetchedRepoContent` duplicates db `RepoContent`; move it to core later); real run: none — needs a GitHub token (auto-checked, not /verify)
 Memory: nothing new
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e, log .claude/verify-runs/T008-7f1c2f8cc3cf.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-api.test.ts` (8 new `fetchContent` tests: batching, caps, absent manifests, missing repo), `packages/connectors/src/stack-tags.test.ts`, `packages/db/src/content.test.ts`, `apps/worker/src/worker.test.ts` (6 shortlist tests incl. score waits for shortlist). connectors `ℹ tests 67 ℹ fail 0`, worker `ℹ tests 24 ℹ fail 0` |
 | Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T008); `pnpm typecheck` clean (agent) |
 | Negative cases hold | ☑ pass | no cursor → skip; no token → select only, no `github_api` health row; invalid JSON/TOML manifests give no tags, never throw; missing repo listed in `missing` |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e, log .claude/verify-runs/T008-7f1c2f8cc3cf.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-api.ts`, `stack-tags.ts`, `content.ts`, `scoring.ts` (`contentMaxAgeDays`), worker handlers/index + tests. `lane: C2, 12 files, 894 lines, EXCEEDS (lines 894 > 500); unpredicted: apps/worker/src/index.ts, apps/worker/src/worker.test.ts, packages/connectors/src/github-api.test.ts, packages/connectors/src/stack-tags.test.ts, packages/db/src/content.test.ts, packages/db/src/index.ts` — about half is tests |
 | Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
 | **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
