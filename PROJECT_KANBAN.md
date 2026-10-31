@@ -11,10 +11,6 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
-- [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | Risk: Med | P0
-- [ ] **T003** — HUN-145 GitHub API connector (metadata, name resolution, rate limit) | backend-developer | C2 | Risk: Med | P0
-- [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | Risk: Low | P1
-- [ ] **T005** — HUN-147 GitHub Trending page scraper | backend-developer | C1 | Risk: Low | P1
 - [ ] **T006** — HUN-143 Registry sync into `sources` + env-flag tests | backend-developer | C1 | Risk: Low | P1
 - [ ] **T007** — HUN-144 Postgres-backed scheduler and job runner | backend-developer | C2 | Risk: Med | P1
 - [ ] **T008** — HUN-148 Shortlist enrichment (README, manifests, file tree, stack tags) | backend-developer | C2 | Risk: Low | P2
@@ -33,6 +29,10 @@
 - [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1
 
 ### In Progress
+- [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | Risk: Med | P0 | Started 2026-10-31: branch `hun-142-db-access`
+- [ ] **T003** — HUN-145 GitHub API connector (metadata, name resolution, rate limit) | backend-developer | C2 | Risk: Med | P0 | Started 2026-10-31: branch `hun-145-github-api`
+- [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | Risk: Low | P1 | Started 2026-10-31: branch `hun-146-gh-archive`
+- [ ] **T005** — HUN-147 GitHub Trending page scraper | backend-developer | C1 | Risk: Low | P1 | Started 2026-10-31: branch `hun-147-trending-scraper`
 
 ### Ready for Review
 - [ ] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | PR/branch: `hun-t001-test-runner` | Started 2026-10-31: branch `hun-t001-test-runner`
