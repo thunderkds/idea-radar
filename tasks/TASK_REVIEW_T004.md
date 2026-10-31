@@ -44,20 +44,31 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 -->
 Paused: auto-mode check failed — tasks/TASK_REVIEW_T004.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T004.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T004" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
+## Auto decisions
+
+Mode: auto
+1. Unit of work is a completed UTC day with replace semantics — RULE: `memory/decisions.md` § "2026-10-31 — GH Archive ingests whole UTC days, not hours"
+2. Backfill depth defaults to 1 day (`GHARCHIVE_BACKFILL_DAYS`) until the owner decides U2 — SAFER OPTION: smallest download; owner question U2 in `docs/analysis/2026-10-31-gaps.md` ⚠ decided for you — please review
+3. Accepted the agent's choice to drop events whose `created_at` falls outside the ingested day (counted as `outOfDay`), so a late arrival cannot overwrite a neighbouring day's complete row — RULE: replace semantics in `tasks/TASK_GUIDE_T004.md` AC 6
+4. Left the permanent-404 risk (a GH Archive hour that never appears stops ingestion at that day forever) for T007 to handle with a give-up rule — SAFER OPTION: AC 8 requires stopping on 404; changing it is a scheduler-policy choice ⚠ decided for you — please review
+Checks: tests `pnpm --filter @idea-radar/connectors test` — 17/17 pass, 1 live smoke skipped; reviews code-review — P0 0, P1 0, P2 2 (permanent-404 hour stalls the cursor; a full day is CPU-heavy, ~23 s per 9.6M synthetic lines, so T007 must not run it under a short timeout), P3 1 (`.env.example` lacks `GHARCHIVE_BACKFILL_DAYS`); real run: none (live smoke needs `GHARCHIVE_LIVE=1` and a ~100 MB download) (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/gh-archive.test.ts` (17 unit tests, AC 1–10; 1 live smoke skipped without `GHARCHIVE_LIVE=1`) + fixture `packages/connectors/src/fixtures/gh-archive/events.ndjson`. Output: `ℹ tests 18 ℹ pass 17 ℹ fail 0 ℹ skipped 1` |
+| Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` (see AFTER); agent: `pnpm typecheck` all workspaces pass |
+| Negative cases hold | ☑ pass | corrupt gzip rejects; malformed lines counted, not thrown; 404 stops without advancing cursor; 500 throws |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `gh-archive.ts`, its test and fixture, caller `packages/connectors/src/index.ts` (constructor unchanged). `lane: C2, 3 files, 656 lines, EXCEEDS (lines 656 > 500)` — 348 are tests; label kept at C2 |
+| Full smoke suite still green (no regression) | ☑ pass | connectors suite 17/17 (+1 skip); agent memory check: synthetic 24 h × 300k lines (~2.4 GB) under `--max-old-space-size=48` finished OK |
+| **Companion score (easy-verifier)** | ☑ N/A | not run: Risk Low |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: ingestion only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: ingestion only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: ingestion only |
 
 ---
 
@@ -85,9 +96,20 @@ Sat Oct 31 05:37:45 AM UTC 2026
 40:    // TODO(HUN-146): for each hour since `since`, download
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: Supervisor rerun, 2026-10-31 05:44 UTC:
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ pnpm --filter @idea-radar/connectors test
+✔ rollup: fixture yields exact RepoDaily rows (split at UTC midnight, contributors, starsMaxHour)
+✔ ingestDays: backfills each completed day after the cursor in order, then a rerun is a no-op
+✔ ingestDays: 404 for an hour stops the run; that day is not written and the cursor does not advance past it
+﹣ live: stream one real past hour # SKIP
+ℹ tests 18
+ℹ pass 17
+ℹ fail 0
+ℹ skipped 1
+```
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**DELTA**: The worker can now turn GH Archive hourly dumps into exact per-day `repo_daily` rows (including contributors and the busiest star hour) with bounded memory and idempotent reruns.
+
+**WITNESS**: Supervisor session, 2026-10-31 05:44 UTC, T004 worktree (trace `memory/event-trace/T004.jsonl`).
