@@ -31,9 +31,9 @@
 - [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
 
 ### In Progress
-- [ ] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | Risk: Low | P0 | Started 2026-10-31: branch `hun-t001-test-runner`
 
 ### Ready for Review
+- [ ] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | PR/branch: `hun-t001-test-runner` | Started 2026-10-31: branch `hun-t001-test-runner`
 
 ### Done
 
