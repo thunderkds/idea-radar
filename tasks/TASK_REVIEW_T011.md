@@ -200,3 +200,35 @@ apps/worker/src/handlers.ts:95:        await client.query("ROLLBACK").catch(() =
 ```
 
 Reading: with a `fetchImpl` that never resolves, `sampleStargazers` never settles. The test times out at 3000 ms and the run is killed by `timeout 20s` (exit 124). The grep shows the default `fetchImpl` (line 226) and `post` (line 395 catch) carry no timeout, and the `ROLLBACK` failure at `handlers.ts:95` is swallowed by `.catch(() => {})`.
+
+**AFTER** (same command, after the R1 implementation commits):
+
+```
+=== 2026-10-31T10:55:56Z ls packages/db/migrations/; pnpm lint ===
+001_init.sql
+002_pending_signals_and_cursors.sql
+003_candidates.sql
+004_jobs.sql
+005_source_first_seen.down.sql
+005_source_first_seen.sql
+
+> idea-radar@0.1.0 lint /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T015
+> pnpm -r lint && eslint scripts eslint.config.js
+
+Scope: 6 of 7 workspace projects
+apps/dashboard lint$ eslint .
+packages/core lint$ eslint .
+apps/dashboard lint: Done
+packages/core lint: Done
+packages/connectors lint$ eslint .
+packages/db lint$ eslint .
+packages/db lint: Done
+packages/connectors lint: Done
+apps/api lint$ eslint .
+apps/worker lint$ eslint .
+apps/api lint: Done
+apps/worker lint: Done
+exit 
+```
+
+**DELTA**: Every GitHub API request now carries a 30 s timeout (`AbortSignal.timeout`, plus a race for a `fetchImpl` that ignores the signal). The never-resolving `fetchImpl` test went from timing out at 3000 ms and a killed run (exit 124) to a rejection after 50 ms naming the endpoint, with no token in the message. The `ROLLBACK` failure at `handlers.ts` is now logged at warn level (`level: "warn"`) before the original error is rethrown, and `packages/core/src/index.ts` and `packages/db/src/index.ts` have sibling `index.test.ts` files that call the T011 exports.
