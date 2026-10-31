@@ -7,6 +7,10 @@ const fixture = JSON.parse(
   readFileSync(new URL("./fixtures/github-api/repo-node.json", import.meta.url), "utf8"),
 ) as GithubRepoNode;
 
+const snapshotsFixture = JSON.parse(
+  readFileSync(new URL("./fixtures/github-api/snapshots.json", import.meta.url), "utf8"),
+) as unknown;
+
 const TOKEN = "ghp_secretTokenValue123";
 const RESET_AT = "2026-10-31T06:00:00Z";
 const NOW = Date.parse("2026-10-31T05:00:00Z");
@@ -450,6 +454,60 @@ describe("GithubApiConnector.fetchContent", () => {
 const stargazersFixture = JSON.parse(
   readFileSync(new URL("./fixtures/github-api/stargazers.json", import.meta.url), "utf8"),
 ) as unknown;
+
+describe("GithubApiConnector.fetchSnapshots (T024 AC 4)", () => {
+  it("maps a saved response: stars, forks, pushedAt and commits in 30 days; an empty repo has 0 commits; a deleted one is missing", async () => {
+    const { calls, fetchImpl } = stub(() => snapshotsFixture);
+    const out = await make(fetchImpl).fetchSnapshots([101, 102, 103, 104]);
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0]!.variables.ids, [101, 102, 103, 104].map((i) => toNodeId(i)));
+    assert.deepEqual(out.snapshots, [
+      { repoId: 101, stars: 1840, forks: 212, pushedAt: new Date("2026-10-30T09:15:00Z"), commits30d: 37 },
+      { repoId: 102, stars: 3, forks: 0, pushedAt: null, commits30d: 0 },
+      { repoId: 104, stars: 55, forks: 4, pushedAt: new Date("2026-09-01T00:00:00Z"), commits30d: 0 },
+    ]);
+    assert.deepEqual(out.missing, [103]);
+  });
+
+  it("asks for the default branch's commit count since now - 30 days in one nodes(ids:) query", async () => {
+    const { calls, fetchImpl } = stub(() => snapshotsFixture);
+    await make(fetchImpl).fetchSnapshots([101]);
+    const { query, variables } = calls[0]!;
+    assert.match(query, /nodes\(ids: \$ids\)/);
+    assert.match(query, /defaultBranchRef \{ target \{ \.\.\. on Commit \{ history\(since: \$since\) \{ totalCount \} \} \} \}/);
+    assert.match(query, /rateLimit \{ cost remaining limit resetAt \}/);
+    assert.equal(variables.since, new Date(NOW - 30 * 86_400_000).toISOString());
+  });
+
+  it("splits 250 ids into 100/100/50 queries; an unencodable id is missing without a request", async () => {
+    const { calls, fetchImpl } = stub((call) => ({
+      data: {
+        nodes: (call.variables.ids as string[]).map((nid) => ({
+          databaseId: idFromNodeId(nid), stargazerCount: 1, forkCount: 0, pushedAt: null, defaultBranchRef: null,
+        })),
+        rateLimit: rl(),
+      },
+    }));
+    const ids = Array.from({ length: 250 }, (_, i) => i + 1);
+    const out = await make(fetchImpl).fetchSnapshots([...ids, -1]);
+    assert.deepEqual(calls.map((c) => c.variables.ids.length).sort((a, b) => b - a), [100, 100, 50]);
+    assert.equal(out.snapshots.length, 250);
+    assert.deepEqual(out.missing, [-1]);
+    assert.deepEqual(await make(fetchImpl).fetchSnapshots([]), { snapshots: [], missing: [] });
+    assert.equal(calls.length, 3, "an empty list makes no request");
+  });
+
+  it("goes through the shared rate-limit pause, and needs a token", async () => {
+    const sleeps: number[] = [];
+    const low = { data: { nodes: [null], rateLimit: rl(100, 5000) } };
+    const { fetchImpl } = stub(() => low);
+    const c = make(fetchImpl, sleeps);
+    await c.fetchSnapshots([1]);
+    await c.fetchSnapshots([1]);
+    assert.deepEqual(sleeps, [Date.parse(RESET_AT) - NOW]);
+    await assert.rejects(new GithubApiConnector(undefined, true, { fetchImpl }).fetchSnapshots([1]), /no token/);
+  });
+});
 
 describe("GithubApiConnector.sampleStargazers", () => {
   it("fetches the newest n stargazers in one query and maps the account facts", async () => {

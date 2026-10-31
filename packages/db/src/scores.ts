@@ -9,6 +9,7 @@ import {
 } from "@idea-radar/core";
 import type { Queryable } from "./index.js";
 import { upsertRepoScores } from "./repository.js";
+import { starsPerDaySql } from "./tracking.js";
 
 export interface ScoreRun {
   /** Rows written to `repo_scores` for the date. */
@@ -44,7 +45,9 @@ interface InputRow {
 /**
  * Score every repo for `date` (a UTC date, 'YYYY-MM-DD') and store one `repo_scores` row per repo that
  * matches a tier. Inputs come from the last complete UTC day, `date` - 1, and the 90 days ending on it.
- * Only repos with a `repos` row and any `repo_daily` or `signals` row in those 90 days are scored.
+ * Only repos with a `repos` row and any star day (`repo_daily` row or snapshot gain) or `signals` row in those 90 days are scored.
+ * Stars per day are the snapshot gain (`repo_star_gains`) where a snapshot covers the day, else GH Archive `stars_new` (T024).
+ * `pushes30d` (a lowkey activity input and a stored component) is the latest snapshot's `commits_30d` in the 30 days.
  * The date's rows are deleted and rewritten in one transaction, so a rerun gives the same rows.
  * `components` holds every `TierInput` field (booleans as 0/1) plus `stars7d` and `stars30d`;
  * `daysSincePush` is left out when `repos.pushed_at` is null. `insufficient_history` is 1 when the repo has
@@ -204,19 +207,22 @@ function tierScore(tier: "trending" | "medium", row: InputRow): number {
 // $1 = E, the last complete UTC day; $2 = min 30-day stars for a positive week; $3 = checkpoints to check.
 // Windows: 7 days = (E-7, E]; 30 days = (E-30, E]; 90 days = (E-90, E]; baseline = the 83 days (E-90, E-7].
 // Week k (0 = newest) is positive when the 30 days ending at E-7k gained >= $2 stars.
-// The percentile ranks the 7-day stars of every repo with a repo_daily row in the 7-day window, with or
+// Stars per day (`sd`) come from snapshot gains where a snapshot covers the day, else from GH Archive (T024).
+// The percentile ranks the 7-day stars of every repo with a star day in the 7-day window, with or
 // without a `repos` row; the heavier 90-day work is limited to the scored repos (`scope`).
+// Contributors, PRs and issues still come from GH Archive. `pushes30d` is the default-branch commit count of the
+// latest snapshot in the 30-day window (GH Archive has recorded no pushes since 2025), 0 without a snapshot.
 const INPUT_SQL = `
-WITH vel7 AS (
-  SELECT repo_id, sum(stars_new) AS s7 FROM repo_daily
-  WHERE date > $1::date - 7 AND date <= $1::date
+WITH sd AS (${starsPerDaySql("$1::date - 90", "$1::date")}
+), vel7 AS (
+  SELECT repo_id, sum(stars_new) AS s7 FROM sd
+  WHERE date > $1::date - 7
   GROUP BY repo_id
 ), pct AS (
   SELECT repo_id, percent_rank() OVER (ORDER BY s7) AS pr FROM vel7
 ), scope AS (
   SELECT r.repo_id, r.stars, r.archived, r.pushed_at FROM repos r
-  WHERE EXISTS (SELECT 1 FROM repo_daily d
-                WHERE d.repo_id = r.repo_id AND d.date > $1::date - 90 AND d.date <= $1::date)
+  WHERE EXISTS (SELECT 1 FROM sd WHERE sd.repo_id = r.repo_id)
      OR EXISTS (SELECT 1 FROM signals s
                 WHERE s.repo_id = r.repo_id
                   AND s.observed_at >= (($1::date - 89)::timestamp AT TIME ZONE 'UTC')
@@ -226,21 +232,28 @@ WITH vel7 AS (
          coalesce(sum(d.stars_new) FILTER (WHERE d.date > $1::date - 7), 0) AS s7,
          coalesce(sum(d.stars_new) FILTER (WHERE d.date > $1::date - 30), 0) AS s30,
          coalesce(sum(d.stars_new) FILTER (WHERE d.date <= $1::date - 7), 0) AS prior,
-         count(*) FILTER (WHERE d.date <= $1::date - 7) AS prior_rows,
+         count(*) FILTER (WHERE d.date <= $1::date - 7) AS prior_rows
+  FROM sd d JOIN scope USING (repo_id)
+  GROUP BY d.repo_id
+), act AS (
+  SELECT d.repo_id,
          coalesce(max(d.contributors) FILTER (WHERE d.date > $1::date - 30), 0) AS contributors,
-         coalesce(sum(d.pushes) FILTER (WHERE d.date > $1::date - 30), 0) AS pushes30d,
          coalesce(sum(d.prs_opened) FILTER (WHERE d.date > $1::date - 30), 0) AS prs30d,
          coalesce(sum(d.issues_opened) FILTER (WHERE d.date > $1::date - 30), 0) AS issues30d
   FROM repo_daily d JOIN scope USING (repo_id)
   WHERE d.date > $1::date - 90 AND d.date <= $1::date
   GROUP BY d.repo_id
+), snap AS (
+  SELECT DISTINCT ON (n.repo_id) n.repo_id, n.commits_30d
+  FROM repo_snapshots n JOIN scope USING (repo_id)
+  WHERE n.date > $1::date - 30 AND n.date <= $1::date
+  ORDER BY n.repo_id, n.date DESC
 ), wk AS (
   SELECT d.repo_id, k.k,
          coalesce(sum(d.stars_new) FILTER (WHERE d.date > $1::date - 7 * k.k - 30 AND d.date <= $1::date - 7 * k.k), 0)
            >= $2::int AS ok
-  FROM repo_daily d JOIN scope USING (repo_id)
+  FROM sd d JOIN scope USING (repo_id)
   CROSS JOIN generate_series(0, $3::int - 1) AS k(k)
-  WHERE d.date > $1::date - 90 AND d.date <= $1::date
   GROUP BY d.repo_id, k.k
 ), weeks AS (
   SELECT repo_id, coalesce(min(k) FILTER (WHERE NOT ok), $3::int) AS positive_weeks FROM wk GROUP BY repo_id
@@ -252,10 +265,10 @@ SELECT s.repo_id, s.stars, s.archived,
        coalesce(a.prior_rows, 0) AS prior_rows,
        coalesce(p.pr, 0) AS percentile,
        coalesce(w.positive_weeks, 0) AS positive_weeks,
-       coalesce(a.contributors, 0) AS contributors,
-       coalesce(a.pushes30d, 0) AS pushes30d,
-       coalesce(a.prs30d, 0) AS prs30d,
-       coalesce(a.issues30d, 0) AS issues30d,
+       coalesce(t.contributors, 0) AS contributors,
+       coalesce(n.commits_30d, 0) AS pushes30d,
+       coalesce(t.prs30d, 0) AS prs30d,
+       coalesce(t.issues30d, 0) AS issues30d,
        CASE WHEN s.pushed_at IS NULL THEN NULL
             ELSE greatest(0, floor(extract(epoch FROM (($1::date + 1)::timestamp AT TIME ZONE 'UTC') - s.pushed_at) / 86400))
        END AS days_since_push,
@@ -268,6 +281,8 @@ SELECT s.repo_id, s.stars, s.archived,
        (coalesce(a.prior_rows, 0) = 0 OR coalesce(a.s7, 0) / 7.0 > coalesce(a.prior, 0) / 83.0) AS above_baseline
 FROM scope s
 LEFT JOIN agg a USING (repo_id)
+LEFT JOIN act t USING (repo_id)
+LEFT JOIN snap n USING (repo_id)
 LEFT JOIN pct p USING (repo_id)
 LEFT JOIN weeks w USING (repo_id)
 ORDER BY s.repo_id`;

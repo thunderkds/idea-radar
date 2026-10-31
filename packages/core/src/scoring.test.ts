@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyTier, consensusBoostFactor, consensusConfig, lowkeyScore, type TierInput } from "./scoring.js";
+import { classifyTier, consensusBoostFactor, consensusConfig, lowkeyScore, trackingConfig, type TierInput } from "./scoring.js";
 
 const base: TierInput = {
   stars: 50,
@@ -138,5 +138,16 @@ describe("consensusConfig and consensusBoostFactor", () => {
 
   it("never goes below 1, even for a negative count", () => {
     assert.equal(consensusBoostFactor(-3), 1);
+  });
+});
+
+describe("trackingConfig (T024 AC 2)", () => {
+  it("snapshots leaders daily, normal repos weekly, parked repos only on request", () => {
+    assert.deepEqual(trackingConfig.cadenceDays, { leader: 1, normal: 7, parked: null });
+  });
+
+  it("batches 100 repos per query and caps a run at a whole number of batches", () => {
+    assert.equal(trackingConfig.batchSize, 100);
+    assert.ok(trackingConfig.dailyCap > 0 && trackingConfig.dailyCap % trackingConfig.batchSize === 0);
   });
 });

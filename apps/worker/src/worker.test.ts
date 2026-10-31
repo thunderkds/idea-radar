@@ -7,7 +7,7 @@ import type { Repo, Signal, SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import { applyMigrations, claimNext, enqueueDue, MAX_JOB_ATTEMPTS } from "@idea-radar/db";
 import type { Job, Pool } from "@idea-radar/db";
-import { buildCaps, buildHandlers, buildSchedule, RESOLVE_PENDING_JOB, SHORTLIST_JOB } from "./handlers.js";
+import { buildCaps, buildHandlers, buildSchedule, RESOLVE_PENDING_JOB, SHORTLIST_JOB, SNAPSHOT_JOB } from "./handlers.js";
 import type { JobHandler } from "./handlers.js";
 import { runWorker } from "./runner.js";
 
@@ -99,7 +99,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
     await pool.query(
-      "TRUNCATE jobs, repos, repo_daily, signals, sources, pending_signals, ingest_cursors, repo_scores, candidates, repo_content",
+      "TRUNCATE jobs, repos, repo_daily, signals, sources, pending_signals, ingest_cursors, repo_scores, candidates, repo_content, tracked_repos, repo_snapshots",
     );
   });
 
@@ -343,7 +343,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
 
     it("disabled connectors get no job", async () => {
       await once(ctx([new FakeConnector("off", ["x/y"], Infinity, undefined, false), new FakeConnector("on", [])]));
-      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "score", "shortlist"]);
+      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "score", "shortlist", "snapshot"]);
     });
 
     it("resolve_pending: resolves names through the one shared GitHub connector, keeps observed_at, bumps not-found", async () => {
@@ -568,6 +568,11 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
         { repo_id: 2, readme_md: "# repo 2", stack_tags: ["node"] },
       ]);
       assert.equal((await job(SHORTLIST_JOB)).status, "ok");
+      assert.deepEqual(
+        (await pool.query("SELECT repo_id, priority, added_reason FROM tracked_repos ORDER BY repo_id")).rows,
+        [1, 2, 3].map((repo_id) => ({ repo_id, priority: "normal", added_reason: "velocity" })),
+        "every candidate is tracked (T024 AC 3)",
+      );
       const health = await source("github_api");
       assert.equal(health!.last_status, "ok");
       assert.deepEqual(JSON.parse(lines.at(-1)!), {
@@ -614,6 +619,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
       await seed();
       await shortlist(handlersFor(new GithubApiConnector(undefined)));
       assert.equal(await count("candidates"), 3);
+      assert.equal(await count("tracked_repos"), 3, "tracking needs no token");
       assert.equal(await count("repos"), 0);
       assert.equal((await job(SHORTLIST_JOB)).status, "ok");
       assert.equal(await source("github_api"), undefined);
@@ -652,6 +658,101 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     });
   });
 
+  describe("snapshot (T024)", () => {
+    const track = (repoId: number, priority: string, nextDue: string) =>
+      pool.query("INSERT INTO tracked_repos (repo_id, priority, added_reason, next_due_at) VALUES ($1, $2, 'signal', $3)", [
+        repoId, priority, nextDue,
+      ]);
+    const snapshot = (repoId: number, stars: number) => ({
+      repoId, stars, forks: 2, pushedAt: new Date("2026-10-30T10:00:00Z"), commits30d: 12,
+    });
+
+    /** Fake GitHub: repo 9 is gone; everything else has `id * 10` stars. Records every id it is asked for. */
+    class FakeGithub extends GithubApiConnector {
+      asked: number[][] = [];
+      error: Error | null = null;
+      override async fetchSnapshots(ids: number[]) {
+        this.asked.push(ids);
+        if (this.error) throw this.error;
+        return { snapshots: ids.filter((i) => i !== 9).map((i) => snapshot(i, i * 10)), missing: ids.filter((i) => i === 9) };
+      }
+    }
+    const lines: string[] = [];
+    const handlersFor = (github: GithubApiConnector) => buildHandlers({ connectors: [github], log: (l) => lines.push(l) });
+    const runSnapshot = (handlers: Record<string, JobHandler>) => once({ [SNAPSHOT_JOB]: handlers[SNAPSHOT_JOB]! });
+    const snaps = async () =>
+      (await pool.query("SELECT repo_id, date::text AS date, stars, commits_30d FROM repo_snapshots ORDER BY repo_id")).rows;
+
+    beforeEach(() => void (lines.length = 0));
+
+    it("snapshots the due tracked repos for the job's date, moves their due time, parks a missing repo (AC 5)", async () => {
+      await track(1, "leader", "2026-10-30T00:00:00Z");
+      await track(2, "normal", "2026-10-31T06:00:00Z"); // due at NOW (06:10)
+      await track(3, "normal", "2026-11-05T00:00:00Z"); // not due
+      await track(4, "parked", "infinity"); // not due
+      await track(9, "normal", "2026-10-29T00:00:00Z"); // GitHub no longer has it
+      const gh = new FakeGithub("tok", true);
+      await runSnapshot(handlersFor(gh));
+      assert.deepEqual(gh.asked, [[9, 1, 2]], "oldest due first, one batched call");
+      assert.deepEqual(await snaps(), [
+        { repo_id: 1, date: "2026-10-31", stars: 10, commits_30d: 12 },
+        { repo_id: 2, date: "2026-10-31", stars: 20, commits_30d: 12 },
+      ]);
+      const due = (await pool.query("SELECT repo_id, priority, next_due_at, last_snapshot_at FROM tracked_repos ORDER BY repo_id")).rows;
+      const day = Date.parse("2026-10-31T00:00:00Z");
+      assert.equal(due[0].next_due_at.getTime(), day + 86_400_000, "leader: a day after the snapshot day");
+      assert.equal(due[1].next_due_at.getTime(), day + 7 * 86_400_000, "normal: a week");
+      assert.equal(due[1].last_snapshot_at.getTime(), NOW.getTime());
+      assert.equal(due[2].next_due_at.toISOString(), "2026-11-05T00:00:00.000Z", "not due: untouched");
+      assert.equal(due[3].priority, "parked");
+      assert.equal(due[4].priority, "parked", "the missing repo is parked");
+      assert.equal(due[4].next_due_at.toString(), "Infinity");
+      assert.equal((await job(SNAPSHOT_JOB)).status, "ok");
+      assert.equal((await source("github_api"))!.last_status, "ok");
+      assert.deepEqual(JSON.parse(lines.at(-1)!), { job: "snapshot", date: "2026-10-31", due: 3, snapshots: 2, missing: 1 });
+    });
+
+    it("a second run on the same day finds nothing due and makes no call", async () => {
+      await track(1, "leader", "2026-10-30T00:00:00Z");
+      const gh = new FakeGithub("tok", true);
+      const handlers = handlersFor(gh);
+      await runSnapshot(handlers);
+      await pool.query("UPDATE jobs SET status = 'pending', run_after = now() - interval '1 day'");
+      gh.asked.length = 0;
+      await runSnapshot(handlers);
+      assert.deepEqual(gh.asked, []);
+      assert.equal((await job(SNAPSHOT_JOB)).status, "ok");
+    });
+
+    it("without a GitHub token it is skipped and logged: no fetch, no snapshot, no github_api health", async () => {
+      await track(1, "leader", "2026-10-30T00:00:00Z");
+      await runSnapshot(handlersFor(new GithubApiConnector(undefined)));
+      assert.equal((await job(SNAPSHOT_JOB)).status, "ok");
+      assert.equal(await count("repo_snapshots"), 0);
+      assert.equal(await source("github_api"), undefined);
+      assert.match(lines.join("\n"), /snapshot.*no token/);
+    });
+
+    it("a GitHub failure fails the job, marks github_api error and leaves the repos due; score waits for it", async () => {
+      await track(1, "leader", "2026-10-30T00:00:00Z");
+      const gh = new FakeGithub("tok", true);
+      gh.error = new Error("GitHub API HTTP 502");
+      const ran: string[] = [];
+      const handlers: Record<string, JobHandler> = {
+        [SNAPSHOT_JOB]: handlersFor(gh)[SNAPSHOT_JOB]!,
+        score: { sourceId: null, run: async () => void ran.push("score") },
+      };
+      const at = () => new Date("2026-10-31T03:00:00Z");
+      await runWorker({ db: pool, handlers, caps: { defaultPerName: 5 }, once: true, now: at });
+      const j = await job(SNAPSHOT_JOB);
+      assert.equal([j.status, j.last_error].join("|"), "pending|GitHub API HTTP 502");
+      assert.equal((await source("github_api"))!.last_status, "error");
+      assert.deepEqual(ran, [], "snapshot failed, so score must not run");
+      assert.equal(await count("repo_snapshots"), 0);
+      assert.deepEqual(await pool.query("SELECT 1 FROM tracked_repos WHERE next_due_at <= $1", [at()]).then((r) => r.rowCount), 1);
+    });
+  });
+
   describe("claim after runWorker leaves nothing stuck", () => {
     it("no job is left running after a pass", async () => {
       await once({ a: { sourceId: null, run: async () => {} } });
@@ -672,7 +773,7 @@ describe("worker plan (no database)", () => {
   it("gh_archive is hourly; everything else daily, with score and resolve_pending", () => {
     const schedule = buildSchedule(buildHandlers({ connectors: fakes }));
     assert.deepEqual(schedule.hourly, ["gh_archive"]);
-    assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score", "shortlist"]);
+    assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score", "shortlist", "snapshot"]);
   });
 
   it("a failed ROLLBACK is logged at warn level and the original error is rethrown", async () => {
@@ -708,9 +809,10 @@ describe("worker plan (no database)", () => {
   it("per-name caps come from rateLimit.concurrency; gh_archive is 1; global defaults to 20 and reads WORKER_MAX_CONCURRENCY", () => {
     const caps = buildCaps(fakes, {});
     assert.equal(caps.global, 20);
-    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
+    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, snapshot: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
     assert.equal(caps.timeoutMs?.gh_archive, 6 * 3_600_000);
     assert.equal(caps.timeoutMs?.shortlist, 6 * 3_600_000);
+    assert.equal(caps.timeoutMs?.snapshot, 6 * 3_600_000, "a snapshot run can sit out a rate-limit reset");
     assert.equal(buildCaps(fakes, { WORKER_MAX_CONCURRENCY: "7" }).global, 7);
     assert.equal(buildCaps(fakes, { WORKER_MAX_CONCURRENCY: "abc" }).global, 20);
   });

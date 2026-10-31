@@ -42,21 +42,33 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+## Auto decisions
+
+Mode: auto
+1. Every candidate enters `tracked_repos` as `normal`, due now; no `leader` is seeded here (the guide's Out of scope line pointed at AC 3, and AC 3 says `normal`) — RULE: `tasks/TASK_GUIDE_T024.md` § Acceptance Criteria (AC 3 "a new repo starts `normal` and due now")
+2. `next_due_at` counts from the start of the snapshot's UTC day plus the cadence, not from the run time, so a daily leader is not skipped when the job starts later each day — FACT: `packages/db/src/tracking.ts:47 "const days = trackingConfig.cadenceDays[priority];"` (cadence in days; a `now`-based due time drifts past the next daily run)
+3. `parked` is stored as `next_due_at = 'infinity'`, so due selection needs no special case; T026 and T027 must set or clear it the same way — FACT: `packages/db/migrations/006_tracking.sql:5 "-- next_due_at = 'infinity' means \"only on request\": a `parked` repo"`
+4. Activity has no fallback to GH Archive pushes; a repo with no snapshot in 30 days scores activity 0 — RULE: `tasks/TASK_GUIDE_T024.md` § Acceptance Criteria (AC 6 "instead of `repo_daily.pushes`")
+5. Three P2 and two P3 review findings are left as follow-ups, not fixed — RULE: `.claude/skills/code-review/SKILL.md` § Phase 4 — Apply Safe Fixes ("Do not apply P2/P3 fixes automatically")
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` (Supervisor rerun in the worktree under T024) — core 54/54, dashboard 140/140, connectors 91/92 (1 pre-existing live-token skip), db 142/142, api 23/23, worker 36/36, scripts 21/21, exit 0; `pnpm lint`, `pnpm typecheck` exit 0; reviews code-review — P0 0, P1 0, P2 3 (live GraphQL `history` totalCount query and point cost unverified without a token; `repo_star_gains` view scans all snapshot history each run; new repos get no snapshot velocity until a second snapshot 7 days later), P3 2 (`pushes30d` key now holds commits; agent ran migration-safety by hand); migration-safety — GO (additive, up→down→up tested, no locks on existing tables); security-review — no findings; easy-verifier score — overall 64, floor 80 missed, change_risk 100 (Companion score row); real run: Demonstration script on a scratch schema — printed `repo 1: stars7d=70 tier=lowkey` (auto-checked, not /verify)
+Memory: memory/decisions.md — "Tracking strategy: GitHub API snapshots, idea groups, leaders (T024–T027)" (written at planning); nothing new from the review
+Not done: merge (yours); auto verify: ☑ pass (session e3465657-3348-46ea-bf97-c984f413ff60, commit 937d891d3473e8a6a8d6f1487d6be50dccdc91f1, log .claude/verify-runs/T024-937d891d3473.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session e3465657-3348-46ea-bf97-c984f413ff60, commit 937d891d3473e8a6a8d6f1487d6be50dccdc91f1); Gates 5 and 6 checked
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/db/src/tracking.test.ts` (gain spreading +70/7d = 10/day, trackCandidates upsert keeps priority, due selection cadence + cap, missing → parked), `packages/db/src/scores.test.ts` (stars7d 70 from snapshots, fallback to repo_daily, no double count, activity from commits_30d), `packages/db/src/candidates.test.ts`, `packages/db/src/migrations.test.ts` (006 up→down→up), `packages/connectors/src/github-api.test.ts` (fetchSnapshots on `fixtures/github-api/snapshots.json`), `packages/core/src/scoring.test.ts`, `apps/worker/src/worker.test.ts` (snapshot handler). Output: db 142/142, connectors 91/92, worker 36/36, core 54/54 |
+| Verification command run | ☑ pass | `pnpm lint && pnpm typecheck && TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` exit 0 (Supervisor rerun in the worktree under T024) |
+| Negative cases hold | ☑ pass | no token → job skipped and logged, no github_api health; repo GitHub no longer returns → parked; first snapshot gives no gain; a star loss counts 0; GitHub failure keeps `score` from running; rerun of a day overwrites, no duplicate |
+| verify | ☑ pass | auto-run by hook, session e3465657-3348-46ea-bf97-c984f413ff60, commit 937d891d3473e8a6a8d6f1487d6be50dccdc91f1, log .claude/verify-runs/T024-937d891d3473.log — pass |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | migration 006, `tracking.ts`, `scores.ts` INPUT_SQL, `candidates.ts` SELECT_SQL, `fetchSnapshots`, `snapshotHandler`, and their tests. `lane: C3, 18 files, 905 lines, FITS` (10 unpredicted files are tests, the fixture and the down migration) |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ fail | overall 64 (floor 80 missed), change_risk 100 (feature, confirmed; `new_code_without_test_share` 0.14 passed, only `packages/db/src/index.ts` unpaired), scope changes, ref `wave6-guides...HEAD`, abstentions: solution-fit, requirement-fidelity, api, operations, infrastructure, gates: none offered, test pairs: 6 proposals confirmed, divergence: no findings sent (the verifier accepts only refs from its own pack), ratings: architecture 100, code-quality 100, test-strategy 75, data 70 (`migrations_without_rollback_share` 1 although `006_tracking.down.sql` exists — field report E3), supply-chain 55 (E1 pinned-SHA masking, no provenance step), reliability 50 (`swallowed_errors_observed` 2: the pre-existing `ROLLBACK().catch(() => {})` in `candidates.ts` and `scores.ts`), blast-radius 30 (`max_fan_in_changed`, churn hotspots: `scores.ts`, `index.ts`), security 30 (`redaction_hits_observed` — lockfile/kit hashes, field report E2). report: `/home/hungnguyenhuu/.easy-verifier-reports/T024/evidence-report-changes-20261031T153353-837173Z.html` |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: db, connector and worker only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: db, connector and worker only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: db, connector and worker only |
 
 ---
 
@@ -67,12 +79,23 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured 2026-10-31T15:20Z on branch `hun-t024-star-snapshots` at the base commit (no implementation commit yet), scratch schema in `idea-radar-test-pg` (127.0.0.1:5436); script `/tmp/claude-1000/-home-hungnguyenhuu-workspace-pets-hungnguyen111-idea-radar/38a748fd-166b-4d4f-b351-2bf435c26688/scratchpad/demo.mjs`: repo 1 (170 stars, README, 2 contributors, recent push, GH Archive stars_new only 1/day on 3 baseline days and nothing in the last 7 days; the +70 stars between two API counts cannot be recorded).
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+2026-10-31T15:20:06.843Z migrations applied: 001_init.sql, 002_pending_signals_and_cursors.sql, 003_candidates.sql, 004_jobs.sql, 005_source_first_seen.sql
+repo_snapshots table: absent (no way to record the +70 stars)
+2026-10-31T15:20:06.861Z scoreDay: {"scored":0,"byTier":{},"skippedNoMetadata":0}
+repo 1: stars7d=0 / no tier (not scored; no repo_scores row)
+```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**AFTER**: same script (`demo.mjs`), same data, captured 2026-10-31T15:29Z on branch `hun-t024-star-snapshots` after commit "SPEC data model lists tracked_repos and repo_snapshots"; the script now also inserts two `repo_snapshots` rows for repo 1 (100 stars 7 days before, 170 on the window end day, commits_30d 20 then 25).
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+```
+2026-10-31T15:29:31.003Z migrations applied: 001_init.sql, 002_pending_signals_and_cursors.sql, 003_candidates.sql, 004_jobs.sql, 005_source_first_seen.sql, 006_tracking.sql
+2026-10-31T15:29:31.100Z scoreDay: {"scored":1,"byTier":{"lowkey":1},"skippedNoMetadata":0}
+repo 1: stars7d=70 tier=lowkey score=0.6276 activity=0.833333
+```
+
+**DELTA**: A repo whose stars GH Archive no longer sees is now scored from its two GitHub API star counts (+70 in 7 days gives stars7d 70 and a lowkey score, activity 25/30 from its commits), where before it had stars7d 0 and no tier.
+
+**WITNESS**: Supervisor reran the full suite in the worktree on 2026-10-31 under the T024 trace (`memory/event-trace/T024.jsonl`); BEFORE/AFTER captures are the implementing agent's, from commits `9c88425` (before any implementation) and `0b3ecb3`.
