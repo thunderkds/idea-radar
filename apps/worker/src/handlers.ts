@@ -14,6 +14,7 @@ import {
   listUnresolvedNames,
   markNotFound,
   recordSnapshots,
+  regroupTracked,
   resolvePending,
   SCORE_JOB,
   scoreDay,
@@ -32,6 +33,7 @@ type RollupStore = Parameters<GhArchiveConnector["ingest"]>[0];
 export const RESOLVE_PENDING_JOB = "resolve_pending";
 export const SHORTLIST_JOB = "shortlist";
 export const SNAPSHOT_JOB = "snapshot";
+export const REGROUP_JOB = "regroup";
 const GH_ARCHIVE_ID = "gh_archive";
 const GITHUB_API_ID = "github_api";
 const DAY_MS = 24 * 3_600_000;
@@ -205,6 +207,21 @@ function snapshotHandler(github: GithubApiConnector | undefined, log: (line: str
   };
 }
 
+/**
+ * Weekly regroup (T026): recompute every tracked repo's idea-group key, pick each group's leaders and park the
+ * inactive. Reads only the database, so it needs no GitHub token and records no source health. The data window
+ * ends at the day the run starts (the job key is the Monday of its week, which a late run must not look back to).
+ */
+function regroupHandler(log: (line: string) => void): JobHandler {
+  return {
+    sourceId: null,
+    async run({ db, now }) {
+      const date = now.toISOString().slice(0, 10);
+      log(JSON.stringify({ job: REGROUP_JOB, date, ...(await regroupTracked(db, date, now)) }));
+    },
+  };
+}
+
 /** Queue names, the schedule and the claim caps all derive from the connector registry. */
 export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
   const handlers: Record<string, JobHandler> = {};
@@ -224,6 +241,7 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
   }
   handlers[SHORTLIST_JOB] = shortlistHandler(github, deps.log ?? (() => {}));
   handlers[SNAPSHOT_JOB] = snapshotHandler(github, deps.log ?? (() => {}));
+  handlers[REGROUP_JOB] = regroupHandler(deps.log ?? (() => {}));
   if (github?.enabled) {
     handlers[RESOLVE_PENDING_JOB] = {
       sourceId: GITHUB_API_ID,
@@ -259,10 +277,14 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
   return handlers;
 }
 
-/** `gh_archive` hourly; every other handler daily. */
+/** `gh_archive` hourly; `regroup` weekly; every other handler daily. */
 export function buildSchedule(handlers: Record<string, JobHandler>): JobSchedule {
   const names = Object.keys(handlers);
-  return { hourly: names.filter((n) => n === GH_ARCHIVE_ID), daily: names.filter((n) => n !== GH_ARCHIVE_ID) };
+  return {
+    hourly: names.filter((n) => n === GH_ARCHIVE_ID),
+    daily: names.filter((n) => n !== GH_ARCHIVE_ID && n !== REGROUP_JOB),
+    weekly: names.filter((n) => n === REGROUP_JOB),
+  };
 }
 
 /**
@@ -271,7 +293,7 @@ export function buildSchedule(handlers: Record<string, JobHandler>): JobSchedule
  * GitHub API connector's work and takes its limit. `shortlist`, `snapshot` and `score` run alone.
  */
 export function buildCaps(connectors: SourceConnector[], env: NodeJS.ProcessEnv = process.env): ClaimCaps {
-  const perName: Record<string, number> = { [GH_ARCHIVE_ID]: 1, [SHORTLIST_JOB]: 1, [SNAPSHOT_JOB]: 1, [SCORE_JOB]: 1 };
+  const perName: Record<string, number> = { [GH_ARCHIVE_ID]: 1, [SHORTLIST_JOB]: 1, [SNAPSHOT_JOB]: 1, [REGROUP_JOB]: 1, [SCORE_JOB]: 1 };
   for (const c of connectors) {
     if (c.id === GH_ARCHIVE_ID) continue;
     perName[c.id === GITHUB_API_ID ? RESOLVE_PENDING_JOB : c.id] = c.rateLimit.concurrency;

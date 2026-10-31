@@ -7,7 +7,7 @@ import type { Repo, Signal, SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import { applyMigrations, claimNext, enqueueDue, MAX_JOB_ATTEMPTS } from "@idea-radar/db";
 import type { Job, Pool } from "@idea-radar/db";
-import { buildCaps, buildHandlers, buildSchedule, RESOLVE_PENDING_JOB, SHORTLIST_JOB, SNAPSHOT_JOB } from "./handlers.js";
+import { buildCaps, buildHandlers, buildSchedule, REGROUP_JOB, RESOLVE_PENDING_JOB, SHORTLIST_JOB, SNAPSHOT_JOB } from "./handlers.js";
 import type { JobHandler } from "./handlers.js";
 import { runWorker } from "./runner.js";
 
@@ -343,7 +343,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
 
     it("disabled connectors get no job", async () => {
       await once(ctx([new FakeConnector("off", ["x/y"], Infinity, undefined, false), new FakeConnector("on", [])]));
-      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "score", "shortlist", "snapshot"]);
+      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "regroup", "score", "shortlist", "snapshot"]);
     });
 
     it("resolve_pending: resolves names through the one shared GitHub connector, keeps observed_at, bumps not-found", async () => {
@@ -701,7 +701,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
       const due = (await pool.query("SELECT repo_id, priority, next_due_at, last_snapshot_at FROM tracked_repos ORDER BY repo_id")).rows;
       const day = Date.parse("2026-10-31T00:00:00Z");
       assert.equal(due[0].next_due_at.getTime(), day + 86_400_000, "leader: a day after the snapshot day");
-      assert.equal(due[1].next_due_at.getTime(), day + 7 * 86_400_000, "normal: a week");
+      assert.equal(due[1].next_due_at.getTime(), day + 86_400_000, "normal, first snapshot: a day (T026 AC 6)");
       assert.equal(due[1].last_snapshot_at.getTime(), NOW.getTime());
       assert.equal(due[2].next_due_at.toISOString(), "2026-11-05T00:00:00.000Z", "not due: untouched");
       assert.equal(due[3].priority, "parked");
@@ -753,6 +753,35 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     });
   });
 
+  describe("regroup (T026)", () => {
+    const lines: string[] = [];
+    beforeEach(() => void (lines.length = 0));
+
+    it("sets idea groups and leaders for the tracked repos, logs a summary, and completes the job", async () => {
+      for (let i = 1; i <= 4; i++) {
+        await pool.query("INSERT INTO repos (repo_id, full_name, topics) VALUES ($1, $2, '{rag,vector-database}')", [i, `o/r${i}`]);
+        await pool.query("INSERT INTO tracked_repos (repo_id, added_reason, next_due_at) VALUES ($1, 'signal', '2026-11-20T00:00:00Z')", [i]);
+        await pool.query("INSERT INTO repo_snapshots (repo_id, date, stars, forks, commits_30d) VALUES ($1, '2026-10-30', 5, 0, $2)", [i, i === 2 ? 20 : 0]);
+      }
+      const handlers = buildHandlers({ connectors: [], log: (l) => lines.push(l) });
+      await once({ [REGROUP_JOB]: handlers[REGROUP_JOB]! });
+      const rows = (await pool.query("SELECT repo_id, priority, group_key FROM tracked_repos ORDER BY repo_id")).rows;
+      assert.deepEqual(rows.map((r) => [r.priority, r.group_key]), [
+        ["normal", "rag+vector-database|"], ["leader", "rag+vector-database|"], ["normal", "rag+vector-database|"], ["normal", "rag+vector-database|"],
+      ]);
+      assert.equal((await job(REGROUP_JOB)).status, "ok");
+      assert.equal((await job(REGROUP_JOB)).data_key, "W2026-10-26", "keyed `W` + the Monday of the week of NOW (Sat 2026-10-31)");
+      assert.deepEqual(JSON.parse(lines.at(-1)!), { job: "regroup", date: "2026-10-31", tracked: 4, groups: 1, leaders: 1, normal: 3, parked: 0, promoted: 1 });
+    });
+
+    it("needs no GitHub token and records no source health", async () => {
+      const handlers = buildHandlers({ connectors: [], log: () => {} });
+      assert.equal(handlers[REGROUP_JOB]!.sourceId, null);
+      await once({ [REGROUP_JOB]: handlers[REGROUP_JOB]! });
+      assert.equal((await job(REGROUP_JOB)).status, "ok");
+    });
+  });
+
   describe("claim after runWorker leaves nothing stuck", () => {
     it("no job is left running after a pass", async () => {
       await once({ a: { sourceId: null, run: async () => {} } });
@@ -774,6 +803,12 @@ describe("worker plan (no database)", () => {
     const schedule = buildSchedule(buildHandlers({ connectors: fakes }));
     assert.deepEqual(schedule.hourly, ["gh_archive"]);
     assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score", "shortlist", "snapshot"]);
+  });
+
+  it("regroup is the one weekly job (T026 AC 3)", () => {
+    const schedule = buildSchedule(buildHandlers({ connectors: fakes }));
+    assert.deepEqual(schedule.weekly, ["regroup"]);
+    assert.equal(REGROUP_JOB, "regroup");
   });
 
   it("a failed ROLLBACK is logged at warn level and the original error is rethrown", async () => {
@@ -809,7 +844,7 @@ describe("worker plan (no database)", () => {
   it("per-name caps come from rateLimit.concurrency; gh_archive is 1; global defaults to 20 and reads WORKER_MAX_CONCURRENCY", () => {
     const caps = buildCaps(fakes, {});
     assert.equal(caps.global, 20);
-    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, snapshot: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
+    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, snapshot: 1, regroup: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
     assert.equal(caps.timeoutMs?.gh_archive, 6 * 3_600_000);
     assert.equal(caps.timeoutMs?.shortlist, 6 * 3_600_000);
     assert.equal(caps.timeoutMs?.snapshot, 6 * 3_600_000, "a snapshot run can sit out a rate-limit reset");
