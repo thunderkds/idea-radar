@@ -67,8 +67,29 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31T15:55:48Z by the implementing agent on branch `hun-174-rescrape-button` at `d2f0a42`, before any implementation commit; API on :4427 against the throwaway database `dash_t027` on `idea-radar-test-pg`, repo 1003 is `parked` with `next_due_at = infinity`; the route is absent and every non-GET answers 405, not 404):
+
+```
+2026-10-31T15:55:48Z
+$ curl -i -X POST http://localhost:4427/rescrape -H "Authorization: Bearer demo-admin-token" -H "content-type: application/json" -d "{\"repoId\":1003}"
+HTTP/1.1 405 Method Not Allowed
+content-type: application/json
+Date: Sat, 31 Oct 2026 15:55:48 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"error":"method not allowed"}
+$ psql: SELECT repo_id, priority, next_due_at FROM tracked_repos WHERE repo_id=1003
+ repo_id | priority | next_due_at |              now              
+---------+----------+-------------+-------------------------------
+    1003 | parked   | infinity    | 2026-10-31 15:55:48.264627+00
+(1 row)
+
+ name | data_key | status 
+------+----------+--------
+(0 rows)
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
