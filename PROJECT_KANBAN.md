@@ -23,9 +23,9 @@
 
 ### In Progress
 - [ ] **T008** — HUN-148 Shortlist job: candidates, metadata, README/manifests, stack tags | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-148-shortlist` | Started 2026-10-31: branch `hun-148-shortlist`
-- [ ] **T009** — HUN-149 Tier classification job | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-149-tier-classification` | Started 2026-10-31: branch `hun-149-tier-classification`
 
 ### Ready for Review
+- [ ] **T009** — HUN-149 Tier classification job | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-149-tier-classification` | Started 2026-10-31: branch `hun-149-tier-classification`
 - [ ] **T016** — HUN-156 Read-only API | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-156-api` | Started 2026-10-31: branch `hun-156-api`
 - [ ] **T012** — HUN-152 OSS Insight connector | backend-developer | C1 | Risk: Low | P2 | PR/branch: `hun-152-ossinsight` | Started 2026-10-31: branch `hun-152-ossinsight`
 
