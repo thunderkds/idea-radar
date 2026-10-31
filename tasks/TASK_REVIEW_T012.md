@@ -53,7 +53,8 @@ Mode: auto
 5. Left `OSSINSIGHT_ENABLED` as is: once merged, the daily `ossinsight` job fails every day and Ops shows the error until OSS Insight recovers — SAFER OPTION: the failure is the requested signal; disabling is the owner's call ⚠ decided for you — please review
 Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 63/64 (1 pre-existing skip), db 54/54, worker 18/18, exit 0; reviews code-review — P0 0, P1 0, P2 1 (collection paths and shapes unverified live), P3 0; real run `tsx` script iterating `fetch` against the live API — printed `threw: OSS Insight trends/repos returned 0 rows for periods [past_24_hours]; past_24_hours: data_quality.status=unavailable: ...` (auto-checked, not /verify)
 Memory: memory/learnings.md — OSS Insight collections endpoints return HTTP 500 (2026-10-31)
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 7ec0579b-cda9-4c2b-8293-e1cb05b85a14, commit 5bdded0a5401465c4f5696086facda6152c3fbb4, log .claude/verify-runs/T012-5bdded0a5401.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 7ec0579b-cda9-4c2b-8293-e1cb05b85a14, commit 5bdded0a5401465c4f5696086facda6152c3fbb4); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/ossinsight.test.ts` (13 tests: empty trends with/without data_quality, non-200, non-JSON, bad shape, collection tags merge, collection failure fails run, empty list, unavailable member list, budget 600 pass / 601 throw, normalize). connectors `ℹ tests 64 ℹ pass 63 ℹ fail 0 ℹ skipped 1` |
 | Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T012); `pnpm typecheck` clean (agent) |
 | Negative cases hold | ☑ pass | empty, non-200, non-JSON, wrong shape, collection 500 and budget overrun all throw; tests use injected `fetchImpl`, no network |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 7ec0579b-cda9-4c2b-8293-e1cb05b85a14, commit 5bdded0a5401465c4f5696086facda6152c3fbb4, log .claude/verify-runs/T012-5bdded0a5401.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `ossinsight.ts` + test + fixtures; callers: `packages/connectors/src/index.ts` (constructor call unchanged), worker `fetchHandler` (throw → job error). `lane: C1, 9 files, 440 lines, EXCEEDS (files 9 > 6; lines 440 > 250)` — 7 of 9 files are fixtures |
 | Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
 | **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
