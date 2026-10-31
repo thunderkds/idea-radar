@@ -1,0 +1,35 @@
+{
+  "data": {
+    "nodes": [
+      {
+        "stargazers": {
+          "edges": [
+            {
+              "starredAt": "2026-10-30T11:58:12Z",
+              "node": {
+                "createdAt": "2026-10-28T09:00:00Z",
+                "repositories": { "totalCount": 0 },
+                "followers": { "totalCount": 0 },
+                "contributionsCollection": { "contributionCalendar": { "totalContributions": 0 } }
+              }
+            },
+            {
+              "starredAt": "2026-10-30T11:41:03Z",
+              "node": {
+                "createdAt": "2019-03-14T17:22:40Z",
+                "repositories": { "totalCount": 42 },
+                "followers": { "totalCount": 130 },
+                "contributionsCollection": { "contributionCalendar": { "totalContributions": 1204 } }
+              }
+            },
+            {
+              "starredAt": "2026-10-30T11:30:55Z",
+              "node": null
+            }
+          ]
+        }
+      }
+    ],
+    "rateLimit": { "cost": 1, "remaining": 4990, "limit": 5000, "resetAt": "2026-10-31T06:00:00Z" }
+  }
+}

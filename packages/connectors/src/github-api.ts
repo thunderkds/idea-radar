@@ -1,4 +1,5 @@
-import type { Repo, SourceConnector, Signal } from "@idea-radar/core";
+import { fakeStarConfig } from "@idea-radar/core";
+import type { Repo, SourceConnector, Signal, StargazerAccount } from "@idea-radar/core";
 import { deriveStackTags, MANIFEST_FILES } from "./stack-tags.js";
 
 export interface GithubRepoNode {
@@ -23,6 +24,8 @@ export interface GithubApiOptions {
   /** Injected in tests; defaults to a `setTimeout` promise. */
   sleep?: (ms: number) => Promise<void>;
   endpoint?: string;
+  /** Per-request timeout in ms (default 30 s). Injected in tests. */
+  timeoutMs?: number;
 }
 
 export interface FetchByIdsResult {
@@ -57,6 +60,20 @@ export interface ResolveNamesResult {
 
 type ContentNode = Record<string, unknown> & { databaseId: number };
 
+interface StargazerNode {
+  stargazers?: {
+    edges: ({
+      starredAt: string;
+      node: {
+        createdAt: string;
+        repositories: { totalCount: number };
+        followers: { totalCount: number };
+        contributionsCollection: { contributionCalendar: { totalContributions: number } };
+      } | null;
+    } | null)[];
+  };
+}
+
 interface RateLimitInfo {
   cost: number;
   remaining: number;
@@ -80,6 +97,8 @@ const TREE_MAX_ENTRIES = 200;
 const README_FILES = ["README.md", "readme.md", "README.markdown", "README.rst", "README.txt", "README"];
 const LOW_BUDGET_FRACTION = 0.1;
 const ENDPOINT = "https://api.github.com/graphql";
+/** Every outbound request is cut off after this long, so one hung socket cannot stall a job slot. */
+const REQUEST_TIMEOUT_MS = 30_000;
 const NAME_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 
 const REPO_FIELDS = `
@@ -94,6 +113,20 @@ const CONTENT_FIELDS = `
   tree: object(expression: "HEAD:") { ... on Tree { entries { name type } } }
   ${README_FILES.map((f, i) => `r${i}: ${blob(f)}`).join("\n  ")}
   ${MANIFEST_FILES.map((f, i) => `m${i}: ${blob(f)}`).join("\n  ")}`;
+/** GraphQL `first:` limit; one query returns at most this many stargazers. */
+const STARGAZER_PAGE_MAX = 100;
+const STARGAZER_FIELDS = `
+  stargazers(first: $n, orderBy: {field: STARRED_AT, direction: DESC}) {
+    edges {
+      starredAt
+      node {
+        createdAt
+        repositories(privacy: PUBLIC) { totalCount }
+        followers { totalCount }
+        contributionsCollection { contributionCalendar { totalContributions } }
+      }
+    }
+  }`;
 const RATE_LIMIT_FIELDS = "rateLimit { cost remaining limit resetAt }";
 
 /**
@@ -182,6 +215,7 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly endpoint: string;
+  private readonly timeoutMs: number;
 
   // Request-throttling state only; no candidate ids are held here.
   private lastRateLimit: RateLimitInfo | null = null;
@@ -194,10 +228,17 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
     readonly enabled = Boolean(token),
     options: GithubApiOptions = {},
   ) {
-    this.fetchImpl = options.fetchImpl ?? ((...args) => fetch(...args));
+    this.fetchImpl =
+      options.fetchImpl ??
+      ((input, init) =>
+        fetch(input, {
+          ...init,
+          signal: AbortSignal.any([AbortSignal.timeout(REQUEST_TIMEOUT_MS), ...(init?.signal ? [init.signal] : [])]),
+        }));
     this.now = options.now ?? Date.now;
     this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.endpoint = options.endpoint ?? ENDPOINT;
+    this.timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
   }
 
   /** GitHub API work is pulled by id/name (`fetchByIds`, `resolveNames`), not by time. */
@@ -282,6 +323,31 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
     };
   }
 
+  /**
+   * Fake-star sample (HUN-151): the newest `n` stargazers of one repo (default `fakeStarConfig.sampleSize`,
+   * at most 100) in a single query through the shared rate-limit state. Deleted accounts are left out.
+   * Returns [] for a missing repo or an id that cannot be encoded.
+   */
+  async sampleStargazers(repoId: number, n: number = fakeStarConfig.sampleSize): Promise<StargazerAccount[]> {
+    const nodeId = toNodeId(repoId);
+    if (nodeId === null) return [];
+    const first = Math.max(1, Math.min(Math.floor(n), STARGAZER_PAGE_MAX));
+    const query = `query($ids: [ID!]!, $n: Int!) { nodes(ids: $ids) { ... on Repository {${STARGAZER_FIELDS} } } ${RATE_LIMIT_FIELDS} }`;
+    const data = await this.request<{ nodes: (StargazerNode | null)[] }>(query, { ids: [nodeId], n: first });
+    const accounts: StargazerAccount[] = [];
+    for (const edge of data.nodes[0]?.stargazers?.edges ?? []) {
+      if (!edge?.node) continue;
+      accounts.push({
+        starredAt: edge.starredAt,
+        createdAt: edge.node.createdAt,
+        publicRepos: edge.node.repositories.totalCount,
+        followers: edge.node.followers.totalCount,
+        contributions: edge.node.contributionsCollection.contributionCalendar.totalContributions,
+      });
+    }
+    return accounts;
+  }
+
   /** Resolve `owner/name` strings to canonical repos, ≤100 per GraphQL query. */
   async resolveNames(fullNames: string[]): Promise<ResolveNamesResult> {
     const resolved = new Map<string, Repo>();
@@ -327,19 +393,29 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
   }
 
   private async post<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    // The signal bounds a real fetch; the race also bounds a `fetchImpl` that ignores it.
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    const timedOut = new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(new Error(`timed out after ${this.timeoutMs}ms`)), { once: true });
+    });
     let res: Response;
     try {
-      res = await this.fetchImpl(this.endpoint, {
-        method: "POST",
-        headers: {
-          authorization: `bearer ${this.token}`,
-          "content-type": "application/json",
-          "user-agent": "idea-radar",
-        },
-        body: JSON.stringify({ query, variables }),
-      });
+      res = await Promise.race([
+        this.fetchImpl(this.endpoint, {
+          method: "POST",
+          headers: {
+            authorization: `bearer ${this.token}`,
+            "content-type": "application/json",
+            "user-agent": "idea-radar",
+          },
+          body: JSON.stringify({ query, variables }),
+          signal,
+        }),
+        timedOut,
+      ]);
     } catch (err) {
-      throw new Error(`GitHub API request failed: ${this.redact(String(err))}`);
+      const reason = signal.aborted ? `timed out after ${this.timeoutMs}ms` : String(err);
+      throw new Error(`GitHub API request to ${this.endpoint} failed: ${this.redact(reason)}`);
     }
     if (!res.ok) throw new Error(`GitHub API HTTP ${res.status}`);
 

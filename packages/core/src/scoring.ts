@@ -147,3 +147,15 @@ export const lowkeyNormalisation = {
     usageHeading: /\b(usage|quick ?start|how to use|examples?)\b/i,
   },
 } as const;
+
+/** Fake-star check (T011). Run only for repos with an hourly star burst; a bounded stargazer sample is checked. */
+export const fakeStarConfig = {
+  /** A repo is checked when `repo_daily.stars_max_hour` reaches this on a day in the 7-day window. */
+  burstStarsPerHour: 50,
+  /** Newest stargazers fetched per checked repo (one GraphQL query). */
+  sampleSize: 100,
+  /** An account created fewer days than this before it starred the repo is low-activity. */
+  minAccountAgeDays: 30,
+  /** A repo is flagged when at least this share of the sample is low-activity. */
+  flagShare: 0.5,
+};
