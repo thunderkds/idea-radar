@@ -19,6 +19,7 @@
     "test": "tsx --conditions=source --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@idea-radar/core": "workspace:*",
     "pg": "^8.13.0"
   },
   "devDependencies": {
