@@ -1,4 +1,4 @@
-import { trackingConfig } from "@idea-radar/core";
+import { discoveryConfig, discoveryQueries, trackingConfig } from "@idea-radar/core";
 import type { SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import {
@@ -20,6 +20,7 @@ import {
   selectCandidates,
   setCursor,
   trackCandidates,
+  trackRepos,
   upsertRepo,
   upsertRepoContent,
   upsertRepoDaily,
@@ -32,6 +33,7 @@ type RollupStore = Parameters<GhArchiveConnector["ingest"]>[0];
 export const RESOLVE_PENDING_JOB = "resolve_pending";
 export const SHORTLIST_JOB = "shortlist";
 export const SNAPSHOT_JOB = "snapshot";
+export const DISCOVER_JOB = "discover";
 const GH_ARCHIVE_ID = "gh_archive";
 const GITHUB_API_ID = "github_api";
 const DAY_MS = 24 * 3_600_000;
@@ -205,6 +207,43 @@ function snapshotHandler(github: GithubApiConnector | undefined, log: (line: str
   };
 }
 
+/**
+ * Daily GitHub Search discovery (T025): run the configured queries (`discoveryQueries`), page each while more
+ * results exist (at most `discoveryConfig.pagesPerQuery` pages, at most `dailyRequestCap` requests in the run), write every result
+ * to `repos` and track new ones as `normal`, due now, reason `search`. A repo already tracked keeps its priority and due time.
+ * Each page is stored before the next is fetched, so a failure keeps earlier pages and a retry is harmless.
+ * Without a token the run is skipped and logged.
+ */
+function discoverHandler(github: GithubApiConnector | undefined, log: (line: string) => void): JobHandler {
+  const enabled = Boolean(github?.enabled);
+  return {
+    sourceId: enabled ? GITHUB_API_ID : null,
+    async run({ db, job, now }) {
+      if (!github?.enabled) {
+        log(JSON.stringify({ job: DISCOVER_JOB, date: job.dataKey, skipped: "GitHub API connector disabled (no token): no discovery" }));
+        return;
+      }
+      const queries = discoveryQueries(now);
+      let requests = 0, found = 0, added = 0, capped = false;
+      search: for (const query of queries) {
+        for (let page = 1; page <= discoveryConfig.pagesPerQuery; page++) {
+          if (requests >= discoveryConfig.dailyRequestCap) {
+            capped = true;
+            break search;
+          }
+          requests++;
+          const res = await github.searchRepos(query, page);
+          await upsertRepo(db, res.repos);
+          added += await trackRepos(db, res.repos.map((r) => r.repoId), "search");
+          found += res.repos.length;
+          if (!res.hasMore) break;
+        }
+      }
+      log(JSON.stringify({ job: DISCOVER_JOB, date: job.dataKey, queries: queries.length, requests, found, added, ...(capped && { capped }) }));
+    },
+  };
+}
+
 /** Queue names, the schedule and the claim caps all derive from the connector registry. */
 export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
   const handlers: Record<string, JobHandler> = {};
@@ -224,6 +263,7 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
   }
   handlers[SHORTLIST_JOB] = shortlistHandler(github, deps.log ?? (() => {}));
   handlers[SNAPSHOT_JOB] = snapshotHandler(github, deps.log ?? (() => {}));
+  handlers[DISCOVER_JOB] = discoverHandler(github, deps.log ?? (() => {}));
   if (github?.enabled) {
     handlers[RESOLVE_PENDING_JOB] = {
       sourceId: GITHUB_API_ID,
@@ -268,10 +308,10 @@ export function buildSchedule(handlers: Record<string, JobHandler>): JobSchedule
 /**
  * Per-name caps from each connector's `rateLimit.concurrency`. `gh_archive` is capped at 1: its ingest
  * walks one cursor, so two at once would process the same day twice. `resolve_pending` is the
- * GitHub API connector's work and takes its limit. `shortlist`, `snapshot` and `score` run alone.
+ * GitHub API connector's work and takes its limit. `shortlist`, `snapshot`, `discover` and `score` run alone.
  */
 export function buildCaps(connectors: SourceConnector[], env: NodeJS.ProcessEnv = process.env): ClaimCaps {
-  const perName: Record<string, number> = { [GH_ARCHIVE_ID]: 1, [SHORTLIST_JOB]: 1, [SNAPSHOT_JOB]: 1, [SCORE_JOB]: 1 };
+  const perName: Record<string, number> = { [GH_ARCHIVE_ID]: 1, [SHORTLIST_JOB]: 1, [SNAPSHOT_JOB]: 1, [DISCOVER_JOB]: 1, [SCORE_JOB]: 1 };
   for (const c of connectors) {
     if (c.id === GH_ARCHIVE_ID) continue;
     perName[c.id === GITHUB_API_ID ? RESOLVE_PENDING_JOB : c.id] = c.rateLimit.concurrency;
