@@ -66,6 +66,10 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
     pool.query("INSERT INTO repo_daily (repo_id, date, stars_new, contributors) VALUES ($1, $2, $3, $4)", [
       repoId, date, starsNew, contributors,
     ]);
+  const snapshot = (repoId: number, date: string, stars: number, commits30d = 0) =>
+    pool.query("INSERT INTO repo_snapshots (repo_id, date, stars, forks, commits_30d) VALUES ($1, $2, $3, 0, $4)", [
+      repoId, date, stars, commits30d,
+    ]);
   const signal = (repoId: number, source: string, observedAt: string) =>
     pool.query("INSERT INTO signals (repo_id, source, signal_type, observed_at) VALUES ($1, $2, 'x', $3)", [
       repoId, source, observedAt,
@@ -107,7 +111,7 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
   beforeEach(async () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
-    await pool.query("TRUNCATE repo_scores, repo_daily, signals, repos, repo_content");
+    await pool.query("TRUNCATE repo_scores, repo_daily, repo_snapshots, signals, repos, repo_content");
   });
 
   describe("one repo per tier", () => {
@@ -179,7 +183,8 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
       await lowkeyRepo(21);
       await lowkeyRepo(22, { contributors: 5 });
       await readmeUpdate(22, GOOD_README);
-      await pool.query("UPDATE repo_daily SET pushes = 10, prs_opened = 5, issues_opened = 5 WHERE repo_id = 22 AND date = $1", [dayBefore(2)]);
+      await pool.query("UPDATE repo_daily SET prs_opened = 5, issues_opened = 5 WHERE repo_id = 22 AND date = $1", [dayBefore(2)]);
+      await snapshot(22, dayBefore(2), 50, 10);
       await scoreDay(pool, DATE);
       const rows = await byId();
       for (const id of [21, 22]) {
@@ -218,6 +223,81 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(c.insufficient_history, 1);
       assert.equal(c.velocityLift, lowkeyNormalisation.velocityLift.noHistory);
       assert.equal(c.issueResponsivenessKnown, 0);
+    });
+  });
+
+  describe("star velocity and activity from snapshots (T024 AC 6, 7)", () => {
+    /** A lowkey-shaped repo whose stars come only from snapshots: contributors on a day in the 30-day window outside every snapshot gain. */
+    async function snapshotRepo(id: number, stars = 170) {
+      await repo(id, { stars });
+      await readme(id);
+      await day(id, dayBefore(25), 0, 3);
+    }
+
+    it("two snapshots 7 days apart (+70) give 10 stars a day over those 7 days: stars7d 70", async () => {
+      await snapshotRepo(30);
+      await snapshot(30, dayBefore(7), 100);
+      await snapshot(30, E, 170);
+      await scoreDay(pool, DATE);
+      const row = (await byId()).get(30)!;
+      assert.equal(row.tier, "lowkey");
+      assert.equal(row.components.stars7d, 70);
+      assert.equal(row.components.stars30d, 70);
+    });
+
+    it("a day no snapshot covers falls back to repo_daily", async () => {
+      await snapshotRepo(31);
+      await snapshot(31, dayBefore(7), 100);
+      await snapshot(31, dayBefore(4), 130); // 10 a day for days -6, -5, -4
+      await day(31, dayBefore(2), 5);
+      await day(31, dayBefore(1), 5);
+      await scoreDay(pool, DATE);
+      assert.equal((await byId()).get(31)!.components.stars7d, 40);
+    });
+
+    it("a day with a snapshot gain and a repo_daily row counts the snapshot only", async () => {
+      await snapshotRepo(32);
+      await snapshot(32, dayBefore(7), 100);
+      await snapshot(32, dayBefore(4), 130);
+      await day(32, dayBefore(5), 50); // covered by the snapshot gain of 10: not added
+      await scoreDay(pool, DATE);
+      assert.equal((await byId()).get(32)!.components.stars7d, 30);
+    });
+
+    it("the percentile ranks a snapshot-only repo with the others; a repo with a first snapshot only has no velocity", async () => {
+      for (let i = 1; i <= 100; i++) await day(1000 + i, dayBefore(1), i);
+      await repo(33, { stars: 3000 });
+      await snapshot(33, dayBefore(2), 1000);
+      await snapshot(33, dayBefore(1), 3000); // 2000 in a day: above every filler
+      await repo(34, { stars: 3000, pushedAt: null });
+      await snapshot(34, dayBefore(1), 3000);
+      await scoreDay(pool, DATE);
+      const rows = await byId();
+      assert.equal(rows.get(33)!.tier, "trending");
+      assert.equal(rows.get(33)!.components.stars7d, 2000);
+      assert.equal(rows.get(34), undefined, "one snapshot has no difference, so no velocity and no tier");
+    });
+
+    it("lowkey activity reads commits_30d of the latest snapshot in the 30-day window, not repo_daily pushes", async () => {
+      await snapshotRepo(35);
+      await pool.query("UPDATE repo_daily SET pushes = 99 WHERE repo_id = 35");
+      await snapshot(35, dayBefore(20), 100, 3);
+      await snapshot(35, dayBefore(3), 110, 15); // latest in the window
+      await snapshot(35, DATE, 120, 29); // after the window end: ignored
+      await snapshot(35, dayBefore(31), 90, 28); // before the window: ignored
+      await scoreDay(pool, DATE);
+      const c = (await byId()).get(35)!.components;
+      assert.equal(c.pushes30d, 15);
+      assert.equal(c.activity, round6(15 / 30));
+    });
+
+    it("a repo with no snapshot has no commits: activity 0 even when repo_daily has pushes", async () => {
+      await lowkeyRepo(36);
+      await pool.query("UPDATE repo_daily SET pushes = 40 WHERE repo_id = 36");
+      await scoreDay(pool, DATE);
+      const c = (await byId()).get(36)!.components;
+      assert.equal(c.pushes30d, 0);
+      assert.equal(c.activity, 0);
     });
   });
 

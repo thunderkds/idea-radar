@@ -1,5 +1,6 @@
 import { candidateConfig, type CandidateConfig } from "@idea-radar/core";
 import type { Queryable } from "./index.js";
+import { starsPerDaySql } from "./tracking.js";
 
 export interface CandidateSelection {
   selected: number;
@@ -8,7 +9,8 @@ export interface CandidateSelection {
 
 /**
  * Pick the day's candidates and store them in `candidates` (rewriting that date in one transaction).
- * Two reasons, each decided in SQL over `repo_daily` and `signals` (repo_daily holds millions of rows a day):
+ * Two reasons, each decided in SQL over stars per day and `signals` (repo_daily holds millions of rows a day).
+ * Stars per day are the snapshot gain where a snapshot covers the day, else GH Archive `stars_new` (T024):
  *  - `velocity`: stars in the `recentDays` ending at `date` reach `minStars7d`, and the daily rate is above
  *    the repo's own rate over the `baselineDays` before that. A repo with no baseline rows counts as above.
  *  - `signal`: any signal in the same window from a source other than `github_api`.
@@ -55,8 +57,9 @@ export async function selectCandidates(
 // $1 date, $2 minStars7d, $3 recentDays, $4 baselineDays, $5 cap.
 // Recent window = ($1 - $3, $1]; baseline window = ($1 - $3 - $4, $1 - $3]; signals use the recent window in UTC.
 const SELECT_SQL = `
-WITH vel AS (
-  SELECT repo_id FROM repo_daily
+WITH sd AS (${starsPerDaySql("$1::date - $3::int - $4::int", "$1::date")}
+), vel AS (
+  SELECT repo_id FROM sd
   WHERE date > $1::date - $3::int AND date <= $1::date
   GROUP BY repo_id HAVING sum(stars_new) >= $2::int
 ), sig AS (
@@ -68,12 +71,12 @@ WITH vel AS (
   SELECT repo_id FROM vel UNION SELECT repo_id FROM sig
 ), recent AS (
   SELECT i.repo_id, coalesce(sum(d.stars_new), 0)::numeric AS stars
-  FROM ids i LEFT JOIN repo_daily d
+  FROM ids i LEFT JOIN sd d
     ON d.repo_id = i.repo_id AND d.date > $1::date - $3::int AND d.date <= $1::date
   GROUP BY i.repo_id
 ), base AS (
   SELECT i.repo_id, coalesce(sum(d.stars_new), 0)::numeric AS stars, count(d.repo_id) AS day_rows
-  FROM ids i LEFT JOIN repo_daily d
+  FROM ids i LEFT JOIN sd d
     ON d.repo_id = i.repo_id AND d.date > $1::date - $3::int - $4::int AND d.date <= $1::date - $3::int
   GROUP BY i.repo_id
 ), scored AS (

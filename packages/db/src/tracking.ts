@@ -94,3 +94,19 @@ export async function recordSnapshots(
     );
   }
 }
+
+/**
+ * SQL for a CTE body: one row `(repo_id, date, stars_new)` per repo and day in (`from`, `to`], where `from` and
+ * `to` are SQL date expressions. Stars per day come from `repo_star_gains` (snapshot differences) where a snapshot
+ * covers the day, else from GH Archive `repo_daily`: a day in both counts the snapshot only, never the sum.
+ * Scoring and candidate selection read stars through this.
+ */
+export function starsPerDaySql(from: string, to: string): string {
+  return `
+  SELECT coalesce(d.repo_id, g.repo_id) AS repo_id,
+         coalesce(d.date, g.date) AS date,
+         coalesce(g.stars_new, d.stars_new) AS stars_new
+  FROM (SELECT repo_id, date, stars_new FROM repo_daily WHERE date > ${from} AND date <= ${to}) d
+  FULL JOIN (SELECT repo_id, date, stars_new FROM repo_star_gains WHERE date > ${from} AND date <= ${to}) g
+    ON g.repo_id = d.repo_id AND g.date = d.date`;
+}

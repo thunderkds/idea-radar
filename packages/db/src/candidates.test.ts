@@ -69,7 +69,7 @@ describe("candidate selection (needs TEST_DATABASE_URL)", { skip }, () => {
   beforeEach(async () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
-    await pool.query("TRUNCATE candidates, repo_daily, signals, repos");
+    await pool.query("TRUNCATE candidates, repo_daily, repo_snapshots, signals, repos");
   });
 
   describe("velocity reason", () => {
@@ -107,6 +107,38 @@ describe("candidate selection (needs TEST_DATABASE_URL)", { skip }, () => {
       );
       assert.ok(Math.abs(got[0]!.priority - 77 / 71) < 1e-9);
       assert.equal(got[1]!.priority, 3);
+    });
+  });
+
+  describe("velocity from snapshots (T024 AC 6, 7)", () => {
+    const snapshot = (repoId: number, date: string, starCount: number) =>
+      pool.query("INSERT INTO repo_snapshots (repo_id, date, stars, forks, commits_30d) VALUES ($1, $2, $3, 0, 0)", [
+        repoId, date, starCount,
+      ]);
+
+    it("picks a repo whose only stars are a snapshot difference: +70 in 7 days is 70 recent stars", async () => {
+      await snapshot(20, "2026-10-23", 100);
+      await snapshot(20, "2026-10-30", 170);
+      const res = await selectCandidates(pool, DATE);
+      assert.deepEqual(res, { selected: 1, byReason: { velocity: 1 } });
+      assert.deepEqual(await rows(), [{ repo_id: 20, reason: "velocity", priority: 70 }]);
+    });
+
+    it("a day with a snapshot gain and a GH Archive row counts the snapshot only; a day without one uses GH Archive", async () => {
+      await snapshot(21, "2026-10-23", 100);
+      await snapshot(21, "2026-10-26", 106); // 2 a day on 10-24, 10-25, 10-26
+      await stars(21, "2026-10-25", 40); // same day as a snapshot gain: not added
+      await stars(21, "2026-10-28", 1); // no snapshot covers it: added
+      await selectCandidates(pool, DATE);
+      assert.deepEqual(await rows(), [{ repo_id: 21, reason: "velocity", priority: 7 }]);
+    });
+
+    it("the baseline window reads snapshot gains too: a steady 10 a day is not above its own rate", async () => {
+      await snapshot(22, "2026-08-02", 0);
+      await snapshot(22, "2026-10-23", 830); // 10 a day over the 83 baseline days
+      await snapshot(22, "2026-10-30", 900); // 10 a day recently: not above
+      await selectCandidates(pool, DATE);
+      assert.deepEqual(await rows(), []);
     });
   });
 
