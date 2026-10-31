@@ -80,9 +80,19 @@ row after stale completeJob: {"status":"ok","attempts":1,"locked_at":null}
 run 2 still holds the job? NO - stale run overwrote it
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (captured 2026-10-31T13:47:18Z, same script, same command plus `DEMO_AFTER=1` so the stale run passes its claimed job instead of the bare id):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ DEMO_AFTER=1 TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm exec tsx --conditions=source t023-demo.mts
+2026-10-31T13:47:18Z
+run 1 claimed         {"id":1,"name":"a","dataKey":"1","attempts":0}
+run 2 reclaimed       {"id":1,"name":"a","dataKey":"1","attempts":1} (run 1 was slow but alive)
+run 1 completeJob returned false
+row after stale completeJob: {"status":"running","attempts":1,"locked_at":"2026-10-31T08:10:01.000Z"}
+run 2 still holds the job? yes (fenced)
+```
+
+**DELTA**: A slow but alive run that lost its job to a reclaim can no longer mark the new run's job `ok`, fail it, or commit its signals, and a running job now sends a heartbeat so it is not reclaimed while alive.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]

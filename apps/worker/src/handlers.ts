@@ -49,7 +49,8 @@ export interface JobContext {
 /** One kind of job. `sourceId` is the `sources` row that records each run's health (null: none). */
 export interface JobHandler {
   sourceId: string | null;
-  run(ctx: JobContext): Promise<void>;
+  /** Resolves to `"completed"` when the handler already completed the job in its own transaction. */
+  run(ctx: JobContext): Promise<void | "completed">;
 }
 
 export interface HandlerDeps {
@@ -72,7 +73,7 @@ function rollupStore(db: Pool): RollupStore {
 
 /**
  * A `fetch`-based connector: fetch, normalize, insert. One transaction per run that also completes
- * the job, so a failed run leaves no signals and a retry cannot duplicate them (gap A12).
+ * the job (only if this run still holds it), so a failed run leaves no signals and a retry cannot duplicate them (gap A12).
  */
 function fetchHandler(c: SourceConnector, log: (line: string) => void): JobHandler {
   return {
@@ -90,8 +91,13 @@ function fetchHandler(c: SourceConnector, log: (line: string) => void): JobHandl
           }
         }
         await insertSignals(client, batch);
-        await completeJob(client, job.id);
+        if (!(await completeJob(client, job))) {
+          // A newer run owns the job: commit nothing, so its signals are not duplicated.
+          log(JSON.stringify({ job: c.id, jobId: job.id, status: "lost", message: "job lost; rolling back its signals" }));
+          throw new Error("job lost: reclaimed by a newer run");
+        }
         await client.query("COMMIT");
+        return "completed";
       } catch (err) {
         // The original error is what the job reports; a failed ROLLBACK (dead connection) is only logged.
         await client.query("ROLLBACK").catch((rollbackErr: unknown) =>
