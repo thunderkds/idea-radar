@@ -12,8 +12,6 @@
 
 ### Todo
 - [ ] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1
-- [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1
-- [ ] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1
 - [ ] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2
 - [ ] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
@@ -21,6 +19,8 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
+- [ ] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-173-idea-groups` | Started 2026-10-31: branch `hun-173-idea-groups` (stacked on `hun-t024-star-snapshots`)
+- [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-172-search-discovery` | Started 2026-10-31: branch `hun-172-search-discovery` (stacked on `hun-t024-star-snapshots`)
 
 ### Ready for Review
 - [ ] **T024** — HUN-171 Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots`
