@@ -73,7 +73,7 @@ function rollupStore(db: Pool): RollupStore {
  * A `fetch`-based connector: fetch, normalize, insert. One transaction per run that also completes
  * the job, so a failed run leaves no signals and a retry cannot duplicate them (gap A12).
  */
-function fetchHandler(c: SourceConnector): JobHandler {
+function fetchHandler(c: SourceConnector, log: (line: string) => void): JobHandler {
   return {
     sourceId: c.id,
     async run({ db, job, now }) {
@@ -92,7 +92,18 @@ function fetchHandler(c: SourceConnector): JobHandler {
         await completeJob(client, job.id);
         await client.query("COMMIT");
       } catch (err) {
-        await client.query("ROLLBACK").catch(() => {});
+        // The original error is what the job reports; a failed ROLLBACK (dead connection) is only logged.
+        await client.query("ROLLBACK").catch((rollbackErr: unknown) =>
+          log(
+            JSON.stringify({
+              level: "warn",
+              job: c.id,
+              jobId: job.id,
+              message: "ROLLBACK failed after a fetch error; rethrowing the original error",
+              error: String(rollbackErr),
+            }),
+          ),
+        );
         throw err;
       } finally {
         client.release();
@@ -156,7 +167,7 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
 
   for (const c of deps.connectors) {
     if (!c.enabled || c.id === GH_ARCHIVE_ID || c.id === GITHUB_API_ID) continue;
-    handlers[c.id] = fetchHandler(c);
+    handlers[c.id] = fetchHandler(c, deps.log ?? (() => {}));
   }
   if (archive?.enabled) {
     handlers[GH_ARCHIVE_ID] = {

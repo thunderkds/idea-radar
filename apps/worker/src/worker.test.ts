@@ -6,6 +6,7 @@ import pg from "pg";
 import type { Repo, Signal, SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import { applyMigrations, claimNext, enqueueDue, MAX_JOB_ATTEMPTS } from "@idea-radar/db";
+import type { Job, Pool } from "@idea-radar/db";
 import { buildCaps, buildHandlers, buildSchedule, RESOLVE_PENDING_JOB, SHORTLIST_JOB } from "./handlers.js";
 import type { JobHandler } from "./handlers.js";
 import { runWorker } from "./runner.js";
@@ -574,6 +575,36 @@ describe("worker plan (no database)", () => {
     const schedule = buildSchedule(buildHandlers({ connectors: fakes }));
     assert.deepEqual(schedule.hourly, ["gh_archive"]);
     assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score", "shortlist"]);
+  });
+
+  it("a failed ROLLBACK is logged at warn level and the original error is rethrown", async () => {
+    const logs: string[] = [];
+    const statements: string[] = [];
+    const client = {
+      query: async (sql: string) => {
+        statements.push(sql);
+        if (sql === "ROLLBACK") throw new Error("connection terminated");
+        return { rows: [] };
+      },
+      release: () => statements.push("release"),
+    };
+    const db = { connect: async () => client } as unknown as Pool;
+    const handlers = buildHandlers({
+      connectors: [new FakeConnector("ossinsight", ["a"], 0)],
+      log: (l) => logs.push(l),
+    });
+    await assert.rejects(
+      handlers.ossinsight!.run({ db, job: { id: 7 } as Job, now: NOW }),
+      /upstream broke/,
+    );
+    assert.deepEqual(statements, ["BEGIN", "ROLLBACK", "release"]);
+    assert.equal(logs.length, 1);
+    const line = JSON.parse(logs[0]!) as Record<string, unknown>;
+    assert.equal(line.level, "warn");
+    assert.equal(line.job, "ossinsight");
+    assert.equal(line.jobId, 7);
+    assert.match(String(line.error), /connection terminated/);
+    assert.match(String(line.message), /ROLLBACK failed/);
   });
 
   it("per-name caps come from rateLimit.concurrency; gh_archive is 1; global defaults to 20 and reads WORKER_MAX_CONCURRENCY", () => {
