@@ -67,8 +67,21 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured 2026-10-31T10:39:30Z in the T022 worktree at commit 4d7cd4c, before any implementation commit:
+
+```
+$ ls LICENSE
+ls: cannot access 'LICENSE': No such file or directory      (exit 2)
+$ pnpm lint
+> idea-radar@0.1.0 lint ... > pnpm -r lint
+Scope: 6 of 7 workspace projects
+None of the selected packages has a "lint" script          (exit 0: lint is a silent no-op)
+$ grep -n "uses:\|pnpm install" .github/workflows/ci.yml
+12:      - uses: actions/checkout@v4
+13:      - uses: pnpm/action-setup@v4
+14:      - uses: actions/setup-node@v4
+19:      - run: pnpm install
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
