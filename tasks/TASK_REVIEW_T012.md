@@ -43,20 +43,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Empty trends over all periods throws `OssInsightEmptyError` with the API's `data_quality.status` and `reason`; one empty period alongside a period with rows is fine — RULE: `docs/ISSUES.md` § HUN-152 ("handle non-200 and empty responses")
+2. Collection fixtures are hand-written, because every live `/v1/collections/*` endpoint returned HTTP 500 on 2026-10-31; endpoint paths and row fields are unverified live — SAFER OPTION: tests cover the parser on the standard `{data:{rows}}` shape and a live mismatch throws, never writes wrong tags ⚠ decided for you — please review
+3. Any collection fetch failure fails the whole run, so trending rows are lost while collections are down — RULE: `tasks/TASK_GUIDE_T012.md` AC 4 ("A collection fetch failure fails the run")
+4. Request budget is counted per run (sequential, throws before request 601); not tracked across runs in one hour, because the job is daily — SAFER OPTION: smallest rule that keeps one run under 600/hr ⚠ decided for you — please review
+5. Left `OSSINSIGHT_ENABLED` as is: once merged, the daily `ossinsight` job fails every day and Ops shows the error until OSS Insight recovers — SAFER OPTION: the failure is the requested signal; disabling is the owner's call ⚠ decided for you — please review
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 63/64 (1 pre-existing skip), db 54/54, worker 18/18, exit 0; reviews code-review — P0 0, P1 0, P2 1 (collection paths and shapes unverified live), P3 0; real run `tsx` script iterating `fetch` against the live API — printed `threw: OSS Insight trends/repos returned 0 rows for periods [past_24_hours]; past_24_hours: data_quality.status=unavailable: ...` (auto-checked, not /verify)
+Memory: memory/learnings.md — OSS Insight collections endpoints return HTTP 500 (2026-10-31)
+Not done: merge (yours); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/ossinsight.test.ts` (13 tests: empty trends with/without data_quality, non-200, non-JSON, bad shape, collection tags merge, collection failure fails run, empty list, unavailable member list, budget 600 pass / 601 throw, normalize). connectors `ℹ tests 64 ℹ pass 63 ℹ fail 0 ℹ skipped 1` |
+| Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T012); `pnpm typecheck` clean (agent) |
+| Negative cases hold | ☑ pass | empty, non-200, non-JSON, wrong shape, collection 500 and budget overrun all throw; tests use injected `fetchImpl`, no network |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `ossinsight.ts` + test + fixtures; callers: `packages/connectors/src/index.ts` (constructor call unchanged), worker `fetchHandler` (throw → job error). `lane: C1, 9 files, 440 lines, EXCEEDS (files 9 > 6; lines 440 > 250)` — 7 of 9 files are fixtures |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: connector only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: connector only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: connector only |
 
 ---
 
@@ -67,12 +79,26 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31, before any implementation commit; connector at `97db755`):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+Live API, `curl https://api.ossinsight.io/v1/trends/repos/?period=past_24_hours` at 2026-10-31T07:42:29Z:
+```
+HTTP/2 200
+warning: 199 - "degraded data: star-event derived ranking unavailable"
+{"type":"sql_endpoint","data":{"columns":[],"rows":[],"result":{"row_count":0}},"data_quality":{"status":"unavailable","metric":"github_event_derived_ranking",...,"unavailable_since":"2026-03-01","reason":"This ranking is ordered by recent star/PR/issue event counts, ..."}}
+```
+Current connector against it (`pnpm exec tsx --conditions=source before.mts`, `new OssInsightConnector(true, ["past_24_hours"])`, iterate `fetch`), 2026-10-31T07:43:13Z:
+```
+fetch finished without throwing; rows yielded = 0
+```
+Baseline `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test`, 2026-10-31T07:43:17Z: packages/db 54 pass / 0 fail, apps/worker 18 pass / 0 fail (no ossinsight tests exist).
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**AFTER** (same script and live API, 2026-10-31T07:46:07Z):
+```
+threw: OSS Insight trends/repos returned 0 rows for periods [past_24_hours]; past_24_hours: data_quality.status=unavailable: This ranking is ordered by recent star/PR/issue event counts, ... An empty result here means the metric cannot be computed, not that there are no matching repositories.
+```
+`TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` at 2026-10-31T07:45:57Z: connectors 63 pass / 1 skipped (pre-existing) / 0 fail, db 54 pass, worker 18 pass, core 6 pass; 13 new tests in `packages/connectors/src/ossinsight.test.ts`. `pnpm typecheck` clean.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**DELTA**: A daily OSS Insight run now fails with the API's own `data_quality` reason instead of recording `ok` with 0 signals, and when data exists each signal carries `value.collections`.
+
+**WITNESS**: Supervisor session, 2026-10-31: reran `TEST_DATABASE_URL=… pnpm test` under T012 (exit 0, recorded in `memory/event-trace/T012.jsonl`) and read the AFTER run output above.
