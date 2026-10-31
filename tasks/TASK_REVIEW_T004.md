@@ -53,7 +53,8 @@ Mode: auto
 4. Left the permanent-404 risk (a GH Archive hour that never appears stops ingestion at that day forever) for T007 to handle with a give-up rule — SAFER OPTION: AC 8 requires stopping on 404; changing it is a scheduler-policy choice ⚠ decided for you — please review
 Checks: tests `pnpm --filter @idea-radar/connectors test` — 17/17 pass, 1 live smoke skipped; reviews code-review — P0 0, P1 0, P2 2 (permanent-404 hour stalls the cursor; a full day is CPU-heavy, ~23 s per 9.6M synthetic lines, so T007 must not run it under a short timeout), P3 1 (`.env.example` lacks `GHARCHIVE_BACKFILL_DAYS`); real run: none (live smoke needs `GHARCHIVE_LIVE=1` and a ~100 MB download) (auto-checked, not /verify)
 Memory: nothing new
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 5c645216-38c8-4491-b0ee-ff3d637a43ef, commit ec6a85bda5e69eabd242c1ef3d12d1893ed75f29, log .claude/verify-runs/T004-ec6a85bda5e6.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 5c645216-38c8-4491-b0ee-ff3d637a43ef, commit ec6a85bda5e69eabd242c1ef3d12d1893ed75f29); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/gh-archive.test.ts` (17 unit tests, AC 1–10; 1 live smoke skipped without `GHARCHIVE_LIVE=1`) + fixture `packages/connectors/src/fixtures/gh-archive/events.ndjson`. Output: `ℹ tests 18 ℹ pass 17 ℹ fail 0 ℹ skipped 1` |
 | Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` (see AFTER); agent: `pnpm typecheck` all workspaces pass |
 | Negative cases hold | ☑ pass | corrupt gzip rejects; malformed lines counted, not thrown; 404 stops without advancing cursor; 500 throws |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [rerun pending: close-out read the worktree trace dir, which lacked the task trace; copied from the main checkout] |
+| verify | ☑ pass | auto-run by hook, session 5c645216-38c8-4491-b0ee-ff3d637a43ef, commit ec6a85bda5e69eabd242c1ef3d12d1893ed75f29, log .claude/verify-runs/T004-ec6a85bda5e6.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `gh-archive.ts`, its test and fixture, caller `packages/connectors/src/index.ts` (constructor unchanged). `lane: C2, 3 files, 656 lines, EXCEEDS (lines 656 > 500)` — 348 are tests; label kept at C2 |
 | Full smoke suite still green (no regression) | ☑ pass | connectors suite 17/17 (+1 skip); agent memory check: synthetic 24 h × 300k lines (~2.4 GB) under `--max-old-space-size=48` finished OK |
 | **Companion score (easy-verifier)** | ☑ N/A | not run: Risk Low |
