@@ -26,11 +26,11 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T006** — HUN-143 Registry sync into `sources` + env-flag tests | backend-developer | C1 | Risk: Low | P1 | Started 2026-10-31: branch `hun-143-registry-sync`
 - [ ] **T007** — HUN-144 Postgres-backed scheduler and job runner | backend-developer | C2 | Risk: Med | P1 | Started 2026-10-31: branch `hun-144-scheduler`
 - [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1 | Started 2026-10-31: branch `t021-candidate-selection`
 
 ### Ready for Review
+- [ ] **T006** — HUN-143 Registry sync into `sources` + env-flag tests | backend-developer | C1 | PR/branch: `hun-143-registry-sync` | Started 2026-10-31: branch `hun-143-registry-sync`
 
 ### Done
 - [x] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | PR/branch: `hun-146-gh-archive` | Started 2026-10-31: branch `hun-146-gh-archive` | Done 2026-10-31: auto verify pass (session 5c645216-38c8-4491-b0ee-ff3d637a43ef, commit ec6a85bda5e69eabd242c1ef3d12d1893ed75f29)
