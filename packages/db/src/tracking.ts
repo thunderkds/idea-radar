@@ -145,6 +145,7 @@ interface RegroupRow {
   score: number | null;
   commits_30d: number | null;
   has_recent_snapshot: boolean;
+  was_snapshotted: boolean;
 }
 
 /**
@@ -152,7 +153,7 @@ interface RegroupRow {
  * tags), rank each group by the latest score and the latest 30-day commit count (`groupingConfig.leaderWeights`,
  * each divided by the group maximum) and set the priority: the top `leadersPerGroup` active repos `leader`, the
  * rest `normal`. An archived repo, or one with no score and no snapshot in the `activeWindowDays` days up to `date`, is
- * `parked`. A repo with no key keeps its priority (a group of one). A repo that becomes `leader` or leaves `parked`
+ * `parked`; a repo never snapshotted yet (just added) is not parked for that, so its first snapshot still runs. A repo with no key keeps its priority (a group of one). A repo that becomes `leader` or leaves `parked`
  * is due now (never later than it was); one that becomes `parked` is not due; any other repo keeps its due time,
  * so a `parked` repo that a request made due stays due. One statement writes the result, and a rerun with
  * unchanged data changes nothing.
@@ -160,7 +161,7 @@ interface RegroupRow {
 export async function regroupTracked(db: Queryable, date: string, now: Date): Promise<RegroupResult> {
   const { rows } = await db.query<RegroupRow>(
     `SELECT t.repo_id, t.priority, r.topics, c.stack_tags, r.archived, sc.score, sn.commits_30d,
-            sn.commits_30d IS NOT NULL AS has_recent_snapshot
+            sn.commits_30d IS NOT NULL AS has_recent_snapshot, t.last_snapshot_at IS NOT NULL AS was_snapshotted
      FROM tracked_repos t
      LEFT JOIN repos r ON r.repo_id = t.repo_id
      LEFT JOIN repo_content c ON c.repo_id = t.repo_id
@@ -178,7 +179,10 @@ export async function regroupTracked(db: Queryable, date: string, now: Date): Pr
   for (const r of rows) {
     const key = ideaGroupKey(r.topics ?? [], r.stack_tags ?? []);
     keys.set(r.repo_id, key);
-    if (r.archived === true || (r.score === null && !r.has_recent_snapshot)) {
+    // Inactive = no score and no recent snapshot. A repo never snapshotted is only new (its first snapshot may not
+    // have run yet), so it is not parked for that, unless it is parked already (a repo GitHub no longer returns).
+    const inactive = r.score === null && !r.has_recent_snapshot && (r.was_snapshotted || r.priority === "parked");
+    if (r.archived === true || inactive) {
       parked.add(r.repo_id);
     } else if (key !== null) {
       const members = groups.get(key) ?? [];

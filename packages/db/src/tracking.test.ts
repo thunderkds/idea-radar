@@ -211,6 +211,8 @@ describe("tracked repos and snapshots (needs TEST_DATABASE_URL)", { skip }, () =
       score?: number;
       commits?: number;
       snapshotDate?: string;
+      /** `tracked_repos.last_snapshot_at`: the repo was snapshotted at some time (set with `commits` too). */
+      snapshotted?: string;
       priority?: string;
       due?: string;
     }
@@ -231,6 +233,8 @@ describe("tracked repos and snapshots (needs TEST_DATABASE_URL)", { skip }, () =
           id, o.snapshotDate ?? "2026-11-01", o.commits,
         ]);
       }
+      const snapshotted = o.snapshotted ?? (o.commits !== undefined ? (o.snapshotDate ?? "2026-11-01") : undefined);
+      if (snapshotted) await pool.query("UPDATE tracked_repos SET last_snapshot_at = $2 WHERE repo_id = $1", [id, `${snapshotted}T03:00:00Z`]);
     };
     const state = async () =>
       Object.fromEntries(
@@ -277,7 +281,7 @@ describe("tracked repos and snapshots (needs TEST_DATABASE_URL)", { skip }, () =
 
     it("an archived repo is parked and not due; so is a repo with no score and no snapshot in 30 days", async () => {
       await add(1, { archived: true, score: 0.9, commits: 40 });
-      await add(2, {}); // never scored, never snapshotted
+      await add(2, { snapshotted: "2026-09-01" }); // snapshotted long ago, nothing since, never scored
       await add(3, { commits: 5, snapshotDate: "2026-09-30" }); // last snapshot 33 days ago, no score
       await add(4, { score: 0.5, commits: 5 }); // active: stays in the group
       await regroupTracked(pool, REGROUP_DATE, REGROUP_NOW);
@@ -285,6 +289,19 @@ describe("tracked repos and snapshots (needs TEST_DATABASE_URL)", { skip }, () =
       assert.deepEqual([1, 2, 3, 4].map((i) => st[i]!.priority), ["parked", "parked", "parked", "leader"]);
       for (const i of [1, 2, 3]) assert.equal(st[i]!.next_due_at.toString(), "Infinity", `repo ${i}: only on request`);
       assert.deepEqual(await listDueTracked(pool, new Date("2026-12-31T00:00:00Z")), [4]);
+    });
+
+    it("a repo never snapshotted is not parked for inactivity: a new tracked repo stays normal and due (R1.1)", async () => {
+      await add(1, { due: "2026-11-02T00:30:00Z" }); // added today by discovery: no score, no snapshot yet
+      await add(2, { archived: true, due: "2026-11-02T00:30:00Z" }); // archived still parks
+      await pool.query("UPDATE tracked_repos SET added_at = $1", [new Date("2026-11-02T00:30:00Z")]);
+      await regroupTracked(pool, REGROUP_DATE, REGROUP_NOW);
+      const st = await state();
+      assert.equal(st[1]!.priority, "normal");
+      assert.equal(st[1]!.next_due_at.toISOString(), "2026-11-02T00:30:00.000Z", "due time untouched");
+      assert.equal(st[1]!.group_key, "rag+vector-database|python");
+      assert.equal(st[2]!.priority, "parked");
+      assert.deepEqual(await listDueTracked(pool, new Date("2026-11-02T06:00:00Z")), [1]);
     });
 
     it("a parked repo that a request made due keeps that due time; one that became active is due now and rejoins its group", async () => {
