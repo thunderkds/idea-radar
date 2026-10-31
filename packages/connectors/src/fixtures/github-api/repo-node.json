@@ -1,0 +1,15 @@
+{
+  "databaseId": 27193779,
+  "nameWithOwner": "nodejs/node",
+  "description": "Node.js JavaScript runtime",
+  "stargazerCount": 108000,
+  "forkCount": 29500,
+  "isArchived": false,
+  "primaryLanguage": { "name": "JavaScript" },
+  "licenseInfo": { "spdxId": "NOASSERTION" },
+  "repositoryTopics": {
+    "nodes": [{ "topic": { "name": "javascript" } }, { "topic": { "name": "nodejs" } }]
+  },
+  "createdAt": "2014-11-26T19:57:11Z",
+  "pushedAt": "2026-10-30T12:00:00Z"
+}
