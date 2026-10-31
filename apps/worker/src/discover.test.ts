@@ -170,4 +170,18 @@ describe("discover job (T025, needs TEST_DATABASE_URL)", { skip }, () => {
     assert.equal((await source("github_api"))!.last_status, "error");
     assert.deepEqual((await tracked()).map((r) => r.repo_id), FIXTURE_IDS);
   });
+
+  it("a failing discover does not hold back score for its date (R1.1)", async () => {
+    const { github } = makeGithub(() => ({}), () => 403);
+    const ran: string[] = [];
+    const handlers: Record<string, JobHandler> = {
+      [DISCOVER_JOB]: buildHandlers({ connectors: [github], log: (l) => lines.push(l) })[DISCOVER_JOB]!,
+      score: { sourceId: null, run: async () => void ran.push("score") },
+    };
+    const at = () => new Date("2026-10-31T03:00:00Z");
+    await runWorker({ db: pool, handlers, caps: { defaultPerName: 5 }, once: true, now: at });
+    assert.equal((await job()).status, "pending", "discover failed and waits to retry");
+    assert.equal((await source("github_api"))!.last_status, "error", "the failure stays visible");
+    assert.deepEqual(ran, ["score"]);
+  });
 });

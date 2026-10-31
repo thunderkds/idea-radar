@@ -14,6 +14,8 @@ export const DEFAULT_GLOBAL_CONCURRENCY = 20;
 export const DEFAULT_JOB_TIMEOUT_MS = 2 * 3_600_000;
 /** The daily scoring job: claimable only when every other job of its date is `ok`. */
 export const SCORE_JOB = "score";
+/** Jobs `score` does not wait for: their output is not an input to the same day's score, so a failed one must not block it (T025). */
+export const SCORE_DOES_NOT_WAIT_FOR = ["discover"] as const;
 /** `score(D)` waits until D 02:00 UTC: GH Archive's hour 23 of D-1 can exist from D 01:00. */
 const SCORE_DELAY_MS = 2 * 3_600_000;
 const BACKOFF_BASE_SECONDS = 30;
@@ -114,7 +116,7 @@ export async function claimNext(pool: Pool, caps: ClaimCaps = {}, now: Date = ne
                < coalesce(($5::jsonb->>j.name)::int, $6::int)
            AND (j.name <> '${SCORE_JOB}' OR NOT EXISTS (
                  SELECT 1 FROM jobs o
-                 WHERE o.name <> '${SCORE_JOB}' AND left(o.data_key, 10) = left(j.data_key, 10) AND o.status <> 'ok'))
+                 WHERE o.name <> '${SCORE_JOB}' AND o.name <> ALL($7::text[]) AND left(o.data_key, 10) = left(j.data_key, 10) AND o.status <> 'ok'))
          ORDER BY j.run_after, j.id
          LIMIT 1
          FOR UPDATE SKIP LOCKED
@@ -130,6 +132,7 @@ export async function claimNext(pool: Pool, caps: ClaimCaps = {}, now: Date = ne
         defaultTimeoutS,
         JSON.stringify(caps.perName ?? {}),
         caps.defaultPerName ?? 1,
+        [...SCORE_DOES_NOT_WAIT_FOR],
       ],
     );
     await client.query("COMMIT");
