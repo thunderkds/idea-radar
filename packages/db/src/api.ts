@@ -29,13 +29,13 @@ const README_EXCERPT_CHARS = 2000;
 const DETAIL_SIGNAL_LIMIT = 100;
 
 /**
- * Distinct displayable sources with a signal for the repo in the `daysParam` days up to the end of the
- * score date. `scoreDate` is a SQL expression for a DATE; `repoId` one for the repo id. The one rule
- * behind `consensusCount` on tier items and the repo detail, and the window of `listConsensus`.
+ * The consensus window, the same one `applyConsensus` and `scoreDay` use: [score date - days 00:00Z, score
+ * date 00:00Z), i.e. the 7 UTC days ending at E = score date - 1. `scoreDate` is a SQL expression for a DATE.
+ * One rule behind `consensusCount` on tier items and the repo detail, and the membership of `listConsensus`.
  */
 const consensusWindow = (scoreDate: string, daysParam: string) =>
-  `g.observed_at > (${scoreDate}::timestamp AT TIME ZONE 'UTC') + interval '1 day' - make_interval(days => ${daysParam}::int)
-   AND g.observed_at <= (${scoreDate}::timestamp AT TIME ZONE 'UTC') + interval '1 day'`;
+  `g.observed_at >= (${scoreDate}::timestamp AT TIME ZONE 'UTC') - make_interval(days => ${daysParam}::int)
+   AND g.observed_at < (${scoreDate}::timestamp AT TIME ZONE 'UTC')`;
 const displayableConsensusCount = (scoreDate: string, repoId: string, daysParam: string) =>
   `(SELECT count(DISTINCT g.source)::int FROM signals g
       JOIN sources so ON so.id = g.source AND so.displayable
@@ -64,7 +64,7 @@ export interface TierItem {
   starsGained: number;
   components: Record<string, number>;
   stackTags: string[];
-  /** Distinct displayable sources with a signal in the 7 days up to the score date (a hidden source is not counted). */
+  /** Distinct displayable sources with a signal in the 7 UTC days before the score date, the scoring window (a hidden source is not counted). */
   consensusCount: number;
   fakeStarFlag: boolean;
   /** Only for the cursor; not part of the API response. */
@@ -201,7 +201,7 @@ export interface RepoDetail {
     tier: ApiTier;
     score: number;
     components: Record<string, number>;
-    /** Distinct displayable sources with a signal in the 7 days up to the score date. */
+    /** Distinct displayable sources with a signal in the 7 UTC days before the score date (the scoring window). */
     consensusCount: number;
     fakeStarFlag: boolean;
   } | null;
@@ -326,7 +326,7 @@ export interface ConsensusQuery {
 export interface ConsensusItem {
   repoId: number;
   fullName: string;
-  /** Distinct displayable sources in the 7 days up to the latest scored date; equals `sources.length`. */
+  /** Distinct displayable sources in the 7 UTC days before the latest scored date; equals `sources.length`. */
   consensusCount: number;
   /** Those sources, the one that flagged the repo first leading; `firstSeenAt` is the source's first signal ever. */
   sources: { source: string; firstSeenAt: Date }[];
@@ -342,7 +342,7 @@ export interface ConsensusPage {
 }
 
 /**
- * Repos flagged by 2 or more displayable sources in the 7 days up to the latest scored date, ordered by
+ * Repos flagged by 2 or more displayable sources in the 7 UTC days before the latest scored date, ordered by
  * source count DESC, earliest first-seen ASC, `repo_id`. Repos with no `repos` row are left out.
  */
 export async function listConsensus(db: Queryable, q: ConsensusQuery): Promise<ConsensusPage> {

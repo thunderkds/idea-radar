@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { applyMigrations, createPool, type Pool } from "@idea-radar/db";
+import { applyConsensus, applyMigrations, createPool, type Pool } from "@idea-radar/db";
 import { createApi } from "./app.js";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -114,9 +114,9 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
          (1, 'ossinsight', 'trending_rank', '{"rank":1,"collections":["Dev Tools","AI"]}', '2026-10-29T10:00:00Z'),
          (2, 'ossinsight', 'trending_rank', '{"rank":2,"collections":["Dev Tools"]}', '2026-09-01T10:00:00Z'),
          (3, 'ossinsight', 'trending_rank', '{"rank":3,"collections":["AI"]}', '2026-10-28T10:00:00Z'),
-         (1, 'github_trending', 'listed', '{"period":"daily"}', '2026-10-30T09:00:00Z'),
-         (1, '${HIDDEN}', 'spike', '{"score":42}', '2026-10-30T08:00:00Z'),
-         (2, '${HIDDEN}', 'spike', '{"score":7}', '2026-10-30T08:00:00Z')`,
+         (1, 'github_trending', 'listed', '{"period":"daily"}', '2026-10-29T11:00:00Z'),
+         (1, '${HIDDEN}', 'spike', '{"score":42}', '2026-10-29T08:00:00Z'),
+         (2, '${HIDDEN}', 'spike', '{"score":7}', '2026-10-29T08:00:00Z')`,
     );
   }
 
@@ -286,7 +286,7 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       const { body } = await get("/repos/1");
       assert.deepEqual(body.timeline, [
         { source: "ossinsight", firstSeenAt: "2026-10-01T10:00:00.000Z", lastSeenAt: "2026-10-29T10:00:00.000Z" },
-        { source: "github_trending", firstSeenAt: "2026-10-30T09:00:00.000Z", lastSeenAt: "2026-10-30T09:00:00.000Z" },
+        { source: "github_trending", firstSeenAt: "2026-10-29T11:00:00.000Z", lastSeenAt: "2026-10-29T11:00:00.000Z" },
       ]);
     });
 
@@ -300,6 +300,33 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(body.readmeExcerpt, null);
       assert.deepEqual(body.signals, []);
       assert.deepEqual(body.timeline, []);
+    });
+  });
+
+  describe("one consensus window for scoring and API", () => {
+    // Score date D = 2026-10-30: the window is [D-7 00:00Z, D 00:00Z) = [2026-10-23, 2026-10-30), as in applyConsensus.
+    it("counts a signal at exactly D-7 00:00Z, not one at D 00:00Z or just before D-7; API count equals the stored count", async () => {
+      await pool.query("INSERT INTO sources (id, name, enabled, displayable) VALUES ('hackernews', 'Hacker News', TRUE, TRUE)");
+      await pool.query("DELETE FROM signals");
+      await pool.query(
+        `INSERT INTO signals (repo_id, source, signal_type, observed_at) VALUES
+           (1, 'github_trending', 'x', '2026-10-23T00:00:00Z'), (1, 'ossinsight', 'x', '2026-10-29T23:59:59Z'),
+           (2, 'github_trending', 'x', '2026-10-22T23:59:59Z'), (2, 'ossinsight', 'x', '2026-10-30T00:00:00Z'),
+           (3, 'github_trending', 'x', '2026-10-30T00:00:00Z'), (3, 'ossinsight', 'x', '2026-10-29T10:00:00Z'),
+           (4, 'ossinsight', 'x', '2026-10-22T23:59:59Z'), (4, 'hackernews', 'x', '2026-10-29T10:00:00Z')`,
+      );
+      await applyConsensus(pool, "2026-10-30");
+      const stored = new Map<number, number>(
+        (await pool.query("SELECT repo_id, consensus_count FROM repo_scores WHERE date = '2026-10-30'")).rows.map((r) => [r.repo_id, r.consensus_count]),
+      );
+      assert.deepEqual([1, 2, 3, 4, 5, 6].map((id) => stored.get(id)), [2, 0, 1, 1, 0, 0]);
+      const tier = new Map<number, any>((await get("/tiers/lowkey")).body.items.map((i: any) => [i.repoId, i]));
+      for (const id of [1, 2, 3, 4, 5]) assert.equal(tier.get(id).consensusCount, stored.get(id), `tier item ${id}`);
+      for (const id of [1, 2, 3, 4]) assert.equal((await get(`/repos/${id}`)).body.score.consensusCount, stored.get(id), `detail ${id}`);
+      assert.equal((await get("/tiers/medium")).body.items[0].consensusCount, stored.get(6));
+      const consensus = await get("/consensus");
+      assert.deepEqual(ids(consensus.body), [1], "only repo 1 has two sources inside the window");
+      assert.deepEqual(consensus.body.items[0].sources.map((x: any) => x.source), ["github_trending", "ossinsight"]);
     });
   });
 
@@ -340,7 +367,7 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       ]);
       assert.deepEqual(body.items[2].sources, [
         { source: "ossinsight", firstSeenAt: "2026-10-29T10:00:00.000Z" },
-        { source: "github_trending", firstSeenAt: "2026-10-30T09:00:00.000Z" },
+        { source: "github_trending", firstSeenAt: "2026-10-29T11:00:00.000Z" },
       ]);
     });
 
