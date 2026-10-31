@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — tasks/TASK_REVIEW_T021.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T021.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T021" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode); Risk Medium, but the trace has no `security-review` Skill call
 
 ## Evidence
 
@@ -67,8 +68,22 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured before any change (worktree T021):
+```
+$ date -u; ls packages/db/migrations packages/db/src; grep -n "candidate" -ri packages/db packages/core/src || echo "no candidate selection"
+Sat Oct 31 06:21:52 AM UTC 2026
+packages/db/migrations:
+001_init.sql
+002_pending_signals_and_cursors.sql
+
+packages/db/src:
+index.ts
+migrate.ts
+migrations.ts
+repository.test.ts
+repository.ts
+no candidate selection
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 

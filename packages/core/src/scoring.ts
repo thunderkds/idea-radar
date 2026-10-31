@@ -79,3 +79,25 @@ export function classifyTier(input: TierInput): Tier | null {
 }
 
 export type { ScoreComponents };
+
+export interface CandidateConfig {
+  /** Window in days ending at the selection date (inclusive) for the velocity and signal reasons. */
+  recentDays: number;
+  /** Days before the recent window that make a repo's own baseline daily rate (7 + 83 = 90 days). */
+  baselineDays: number;
+  /** `velocity` reason: minimum stars gained in the recent window. */
+  minStars7d: number;
+  /** Maximum candidates stored per day, taken in priority order. */
+  cap: number;
+  /** `listCandidates({ needsMetadata })`: a repos row older than this many days counts as stale. */
+  metadataMaxAgeDays: number;
+}
+
+/** Candidate selection (T021): which repos get metadata and README fetched each day. */
+export const candidateConfig: CandidateConfig = {
+  recentDays: 7,
+  baselineDays: 83,
+  minStars7d: 3,
+  cap: 5000,
+  metadataMaxAgeDays: 7,
+};

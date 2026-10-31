@@ -1,6 +1,7 @@
 import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
+import { readdirSync } from "node:fs";
 import pg from "pg";
 import type { Repo, RepoDaily, RepoScore, Signal } from "@idea-radar/core";
 import {
@@ -20,6 +21,11 @@ import {
 } from "./index.js";
 
 const url = process.env.TEST_DATABASE_URL;
+
+/** Every shipped migration file; the tests count against the directory so a new migration needs no edit here. */
+const migrationFiles = readdirSync(new URL("../migrations", import.meta.url))
+  .filter((f) => f.endsWith(".sql"))
+  .sort();
 
 /** Returns why the DB tests must skip, or undefined when Postgres answers. */
 async function skipReason(): Promise<string | undefined> {
@@ -124,7 +130,7 @@ describe("db data access (needs TEST_DATABASE_URL)", { skip }, () => {
       const { rows } = await pool.query<{ name: string }>("SELECT name FROM schema_migrations ORDER BY name");
       assert.deepEqual(
         rows.map((r) => r.name),
-        ["001_init.sql", "002_pending_signals_and_cursors.sql"],
+        migrationFiles,
       );
     });
 
@@ -136,13 +142,13 @@ describe("db data access (needs TEST_DATABASE_URL)", { skip }, () => {
         const [a, b] = await Promise.all([freshPool.connect(), freshPool.connect()]);
         try {
           const results = await Promise.all([applyMigrations(a), applyMigrations(b)]);
-          assert.equal(results[0]!.length + results[1]!.length, 2, "each migration applied exactly once in total");
+          assert.equal(results[0]!.length + results[1]!.length, migrationFiles.length, "each migration applied exactly once in total");
         } finally {
           a.release();
           b.release();
         }
         const { rows } = await freshPool.query("SELECT name FROM schema_migrations");
-        assert.equal(rows.length, 2);
+        assert.equal(rows.length, migrationFiles.length);
       } finally {
         await freshPool.end();
         await admin.query(`DROP SCHEMA ${fresh} CASCADE`);

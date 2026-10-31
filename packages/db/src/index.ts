@@ -17,3 +17,4 @@ export function createPool(connectionString = process.env.DATABASE_URL): Pool {
 
 export { applyMigrations } from "./migrations.js";
 export * from "./repository.js";
+export * from "./candidates.js";
