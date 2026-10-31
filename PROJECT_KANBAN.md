@@ -19,11 +19,11 @@
 
 ### In Progress
 - [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-150-lowkey-score` | Started 2026-10-31: branch `hun-150-lowkey-score`
-- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars`
 - [ ] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus`
 - [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers`
 
 ### Ready for Review
+- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars`
 
 ### Done
 - [x] **T016** — HUN-156 Read-only API | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-156-api` | Started 2026-10-31: branch `hun-156-api` | Done 2026-10-31: auto verify pass (session df322962-d4a5-4761-a9bd-b67430d6de4c, commit 09ca46e52e1d59a3aecfc0bda3e486a02506bf52)
