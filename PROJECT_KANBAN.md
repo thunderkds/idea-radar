@@ -18,10 +18,10 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus`
 - [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers`
 
 ### Ready for Review
+- [ ] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus`
 - [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-150-lowkey-score` | Started 2026-10-31: branch `hun-150-lowkey-score`
 - [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars`
 
