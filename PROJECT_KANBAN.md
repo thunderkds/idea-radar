@@ -11,8 +11,6 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
-- [ ] **T006** — HUN-143 Registry sync into `sources` + env-flag tests | backend-developer | C1 | Risk: Low | P1
-- [ ] **T007** — HUN-144 Postgres-backed scheduler and job runner | backend-developer | C2 | Risk: Med | P1
 - [ ] **T008** — HUN-148 Shortlist enrichment (README, manifests, file tree, stack tags) | backend-developer | C2 | Risk: Low | P2
 - [ ] **T009** — HUN-149 Tier classification job | backend-developer | C2 | Risk: Low | P1
 - [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1
@@ -26,9 +24,11 @@
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
 - [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
-- [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1
 
 ### In Progress
+- [ ] **T006** — HUN-143 Registry sync into `sources` + env-flag tests | backend-developer | C1 | Risk: Low | P1 | Started 2026-10-31: branch `hun-143-registry-sync`
+- [ ] **T007** — HUN-144 Postgres-backed scheduler and job runner | backend-developer | C2 | Risk: Med | P1 | Started 2026-10-31: branch `hun-144-scheduler`
+- [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1 | Started 2026-10-31: branch `t021-candidate-selection`
 
 ### Ready for Review
 
@@ -57,6 +57,6 @@
 | 1 Environment Setup | 🔄 In Progress (T001) |
 | 1.5 Sub-Agent Architecture | ✅ Done (base team) |
 | 2 Planning (/plan) | 🔄 In Progress (wave 1 guides written) |
-| 3 Execution | 🔄 In Progress (wave 1 built: T001–T005) |
+| 3 Execution | 🔄 In Progress (wave 1 merged to main; wave 2: T006, T007, T021) |
 | 4 Review | 🔄 In Progress (wave 1 reviewed; auto verify running) |
 | 5 Integration & Verify | ⬜ Not Started |
