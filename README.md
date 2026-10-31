@@ -2,7 +2,8 @@
 
 Discover public GitHub repos in three tiers — **trending**, **medium** and **lowkey** — and see which ideas and stacks are rising. 
 
-- Spec: [Idea Radar — v1 Spec](https://claude.ai/artifact/3tr3iGY9jjLTiCm21Ejyta)
+- Requirements: [docs/SPEC.md](docs/SPEC.md) · task list with acceptance criteria: [docs/ISSUES.md](docs/ISSUES.md) · contributor/agent guide: [AGENTS.md](AGENTS.md)
+- Living spec: [Idea Radar — v1 Spec](https://claude.ai/artifact/3tr3iGY9jjLTiCm21Ejyta)
 - Tracker: [Linear project](https://linear.app/thunderkds/project/idea-radar-v1-8d2ecdbf26cf)
 
 ## Roadmap
