@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — tasks/TASK_REVIEW_T025.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T025.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T025" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
 ## Evidence
 
@@ -67,8 +68,17 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured 2026-10-31T15:38Z, branch `hun-172-search-discovery` at `f26b2df` (no implementation commit yet). Command: `cd apps/worker && pnpm exec tsx --conditions=source <scratchpad>/demo.mts` (scratch schema, a saved Search fixture behind a stub `fetch`, the worker's own `buildHandlers` + `runWorker --once`):
+
+```
+2026-10-31T15:38:26.596Z scratch schema demo_1793461106349
+2026-10-31T15:38:26.597Z registered jobs: shortlist, snapshot, resolve_pending, score
+2026-10-31T15:38:26.597Z NO 'discover' handler registered
+2026-10-31T15:38:26.598Z tracked_repos rows: 0
+[]
+repos rows: 0
+job log lines: []
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
