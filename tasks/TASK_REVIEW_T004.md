@@ -62,7 +62,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/gh-archive.test.ts` (17 unit tests, AC 1–10; 1 live smoke skipped without `GHARCHIVE_LIVE=1`) + fixture `packages/connectors/src/fixtures/gh-archive/events.ndjson`. Output: `ℹ tests 18 ℹ pass 17 ℹ fail 0 ℹ skipped 1` |
 | Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` (see AFTER); agent: `pnpm typecheck` all workspaces pass |
 | Negative cases hold | ☑ pass | corrupt gzip rejects; malformed lines counted, not thrown; 404 stops without advancing cursor; 500 throws |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☐ pass / ☐ fail / ☐ N/A | [rerun pending: close-out read the worktree trace dir, which lacked the task trace; copied from the main checkout] |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `gh-archive.ts`, its test and fixture, caller `packages/connectors/src/index.ts` (constructor unchanged). `lane: C2, 3 files, 656 lines, EXCEEDS (lines 656 > 500)` — 348 are tests; label kept at C2 |
 | Full smoke suite still green (no regression) | ☑ pass | connectors suite 17/17 (+1 skip); agent memory check: synthetic 24 h × 300k lines (~2.4 GB) under `--max-old-space-size=48` finished OK |
 | **Companion score (easy-verifier)** | ☑ N/A | not run: Risk Low |
