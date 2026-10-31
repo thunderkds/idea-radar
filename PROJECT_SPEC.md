@@ -67,9 +67,20 @@ Copied from `AGENTS.md` § Rules — they bind every agent:
 
 ---
 
+## Dashboard Design System
+
+The dashboard (T017, T018) uses **Graphite Mint** — source: https://claude.ai/artifact/7DkuKJzMN6tJ9S8v2fNE8b (owner's design-system artifact). Repo snapshot of 2026-10-31: `docs/design-system/project/README.md` (brand book: principles, what gets neon, typography, layout, a11y, do/don't), `docs/design-system/project/tokens.json` (color, type, spacing, radius, glow, layout tokens), `docs/design-system/project/components/bundle.css` (`gm-*` component classes). Rules for agents:
+- Generate one `tokens.css` from `tokens.json`; never copy hex values into components.
+- Dark theme only; IBM Plex Sans / Mono via `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono` (no font network calls).
+- Neon (`--neon`) only for the few highlights the README lists (~6 per screen); cards outlined with `--line`, no shadows except the `glow-*` tokens.
+- Missing data shows "no data" in `--text-dim`, never 0. Status words in tables are plain mono, not coloured pills.
+- Shell at app density: 56px top bar, 232px sidebar; sidebar becomes a drawer below 1024px; one column below 720px.
+
+---
+
 ## UI Evidence (Hard-Stop Gate 6)
 
-Every task with a UI component (T017, T018) records its three design Evidence rows — visual regression, design-system compliance, responsiveness — with the **easy-ui** MCP server (`.mcp.json`: the local `easy-ui-mcp` container, `http://127.0.0.1:8765/mcp`). Paste the tool's verdict or screenshot path into `tasks/TASK_REVIEW_Txxx.md`. If the container is not running, the row stays unchecked and the task is not done.
+Every task with a UI component (T017, T018) records its three design Evidence rows — visual regression, design-system compliance, responsiveness — with the **easy-ui** MCP server (`.mcp.json`: the local `easy-ui-mcp` container, `http://127.0.0.1:8765/mcp`). Paste the tool's verdict or screenshot path into `tasks/TASK_REVIEW_Txxx.md`. Design-system compliance is checked against the Graphite Mint tokens above. If the container is not running, the row stays unchecked and the task is not done.
 
 ---
 
