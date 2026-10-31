@@ -80,9 +80,42 @@ repos rows: 0
 job log lines: []
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: same command, captured 2026-10-31T15:49Z after commit `T025: trackRepos and the discover job` (the stub returns the saved fixture for the TypeScript "created" query, page 1; the other 11 queries return no results):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+2026-10-31T15:49:22.203Z scratch schema demo_1793461761892
+2026-10-31T15:49:22.204Z registered jobs: shortlist, snapshot, discover, resolve_pending, score
+2026-10-31T15:49:22.294Z tracked_repos rows: 3
+[
+  {
+    repo_id: 880100001,
+    full_name: 'alice/tiny-queue',
+    priority: 'normal',
+    added_reason: 'search',
+    next_due_at: 2026-10-31T15:49:22.274Z
+  },
+  {
+    repo_id: 880100002,
+    full_name: 'bob/dotfiles-sync',
+    priority: 'normal',
+    added_reason: 'search',
+    next_due_at: 2026-10-31T15:49:22.274Z
+  },
+  {
+    repo_id: 880100003,
+    full_name: 'carol/rss-digest',
+    priority: 'normal',
+    added_reason: 'search',
+    next_due_at: 2026-10-31T15:49:22.274Z
+  }
+]
+repos rows: 3
+job log lines: [
+  '{"job":"discover","date":"2026-10-31","queries":12,"requests":12,"found":3,"added":3}'
+]
+```
+
+**DELTA**: the daily `discover` job now finds small, recent repos through GitHub Search, stores their metadata in `repos` and adds them to `tracked_repos` as `normal`, due now, reason `search`; before, the job did not exist and nothing outside GH Archive and the signal sources could add a repo to the tracked set.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
