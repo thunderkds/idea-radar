@@ -210,6 +210,100 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     });
   });
 
+  describe("run token and heartbeat (T023)", () => {
+    /** Simulate a newer run taking the job over: a stuck-job reclaim bumps `attempts` by 1. */
+    const reclaim = (name: string) => pool.query("UPDATE jobs SET attempts = attempts + 1 WHERE name = $1", [name]);
+    const lines: string[] = [];
+    beforeEach(() => void (lines.length = 0));
+    const run = (handlers: Record<string, JobHandler>, extra: { heartbeatMs?: number } = {}) =>
+      runWorker({
+        db: pool, handlers, caps: { defaultPerName: 5 }, once: true, now: () => new Date(), log: (l) => lines.push(l),
+        ...extra,
+      });
+
+    it("sends a heartbeat while the handler runs and none after it ends (AC 5)", async () => {
+      let before: Date | undefined;
+      let during: Date | undefined;
+      const handlers = {
+        slow: {
+          sourceId: null,
+          run: async () => {
+            before = (await job("slow")).locked_at;
+            await sleep(200);
+            during = (await job("slow")).locked_at;
+          },
+        },
+      };
+      await run(handlers, { heartbeatMs: 20 });
+      assert.ok(before && during && during.getTime() > before.getTime(), "locked_at moved while the handler ran");
+      assert.equal((await job("slow")).status, "ok");
+      lines.length = 0;
+      await sleep(100);
+      assert.deepEqual(lines, [], "no heartbeat (and no heartbeat error) after the job ended");
+    });
+
+    it("logs a heartbeat error and keeps the run going (AC 5)", async () => {
+      // A pool whose heartbeat UPDATE fails; every other query goes through.
+      const flaky = new Proxy(pool, {
+        get: (target, prop) =>
+          prop === "query"
+            ? (text: unknown, ...rest: unknown[]) =>
+                typeof text === "string" && text.includes("SET locked_at = $3")
+                  ? Promise.reject(new Error("heartbeat boom"))
+                  : (target.query as (...a: unknown[]) => unknown)(text, ...rest)
+            : Reflect.get(target, prop).bind?.(target) ?? Reflect.get(target, prop),
+      });
+      const handlers = { slow: { sourceId: null, run: async () => void (await sleep(100)) } };
+      await runWorker({
+        db: flaky, handlers, caps: { defaultPerName: 5 }, once: true, now: () => new Date(),
+        log: (l) => lines.push(l), heartbeatMs: 20,
+      });
+      assert.ok(lines.some((l) => JSON.parse(l).error === "heartbeat boom"), lines.join("\n"));
+      assert.equal((await job("slow")).status, "ok");
+    });
+
+    it("a run that lost the job logs lost, leaves the job alone and records no source health (AC 6)", async () => {
+      const handlers = { stale: { sourceId: "stale", run: async () => void (await reclaim("stale")) } };
+      await run(handlers);
+      const j = await job("stale");
+      assert.equal([j.status, j.attempts].join("|"), "running|1");
+      assert.equal(await source("stale"), undefined);
+      assert.equal(JSON.parse(lines.at(-1)!).status, "lost");
+    });
+
+    it("a failing run that lost the job logs lost, does not fail the job and records no source health (AC 6)", async () => {
+      const handlers = {
+        stale: {
+          sourceId: "stale",
+          run: async () => {
+            await reclaim("stale");
+            throw new Error("late failure");
+          },
+        },
+      };
+      await run(handlers);
+      const j = await job("stale");
+      assert.equal([j.status, j.attempts, j.last_error].join("|"), "running|1|");
+      assert.equal(await source("stale"), undefined);
+      assert.equal(JSON.parse(lines.at(-1)!).status, "lost");
+    });
+
+    it("fetch connector: a stale run commits no signals and logs the loss (AC 7)", async () => {
+      await pool.query("INSERT INTO repos (repo_id, full_name) VALUES (7, 'known/repo')");
+      class Stale extends FakeConnector {
+        override async *fetch(): AsyncIterable<string> {
+          yield "known/repo";
+          await reclaim("fake");
+        }
+      }
+      await run(buildHandlers({ connectors: [new Stale("fake", [])], log: (l) => lines.push(l) }));
+      assert.equal(await count("signals"), 0, "stale run rolled back");
+      assert.equal((await job("fake")).status, "running");
+      assert.equal(await source("fake"), undefined);
+      assert.ok(lines.some((l) => JSON.parse(l).status === "lost"), lines.join("\n"));
+    });
+  });
+
   describe("handlers", () => {
     const ctx = (connectors: SourceConnector[], extra = {}) => buildHandlers({ connectors, ...extra });
 

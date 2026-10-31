@@ -1,4 +1,4 @@
-import { claimNext, completeJob, enqueueDue, failJob, recordSourceRun } from "@idea-radar/db";
+import { claimNext, completeJob, enqueueDue, failJob, heartbeatJob, recordSourceRun } from "@idea-radar/db";
 import type { ClaimCaps, Job, Pool } from "@idea-radar/db";
 import type { JobHandler } from "./handlers.js";
 import { buildSchedule } from "./handlers.js";
@@ -11,6 +11,8 @@ export interface RunWorkerOptions {
   once?: boolean;
   /** Pause between polls when nothing is claimable. Default 5000. */
   pollMs?: number;
+  /** How often a running job refreshes its `locked_at`. Default 60000; keep far below the shortest job timeout (2 h). */
+  heartbeatMs?: number;
   signal?: AbortSignal;
   /** Injected in tests. Default: the real clock. */
   now?: () => Date;
@@ -19,29 +21,47 @@ export interface RunWorkerOptions {
 
 const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
-/** Run one claimed job: handler, then job state and source health. Never throws. */
+/**
+ * Run one claimed job: handler, then job state and source health. Never throws. A heartbeat keeps the
+ * job's `locked_at` fresh while the handler runs. A run whose token no longer matches (a newer run
+ * reclaimed the job) changes nothing, logs `lost` and records no source health.
+ */
 async function runJob(job: Job, opts: RunWorkerOptions): Promise<void> {
   const { db, handlers } = opts;
   const now = opts.now ?? (() => new Date());
   const log = opts.log ?? (() => {});
   const handler = handlers[job.name];
   const startedAt = now();
+  const line = (fields: object) => log(JSON.stringify({ job: job.name, dataKey: job.dataKey, ...fields }));
+  const heartbeat = setInterval(() => {
+    heartbeatJob(db, job, now()).then(
+      (alive) => alive || line({ status: "heartbeat_lost" }),
+      (err: unknown) => line({ status: "heartbeat_error", error: errorMessage(err) }),
+    );
+  }, opts.heartbeatMs ?? 60_000);
   try {
     if (!handler) throw new Error(`no handler for job "${job.name}"`);
-    await handler.run({ db, job, now: startedAt });
-    await completeJob(db, job.id, now());
+    // A handler that completes the job in its own transaction returns "completed".
+    const completed = (await handler.run({ db, job, now: startedAt })) === "completed";
+    if (!completed && !(await completeJob(db, job, now()))) {
+      line({ status: "lost" });
+      return;
+    }
     if (handler.sourceId) await recordSourceRun(db, handler.sourceId, "ok", null, now());
-    log(JSON.stringify({ job: job.name, dataKey: job.dataKey, status: "ok", ms: now().getTime() - startedAt.getTime() }));
+    line({ status: "ok", ms: now().getTime() - startedAt.getTime() });
   } catch (err) {
     const message = errorMessage(err);
     try {
-      const next = await failJob(db, job.id, message, now());
+      const next = await failJob(db, job, message, now());
+      if (next === null) return line({ status: "lost", error: message });
       if (handler?.sourceId) await recordSourceRun(db, handler.sourceId, "error", message, now());
-      log(JSON.stringify({ job: job.name, dataKey: job.dataKey, status: next ?? "lost", error: message }));
+      line({ status: next, error: message });
     } catch (bookkeeping) {
       // Could not even record the failure (database down): the stuck-job timeout reclaims the job.
-      log(JSON.stringify({ job: job.name, dataKey: job.dataKey, status: "unrecorded", error: errorMessage(bookkeeping) }));
+      line({ status: "unrecorded", error: errorMessage(bookkeeping) });
     }
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 
