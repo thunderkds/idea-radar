@@ -9,6 +9,11 @@
 **Why**: `distinct_actors` (unique actor ids per repo per day) cannot be summed across hourly runs; replace-upsert per day keeps it exact.
 **Files**: `packages/connectors/src/gh-archive.ts`, `packages/db/src/`, `tasks/TASK_GUIDE_T004.md`
 
+### 2026-10-31 — Worker job queue is an in-repo `jobs` table (T007)
+**Decision**: `apps/worker` uses migration 004's `jobs` table (`UNIQUE (name, data_key)`), claimed with `FOR UPDATE SKIP LOCKED` under an advisory xact lock; no pg-boss. `score(D)` waits until 02:00 UTC and until every other job of date D is `ok`. Backoff 30s·2^n, `failed` after 5 attempts; stuck jobs reclaimed after 2h (gh_archive 6h). New jobs = an entry in `buildHandlers` + a cap in `buildCaps` (`apps/worker/src/handlers.ts`).
+**Why**: debated (pg-boss vs own table); no new dependency, fits the plain-`pg` migration runner, "score after ingestion" is one claim rule.
+**Files**: `packages/db/migrations/004_jobs.sql`, `packages/db/src/jobs.ts`, `apps/worker/src/handlers.ts`, `apps/worker/src/runner.ts`, `apps/worker/src/index.ts`
+
 ## Infrastructure
 
 ### 2026-10-31 — Requirements live in docs/SPEC.md + docs/ISSUES.md; AGENTS.md is merged

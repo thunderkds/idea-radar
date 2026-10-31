@@ -8,6 +8,10 @@
 
 ## Gotchas
 
+### 2026-10-31 — OSS Insight API returns no data
+`api.ossinsight.io/v1` trending answers `rows: []` with `data_quality.status: "unavailable"` (unavailable since 2026-03-01, seen by T007's real worker run). The `ossinsight` connector therefore reports `ok` with 0 signals — the silent-success failure HUN-147 guards against for Trending. Treat 0 rows / `unavailable` as an error before relying on OSS Insight for the trending tier (T012).
+**Files**: `packages/connectors/src/ossinsight.ts`
+
 ### 2026-10-31 — Kit gotchas found running wave 1 in parallel
 - `Agent(isolation: "worktree")` bases the worktree on `main`, not the current branch, so the agent has no `tasks/`, `agents/` or guides. Create worktrees yourself from a base branch that carries them (`git worktree add -b <branch> .claude/worktrees/Txxx <base>`) and pass the absolute path in the spawn prompt.
 - The merge gate blocks `git rebase` while a task is In Progress; re-apply a task branch with `git format-patch` + `git apply --3way` instead (keep the original on a `backup/` branch).

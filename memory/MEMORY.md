@@ -25,3 +25,5 @@
 - [Requirements + merged AGENTS.md](decisions.md#2026-10-31--requirements-live-in-docsspecmd--docsissuesmd-agentsmd-is-merged) — docs/SPEC.md + docs/ISSUES.md are the PRD; Txxx↔HUN map on the board
 - [Codebase Map](codebase-map.md) — structural snapshot: directory tree, entry points, blast-radius hotspots. Refresh via /map-codebase.
 - [Kit gotchas, parallel wave](learnings.md#2026-10-31--kit-gotchas-found-running-wave-1-in-parallel) — own worktrees from a base branch; bare test cmd for Gate 5; unscoped review skill names; no `<x>` in reports
+- [Worker job queue](decisions.md#2026-10-31--worker-job-queue-is-an-in-repo-jobs-table-t007) — jobs table + SKIP LOCKED; score(D) after all D jobs ok; add jobs in buildHandlers/buildCaps
+- [OSS Insight empty](learnings.md#2026-10-31--oss-insight-api-returns-no-data) — API returns rows [] / unavailable since 2026-03; connector silently ok (T012 must fail loudly)
