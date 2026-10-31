@@ -42,3 +42,6 @@ On 2026-10-31 every `api.ossinsight.io/v1/collections/*` path (list, `{id}`, `{i
 - A reopened Done task needs its verify row reset to the template line, the `Closed:` line removed and `Not done:` set back to running, before `stop_auto_verify.py --start`.
 **Files**: `skills/score/SKILL.md`, `.claude/hooks/stop_auto_verify.py`
 - Field report for the easy-verifier maintainers (E1 SHA masking, E2 lockfile hashes as secrets, E3 `*.down.sql` not seen as rollback, E4 `top_level_import_cycles` crash, E5 200 000-char diff ceiling): `../easy-verifier-mcp/docs/notes/2026-10-31-field-report-idea-radar.md`. Wave-4 Linear issues HUN-150, 151, 155, 157 are marked Done with a result comment each (2026-10-31).
+
+### 2026-10-31 — easy-verifier `score` findings: confidence words and pack refs only (T023)
+`score` rejects a finding whose `confidence` is a number (allowed: `low`, `medium`, `high`) or whose `evidence_ref` is not `path:start-end` **and** listed in that dimension's own evidence pack. A code-review line ref (`runner.ts:36-41`) is refused as "not found in the 'reliability' pack". Either take refs from a first unscored call's pack, or score without findings and say so in the Companion row.
