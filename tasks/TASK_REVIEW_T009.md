@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — tasks/TASK_REVIEW_T009.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
 ## Evidence
 
@@ -67,8 +68,25 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31T07:42:38Z in the T009 worktree, before any implementation commit; `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test`):
+
+```
+packages/core test: ℹ tests 6 / pass 6 / fail 0
+packages/connectors test: ℹ tests 50 / pass 49 / fail 0
+packages/db test: ℹ tests 54 / pass 54 / fail 0
+apps/worker test: ℹ tests 18 / pass 18 / fail 0
+```
+
+Command showing the missing behaviour:
+
+```
+$ grep -n "SCORE_JOB\] =" apps/worker/src/handlers.ts
+122:  handlers[SCORE_JOB] = { sourceId: null, run: async () => {} };
+$ grep -rn scoreDay packages apps --include='*.ts' (excluding node_modules)
+(no match: scoreDay does not exist)
+```
+
+`classifyTier` takes no `velocityAboveBaseline`; `tierConfig.medium` has no `min30dStars`. The `score` job is the placeholder `run: async () => {}`, so `repo_scores` is never written.
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 

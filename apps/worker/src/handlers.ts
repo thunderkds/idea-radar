@@ -9,6 +9,7 @@ import {
   markNotFound,
   resolvePending,
   SCORE_JOB,
+  scoreDay,
   setCursor,
   upsertRepo,
   upsertRepoDaily,
@@ -118,8 +119,7 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
       },
     };
   }
-  // T009 fills this in: it only records the run for now.
-  handlers[SCORE_JOB] = { sourceId: null, run: async () => {} };
+  handlers[SCORE_JOB] = { sourceId: null, run: async ({ db, job }) => void (await scoreDay(db, job.dataKey)) };
   return handlers;
 }
 
