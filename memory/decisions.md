@@ -25,3 +25,7 @@
 **Decision**: `docs/SPEC.md` and `docs/ISSUES.md` (from origin `b21072b`) are the requirements and stand in for `PRD.md`. `AGENTS.md` = repo project rules (top) + kit doctrine (below). Kit-only copy: `memory/backups/AGENTS.kit.md`. Board `Txxx` ↔ Linear `HUN-1xx` mapping is on `PROJECT_KANBAN.md`.
 **Why**: the user asked to pull the latest and use it as the requirements; the remote AGENTS.md would otherwise have replaced the kit doctrine.
 **Files**: `AGENTS.md`, `docs/SPEC.md`, `docs/ISSUES.md`, `PROJECT_SPEC.md`, `PROJECT_KANBAN.md`
+
+### 2026-10-31 — Score job order: scoreDay → applyConsensus → applyFakeStarFlags (wave-4 merge)
+**Decision (Supervisor, wave-4 merge):** the worker `score` handler runs `scoreDay`, then `applyConsensus` (Trending × consensus factor), then `applyFakeStarFlags` (flagged trending/lowkey × (1 − share)). Both later steps multiply the stored score, so the order does not change the result beyond 6-decimal rounding; consensus goes first because the fake-star step returns early when the GitHub connector has no token. Each is valid only right after `scoreDay`; a rerun starts from `scoreDay`.
+**Files**: `apps/worker/src/handlers.ts`, `packages/db/src/consensus.ts`, `packages/db/src/fake-stars.ts`
