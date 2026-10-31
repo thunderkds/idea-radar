@@ -65,6 +65,28 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
     await pool.query("TRUNCATE jobs");
   });
 
+  describe("enqueueDue weekly jobs (T026 AC 3)", () => {
+    const weekly = { hourly: [], daily: [], weekly: ["regroup"] };
+
+    it("creates one job per UTC week, keyed by that week's Monday, and a second call adds nothing", async () => {
+      const monday = new Date("2026-11-02T00:00:05Z");
+      assert.equal(await enqueueDue(pool, monday, weekly), 1);
+      assert.equal(await enqueueDue(pool, monday, weekly), 0);
+      assert.equal(await enqueueDue(pool, new Date("2026-11-08T23:59:00Z"), weekly), 0, "Sunday of the same week");
+      assert.deepEqual((await rows()).map((r) => [r.name, r.data_key]), [["regroup", "2026-11-02"]]);
+      assert.equal(await enqueueDue(pool, new Date("2026-11-09T00:00:00Z"), weekly), 1, "next Monday");
+    });
+
+    it("a worker that was down on Monday still gets the week's job, keyed by that Monday", async () => {
+      assert.equal(await enqueueDue(pool, new Date("2026-11-05T10:00:00Z"), weekly), 1);
+      assert.deepEqual((await rows()).map((r) => r.data_key), ["2026-11-02"]);
+    });
+
+    it("a schedule without weekly names adds none", async () => {
+      assert.equal(await enqueueDue(pool, T0, { hourly: [], daily: [] }), 0);
+    });
+  });
+
   describe("enqueueDue (AC 2)", () => {
     it("creates gh_archive per UTC hour and daily jobs per UTC date, and a second call adds nothing", async () => {
       assert.equal(await enqueueDue(pool, T0, schedule), 5);

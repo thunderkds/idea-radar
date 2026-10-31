@@ -24,6 +24,8 @@ export interface JobSchedule {
   hourly: string[];
   /** Job names enqueued once per UTC date (include `SCORE_JOB` to schedule scoring). */
   daily: string[];
+  /** Job names enqueued once per UTC week, keyed by that week's Monday (T026). A worker that was down on Monday enqueues on its next pass. */
+  weekly?: string[];
 }
 
 export interface Job {
@@ -51,7 +53,8 @@ export interface ClaimCaps {
 const CLAIM_LOCK_SQL = "SELECT pg_advisory_xact_lock(hashtext('idea-radar:jobs:claim'))";
 
 /**
- * Create the jobs due at `now`: each `hourly` name keyed by UTC hour, each `daily` name by UTC date.
+ * Create the jobs due at `now`: each `hourly` name keyed by UTC hour, each `daily` name by UTC date, each `weekly` name by
+ * the Monday of the UTC week.
  * Idempotent (`ON CONFLICT DO NOTHING`): calling it again, or on a restarted worker, adds nothing.
  * Returns the number of jobs created.
  */
@@ -59,6 +62,7 @@ export async function enqueueDue(db: Queryable, now: Date, schedule: JobSchedule
   const hour = now.toISOString().slice(0, 13);
   const date = now.toISOString().slice(0, 10);
   const dayStart = new Date(`${date}T00:00:00Z`).getTime();
+  const mondayKey = new Date(dayStart - ((now.getUTCDay() + 6) % 7) * 24 * 3_600_000).toISOString().slice(0, 10);
   const rows: { name: string; key: string; runAfter: Date }[] = [
     ...schedule.hourly.map((name) => ({ name, key: hour, runAfter: now })),
     ...schedule.daily.map((name) => ({
@@ -66,6 +70,7 @@ export async function enqueueDue(db: Queryable, now: Date, schedule: JobSchedule
       key: date,
       runAfter: name === SCORE_JOB ? new Date(dayStart + SCORE_DELAY_MS) : now,
     })),
+    ...(schedule.weekly ?? []).map((name) => ({ name, key: mondayKey, runAfter: now })),
   ];
   if (rows.length === 0) return 0;
   const res = await db.query(
