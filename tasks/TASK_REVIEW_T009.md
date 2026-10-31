@@ -53,7 +53,8 @@ Mode: auto
 5. Review fix: windows end at the GH Archive cursor when it is earlier than `date` − 1, so a score run before yesterday is ingested does not read that day as zero stars — RULE: `docs/claude-md/tracks.md` `### Every user stop and its auto rule` (Stage 4 safe P0/P1 fixes are applied by `code-review` Phase 4)
 Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 18/18, connectors 49/50 (1 pre-existing skip), db 67/67, worker 18/18, exit 0; reviews code-review — P0 0, P1 1 (score windows ignored GH Archive lag — fixed in `7da6b38` with a test), P2 2 (`scoreDay` rewrites the whole date, so T011/T015 must run after it or inside it; contributors is a lower bound), P3 0; real run: none beyond temp-schema integration tests (the worker against real data needs a token and ingested days) (auto-checked, not /verify)
 Memory: memory/decisions.md — Tier rule readings for U1 and U8 (T009)
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 5874b2fb-0170-426f-a8b1-3cbd48e2626d, commit 5988ece9c32fedbdc7e2e7937322068a4f26dbe0, log .claude/verify-runs/T009-5988ece9c32f.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 5874b2fb-0170-426f-a8b1-3cbd48e2626d, commit 5988ece9c32fedbdc7e2e7937322068a4f26dbe0); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/core/src/scoring.test.ts` (12 new boundary tests), `packages/db/src/scores.test.ts` (13 integration tests incl. the windowEnd fix), `apps/worker/src/worker.test.ts` (score job writes a row). core `ℹ tests 18 ℹ fail 0`, db `ℹ tests 67 ℹ fail 0` |
 | Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 and `pnpm typecheck` clean (Supervisor rerun under T009 after the fix) |
 | Negative cases hold | ☑ pass | every tier edge on both sides (499/500, 3/4 weeks, 199/200, 30/31 days, 1/2 contributors, no/blank README, equal baseline); archived and null push date get no tier; failed write rolls back |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 5874b2fb-0170-426f-a8b1-3cbd48e2626d, commit 5988ece9c32fedbdc7e2e7937322068a4f26dbe0, log .claude/verify-runs/T009-5988ece9c32f.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `scoring.ts` + test, `scores.ts` + test, `db/src/index.ts`, worker `score` handler + test; callers of `classifyTier` (only `scores.ts`). `lane: C2, 7 files, 587 lines, EXCEEDS (lines 587 > 500); unpredicted: apps/worker/src/worker.test.ts, packages/core/src/scoring.test.ts, packages/db/src/index.ts, packages/db/src/scores.test.ts` — mostly tests |
 | Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
 | **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
