@@ -29,9 +29,9 @@
 - [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1
 
 ### In Progress
-- [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | Risk: Low | P1 | Started 2026-10-31: branch `hun-146-gh-archive`
 
 ### Ready for Review
+- [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | PR/branch: `hun-146-gh-archive` | Started 2026-10-31: branch `hun-146-gh-archive`
 - [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | PR/branch: `hun-142-db-access` | Started 2026-10-31: branch `hun-142-db-access`
 - [ ] **T003** — HUN-145 GitHub API connector (metadata, name resolution, rate limit) | backend-developer | C2 | PR/branch: `hun-145-github-api` | Started 2026-10-31: branch `hun-145-github-api`
 - [ ] **T005** — HUN-147 GitHub Trending page scraper | backend-developer | C1 | PR/branch: `hun-147-trending-scraper` | Started 2026-10-31: branch `hun-147-trending-scraper`
@@ -57,6 +57,6 @@
 | 1 Environment Setup | 🔄 In Progress (T001) |
 | 1.5 Sub-Agent Architecture | ✅ Done (base team) |
 | 2 Planning (/plan) | 🔄 In Progress (wave 1 guides written) |
-| 3 Execution | ⬜ Not Started |
-| 4 Review | ⬜ Not Started |
+| 3 Execution | 🔄 In Progress (wave 1 built: T001–T005) |
+| 4 Review | 🔄 In Progress (wave 1 reviewed; auto verify running) |
 | 5 Integration & Verify | ⬜ Not Started |
