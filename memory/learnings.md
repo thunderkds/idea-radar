@@ -11,7 +11,7 @@
 ### 2026-10-31 — Kit gotchas found running wave 1 in parallel
 - `Agent(isolation: "worktree")` bases the worktree on `main`, not the current branch, so the agent has no `tasks/`, `agents/` or guides. Create worktrees yourself from a base branch that carries them (`git worktree add -b <branch> .claude/worktrees/Txxx <base>`) and pass the absolute path in the spawn prompt.
 - The merge gate blocks `git rebase` while a task is In Progress; re-apply a task branch with `git format-patch` + `git apply --3way` instead (keep the original on a `backup/` branch).
-- Gate 5 trace check only counts a Bash call whose command *is* the test run (`pnpm --filter <pkg> test`); a run inside a compound command (`M=...; cd ...; pnpm ...`) is not counted. `cd` into the worktree in one call, run the bare test command in the next, with the active-task state file set.
+- Gate 5 trace check (`TEST_INVOCATION_PATTERN` in `.claude/hooks/pre_bash_block_unsafe_merge.py`) only counts a literal `pnpm test` / `pnpm run test` (or pytest, jest, go test …) at a command boundary. `pnpm --filter <pkg> test` and `pnpm --dir … test` do NOT match. `cd` into the worktree in one call, run plain `pnpm test` in the next, with the active-task state file set.
 - The auto-mode check only counts a `Skill` call named exactly `code-review` / `security-review`; the directory-scoped variants (`.claude/worktrees/Txxx:code-review`) do not count.
 - Auto close-out treats any `<word>` in the report as an unfilled placeholder (`report incomplete`). Avoid angle brackets in report prose.
 - Run the trace test run *before* `stop_auto_verify.py --start`; a pass with no traced test leaves the row in Ready for Review, and a rerun needs the verify row reset and the old log moved away.
