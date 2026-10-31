@@ -159,3 +159,37 @@ exit 1
 ```
 
 Shows: only one migration file per migration (no `005_source_first_seen.down.sql`), and `pnpm lint` fails on `api.ts:98:27 _consensusBoost`.
+
+**AFTER** (2026-10-31T10:55Z, same command, worktree after the R1 commits; `lint exit 0` confirmed by a rerun):
+
+```
+=== 2026-10-31T10:55:56Z ls packages/db/migrations/; pnpm lint ===
+001_init.sql
+002_pending_signals_and_cursors.sql
+003_candidates.sql
+004_jobs.sql
+005_source_first_seen.down.sql
+005_source_first_seen.sql
+
+> idea-radar@0.1.0 lint /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T015
+> pnpm -r lint && eslint scripts eslint.config.js
+
+Scope: 6 of 7 workspace projects
+apps/dashboard lint$ eslint .
+packages/core lint$ eslint .
+apps/dashboard lint: Done
+packages/core lint: Done
+packages/connectors lint$ eslint .
+packages/db lint$ eslint .
+packages/db lint: Done
+packages/connectors lint: Done
+apps/api lint$ eslint .
+apps/worker lint$ eslint .
+apps/api lint: Done
+apps/worker lint: Done
+exit 0
+```
+
+Full suite: `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` exit 0 -> core 23/23, connectors 80 pass + 1 skipped of 81, db 94/94, api 23/23, worker 24/24; `pnpm typecheck` clean.
+
+**DELTA**: `005_source_first_seen.down.sql` now exists beside migration 005 (005 itself unchanged), `rollbackMigration` runs it, `pnpm lint` passes (was 1 error), and `scoring.ts`, `api.ts`, `index.ts`, `migrations.ts` each have a sibling test changed on this branch.
