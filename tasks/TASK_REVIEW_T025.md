@@ -42,21 +42,34 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — no test run in memory/event-trace/T025.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T025" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop
+
+## Auto decisions
+
+Mode: auto
+1. Search goes through REST `GET /search/repositories` (real page numbers, full metadata per item), not GraphQL `search()` — RULE: `tasks/TASK_GUIDE_T025.md` § Acceptance Criteria (AC 2 "REST or GraphQL `search(type: REPOSITORY)`")
+2. Discovery covers TypeScript, JavaScript, Python, Go, Rust and Java; 5 pages per query; 120 requests a day (one full pass is 60) — SAFER OPTION: well inside the Search limit and the 1,000-results cap; the values sit in `discoveryConfig` for tuning ⚠ decided for you — please review
+3. `score` does not wait for `discover` in any state; a failed `discover` stays visible (job `failed`, `github_api` health `error`) — FACT: `packages/db/src/jobs.ts:18 "export const SCORE_DOES_NOT_WAIT_FOR = ["discover"] as const;"` (review finding R1.1: discovery is not an input to that day's score)
+4. `trackRepos` never changes an existing tracked row (priority, reason, due time) — RULE: `tasks/TASK_GUIDE_T025.md` § Acceptance Criteria (AC 3 "existing tracked rows keep their priority and due time")
+5. The P2 and P3 review findings are left as follow-ups — RULE: `.claude/skills/code-review/SKILL.md` § Phase 4 — Apply Safe Fixes ("Do not apply P2/P3 fixes automatically")
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` (Supervisor rerun in the worktree under T025, after R1) — core 58/58, dashboard 140/140, connectors 98/99 (1 pre-existing live-token skip), db 150/150, api 23/23, worker 43/43, scripts 21/21, exit 0; `pnpm lint`, `pnpm typecheck` exit 0; reviews code-review — round 1: P1 1 (a failed discover blocked the day's score), fixed in R1 with red-first tests; after R1: P0 0, P1 0, P2 2 (no `retry-after` handling on Search 403/429; config values chosen by the agent), P3 2; security-review — not required (Risk Low); easy-verifier score — overall 71, floor 80 missed, change_risk 100 (Companion score row); real run: Demonstration script on a scratch schema with the saved Search response — printed `{"job":"discover","date":"2026-10-31","queries":12,"requests":12,"found":3,"added":3}` (auto-checked, not /verify)
+Memory: memory/learnings.md — "Stacked auto-mode branches and score blocking (T025/T026)" (covers the score-wait opt-out)
+Not done: merge (yours); auto verify: ☐ blocked (session 6869d05c-1e24-4699-a3ef-9aa7bcf69b90, commit ccb4adf3de35dd1c8e124154d274a3a0cd8855ae, log .claude/verify-runs/T025-ccb4adf3de35.log)
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/core/src/discovery.test.ts` (config + queries), `packages/connectors/src/github-search.test.ts` (mapping, paging, 1,000 cap, token, HTTP error redaction, limiter: 31 calls ≥ 60 s, 70 concurrent), `packages/db/src/discovery.test.ts` (added once, existing leader kept), `packages/db/src/score-wait.test.ts` (R1.1: score does not wait for discover, still waits for a failed snapshot), `apps/worker/src/discover.test.ts` (job, cap, no token, 403, failing discover does not hold back score). Output: connectors 98/99, db 150/150, worker 43/43, core 58/58 |
+| Verification command run | ☑ pass | `pnpm lint && pnpm typecheck && TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` exit 0 (Supervisor rerun after R1, under T025) |
+| Negative cases hold | ☑ pass | no token → skipped and logged; page 0 / 11 → no request; Search 403 → job pending with retry, `github_api` error, earlier pages kept; a failed discover does not block score; a failed snapshot still does |
+| verify | ☐ blocked | auto-run by hook, session 6869d05c-1e24-4699-a3ef-9aa7bcf69b90, commit ccb4adf3de35dd1c8e124154d274a3a0cd8855ae, log .claude/verify-runs/T025-ccb4adf3de35.log — blocked (no single verdict line) |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `searchRepos` + limiter, `discoveryConfig`/`discoveryQueries`, `trackRepos`, `discoverHandler`, the score-wait exemption in `claimNext`, and their tests. `lane: C2, 13 files, 866 lines, EXCEEDS (lines 866 > 500)`: mostly new test files and the 100-item Search fixture |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ fail | overall 71 (floor 80 missed), change_risk 100 (feature, confirmed; `new_code_without_test_share` 0 passed), scope changes, ref `hun-t024-star-snapshots...HEAD`, abstentions: solution-fit, requirement-fidelity, api, data, operations, infrastructure, gates: none offered, test pairs: 6 proposals confirmed, divergence: no findings sent (the verifier accepts only refs from its own pack), ratings: architecture 100, code-quality 100, blast-radius 65 (churn hotspots), test-strategy 65 (`source_files_without_covering_test_share`, `network_calls_in_unit_tests_observed`: the fixtures stub fetch), security 59 (`redaction_hits_observed`: lockfile/kit hashes, field report E2), supply-chain 55 (field report E1; no provenance step), reliability 50 (`swallowed_errors_observed` 2 in `github-api.ts` and `jobs.ts`: the existing `ROLLBACK().catch(() => {})` patterns). report: `/home/hungnguyenhuu/.easy-verifier-reports/T025/evidence-report-changes-20261031T155553-093523Z.html` |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: connector, db and worker only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: connector, db and worker only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: connector, db and worker only |
 
 ---
 
@@ -67,12 +80,53 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**: captured 2026-10-31T15:38Z, branch `hun-172-search-discovery` at `f26b2df` (no implementation commit yet). Command: `cd apps/worker && pnpm exec tsx --conditions=source <scratchpad>/demo.mts` (scratch schema, a saved Search fixture behind a stub `fetch`, the worker's own `buildHandlers` + `runWorker --once`):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+2026-10-31T15:38:26.596Z scratch schema demo_1793461106349
+2026-10-31T15:38:26.597Z registered jobs: shortlist, snapshot, resolve_pending, score
+2026-10-31T15:38:26.597Z NO 'discover' handler registered
+2026-10-31T15:38:26.598Z tracked_repos rows: 0
+[]
+repos rows: 0
+job log lines: []
+```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**AFTER**: same command, captured 2026-10-31T15:49Z after commit `T025: trackRepos and the discover job` (the stub returns the saved fixture for the TypeScript "created" query, page 1; the other 11 queries return no results):
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+```
+2026-10-31T15:49:22.203Z scratch schema demo_1793461761892
+2026-10-31T15:49:22.204Z registered jobs: shortlist, snapshot, discover, resolve_pending, score
+2026-10-31T15:49:22.294Z tracked_repos rows: 3
+[
+  {
+    repo_id: 880100001,
+    full_name: 'alice/tiny-queue',
+    priority: 'normal',
+    added_reason: 'search',
+    next_due_at: 2026-10-31T15:49:22.274Z
+  },
+  {
+    repo_id: 880100002,
+    full_name: 'bob/dotfiles-sync',
+    priority: 'normal',
+    added_reason: 'search',
+    next_due_at: 2026-10-31T15:49:22.274Z
+  },
+  {
+    repo_id: 880100003,
+    full_name: 'carol/rss-digest',
+    priority: 'normal',
+    added_reason: 'search',
+    next_due_at: 2026-10-31T15:49:22.274Z
+  }
+]
+repos rows: 3
+job log lines: [
+  '{"job":"discover","date":"2026-10-31","queries":12,"requests":12,"found":3,"added":3}'
+]
+```
+
+**DELTA**: the daily `discover` job now finds small, recent repos through GitHub Search, stores their metadata in `repos` and adds them to `tracked_repos` as `normal`, due now, reason `search`; before, the job did not exist and nothing outside GH Archive and the signal sources could add a repo to the tracked set.
+
+**WITNESS**: Supervisor reran the full suite in the worktree on 2026-10-31 under the T025 trace (`memory/event-trace/T025.jsonl`); BEFORE/AFTER captures are the implementing agent's (commits `7b4ee5b`, before any implementation, and `5054540`).

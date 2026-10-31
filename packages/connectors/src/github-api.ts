@@ -24,6 +24,8 @@ export interface GithubApiOptions {
   /** Injected in tests; defaults to a `setTimeout` promise. */
   sleep?: (ms: number) => Promise<void>;
   endpoint?: string;
+  /** REST Search endpoint (tests only). */
+  searchEndpoint?: string;
   /** Per-request timeout in ms (default 30 s). Injected in tests. */
   timeoutMs?: number;
 }
@@ -72,6 +74,30 @@ export interface ResolveNamesResult {
   /** Keyed by the name as requested, even if GitHub followed a rename redirect. */
   resolved: Map<string, Repo>;
   notFound: string[];
+}
+
+/** One page of GitHub Search results (T025). */
+export interface SearchReposResult {
+  repos: Repo[];
+  /** GitHub's `total_count` for the query; may exceed what the 1,000-result cap lets us page through. */
+  totalCount: number;
+  /** True when a further page exists within the cap. */
+  hasMore: boolean;
+}
+
+/** The fields of a REST Search item that `searchItemToRepo` needs. */
+interface SearchItem {
+  id: number;
+  full_name: string;
+  description: string | null;
+  language: string | null;
+  topics?: string[];
+  license: { spdx_id: string | null } | null;
+  stargazers_count: number;
+  forks_count: number;
+  archived: boolean;
+  created_at: string;
+  pushed_at: string | null;
 }
 
 type ContentNode = Record<string, unknown> & { databaseId: number };
@@ -123,6 +149,13 @@ const LOW_BUDGET_FRACTION = 0.1;
 const ENDPOINT = "https://api.github.com/graphql";
 /** Every outbound request is cut off after this long, so one hung socket cannot stall a job slot. */
 const REQUEST_TIMEOUT_MS = 30_000;
+const SEARCH_ENDPOINT = "https://api.github.com/search/repositories";
+/** GitHub Search allows 30 requests per minute per token. */
+const SEARCH_PER_MINUTE = 30;
+const SEARCH_WINDOW_MS = 60_000;
+const SEARCH_PAGE_SIZE = 100;
+/** Search returns at most 1,000 results per query. */
+const SEARCH_MAX_RESULTS = 1000;
 const NAME_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 
 const REPO_FIELDS = `
@@ -178,6 +211,23 @@ export function toRepo(node: GithubRepoNode): Repo {
     archived: node.isArchived,
     createdAt: new Date(node.createdAt),
     pushedAt: node.pushedAt === null ? null : new Date(node.pushedAt),
+  };
+}
+
+/** Map one REST Search item to a `Repo`, the same shape `toRepo` gives a GraphQL node. */
+function searchItemToRepo(item: SearchItem): Repo {
+  return {
+    repoId: item.id,
+    fullName: item.full_name,
+    description: item.description,
+    language: item.language,
+    topics: item.topics ?? [],
+    license: item.license?.spdx_id ?? null,
+    stars: item.stargazers_count,
+    forks: item.forks_count,
+    archived: item.archived,
+    createdAt: new Date(item.created_at),
+    pushedAt: item.pushed_at === null ? null : new Date(item.pushed_at),
   };
 }
 
@@ -243,6 +293,11 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly endpoint: string;
   private readonly timeoutMs: number;
+  private readonly searchEndpoint: string;
+
+  // Search limiter (T025): start times of the Search calls in the last minute, and a queue that keeps callers in order.
+  private readonly searchStamps: number[] = [];
+  private searchTurn: Promise<void> = Promise.resolve();
 
   // Request-throttling state only; no candidate ids are held here.
   private lastRateLimit: RateLimitInfo | null = null;
@@ -266,6 +321,7 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
     this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.endpoint = options.endpoint ?? ENDPOINT;
     this.timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
+    this.searchEndpoint = options.searchEndpoint ?? SEARCH_ENDPOINT;
   }
 
   /** GitHub API work is pulled by id/name (`fetchByIds`, `resolveNames`), not by time. */
@@ -451,6 +507,81 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
       }),
     );
     return { resolved, notFound };
+  }
+
+  /**
+   * One page (100 repos, most stars first) of a REST repository Search (T025). Search has its own limit of
+   * 30 requests a minute: calls wait their turn so that no 60 s window holds more than 30; a failed call
+   * counts too. Search returns at most 1,000 results per query, so a page past the 10th makes no request.
+   */
+  async searchRepos(query: string, page: number): Promise<SearchReposResult> {
+    if (!this.token) throw new Error("GitHub API connector has no token");
+    if (!Number.isInteger(page) || page < 1 || (page - 1) * SEARCH_PAGE_SIZE >= SEARCH_MAX_RESULTS) {
+      return { repos: [], totalCount: 0, hasMore: false };
+    }
+    await this.waitSearchTurn();
+    await this.acquireSlot();
+    try {
+      const url = new URL(this.searchEndpoint);
+      url.search = new URLSearchParams({
+        q: query,
+        sort: "stars",
+        order: "desc",
+        per_page: String(SEARCH_PAGE_SIZE),
+        page: String(page),
+      }).toString();
+      const res = await this.get(url.toString());
+      if (!res.ok) throw new Error(`GitHub Search HTTP ${res.status}`);
+      const body = (await res.json()) as { total_count: number; items: SearchItem[] };
+      return {
+        repos: body.items.filter((i) => typeof i.id === "number").map(searchItemToRepo),
+        totalCount: body.total_count,
+        hasMore: page * SEARCH_PAGE_SIZE < Math.min(body.total_count, SEARCH_MAX_RESULTS),
+      };
+    } finally {
+      this.releaseSlot();
+    }
+  }
+
+  /** Wait until this call may start: fewer than 30 Search calls began in the last minute. Callers go in order. */
+  private waitSearchTurn(): Promise<void> {
+    const turn = this.searchTurn.then(async () => {
+      for (;;) {
+        const now = this.now();
+        while (this.searchStamps.length > 0 && this.searchStamps[0]! <= now - SEARCH_WINDOW_MS) this.searchStamps.shift();
+        if (this.searchStamps.length < SEARCH_PER_MINUTE) {
+          this.searchStamps.push(now);
+          return;
+        }
+        await this.sleep(this.searchStamps[0]! + SEARCH_WINDOW_MS - now);
+      }
+    });
+    this.searchTurn = turn.catch(() => {});
+    return turn;
+  }
+
+  /** GET with the connector's timeout and token redaction. */
+  private async get(url: string): Promise<Response> {
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    const timedOut = new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(new Error(`timed out after ${this.timeoutMs}ms`)), { once: true });
+    });
+    try {
+      return await Promise.race([
+        this.fetchImpl(url, {
+          headers: {
+            authorization: `bearer ${this.token}`,
+            accept: "application/vnd.github+json",
+            "user-agent": "idea-radar",
+          },
+          signal,
+        }),
+        timedOut,
+      ]);
+    } catch (err) {
+      const reason = signal.aborted ? `timed out after ${this.timeoutMs}ms` : String(err);
+      throw new Error(`GitHub Search request failed: ${this.redact(reason)}`);
+    }
   }
 
   private async request<T>(query: string, variables: Record<string, unknown>): Promise<T> {

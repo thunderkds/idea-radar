@@ -266,3 +266,19 @@ export async function regroupTracked(db: Queryable, date: string, now: Date): Pr
   );
   return out;
 }
+
+/**
+ * Track every repo in `repoIds` for `reason` (T025 discovery). A new repo starts `normal` and due now; a repo
+ * already tracked is left alone, so a `leader` stays a `leader` and a `parked` repo stays parked.
+ * Returns how many repos were added.
+ */
+export async function trackRepos(db: Queryable, repoIds: number[], reason: string): Promise<number> {
+  if (repoIds.length === 0) return 0;
+  const res = await db.query(
+    `INSERT INTO tracked_repos (repo_id, added_reason)
+     SELECT DISTINCT repo_id, $2 FROM unnest($1::bigint[]) AS t(repo_id)
+     ON CONFLICT (repo_id) DO NOTHING`,
+    [repoIds, reason],
+  );
+  return res.rowCount ?? 0;
+}

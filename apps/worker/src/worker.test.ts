@@ -343,7 +343,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
 
     it("disabled connectors get no job", async () => {
       await once(ctx([new FakeConnector("off", ["x/y"], Infinity, undefined, false), new FakeConnector("on", [])]));
-      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "regroup", "score", "shortlist", "snapshot"]);
+      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["discover", "on", "regroup", "score", "shortlist", "snapshot"]);
     });
 
     it("resolve_pending: resolves names through the one shared GitHub connector, keeps observed_at, bumps not-found", async () => {
@@ -355,6 +355,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
       );
       let calls = 0;
       class FakeGithub extends GithubApiConnector {
+        override async searchRepos() { return { repos: [], totalCount: 0, hasMore: false }; } // discover runs too: no live Search call
         override async resolveNames(names: string[]) {
           calls++;
           const resolved = new Map<string, Repo>();
@@ -378,6 +379,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.ok(!(RESOLVE_PENDING_JOB in off));
       let calls = 0;
       class FakeGithub extends GithubApiConnector {
+        override async searchRepos() { return { repos: [], totalCount: 0, hasMore: false }; } // discover runs too: no live Search call
         override async resolveNames() { calls++; return { resolved: new Map(), notFound: [] }; }
       }
       await once(ctx([new FakeGithub("tok", true)]));
@@ -509,6 +511,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
 
     /** Fake GitHub: repos 1 and 2 exist; 3 is gone. Records every id it is asked for. */
     class FakeGithub extends GithubApiConnector {
+      override async searchRepos() { return { repos: [], totalCount: 0, hasMore: false }; } // discover runs too: no live Search call
       byIds: number[][] = [];
       content: number[][] = [];
       contentError: Error | null = null;
@@ -802,7 +805,7 @@ describe("worker plan (no database)", () => {
   it("gh_archive is hourly; everything else daily, with score and resolve_pending", () => {
     const schedule = buildSchedule(buildHandlers({ connectors: fakes }));
     assert.deepEqual(schedule.hourly, ["gh_archive"]);
-    assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score", "shortlist", "snapshot"]);
+    assert.deepEqual([...schedule.daily].sort(), ["discover", "github_trending", "ossinsight", "resolve_pending", "score", "shortlist", "snapshot"]);
   });
 
   it("regroup is the one weekly job (T026 AC 3)", () => {
@@ -844,7 +847,7 @@ describe("worker plan (no database)", () => {
   it("per-name caps come from rateLimit.concurrency; gh_archive is 1; global defaults to 20 and reads WORKER_MAX_CONCURRENCY", () => {
     const caps = buildCaps(fakes, {});
     assert.equal(caps.global, 20);
-    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, snapshot: 1, regroup: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
+    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, snapshot: 1, regroup: 1, discover: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
     assert.equal(caps.timeoutMs?.gh_archive, 6 * 3_600_000);
     assert.equal(caps.timeoutMs?.shortlist, 6 * 3_600_000);
     assert.equal(caps.timeoutMs?.snapshot, 6 * 3_600_000, "a snapshot run can sit out a rate-limit reset");
