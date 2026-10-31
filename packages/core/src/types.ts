@@ -14,7 +14,7 @@ export interface Repo {
   stars: number;
   forks: number;
   archived: boolean;
-  createdAt: Date;
+  createdAt: Date | null;
   pushedAt: Date | null;
 }
 
@@ -27,7 +27,12 @@ export interface RepoDaily {
   pushes: number;
   issuesOpened: number;
   prsOpened: number;
+  /** All distinct actors that day, stargazers included. Not summable across days. */
   distinctActors: number;
+  /** Distinct actors of Push + PR-opened events (the lowkey "contributors" rule). */
+  contributors: number;
+  /** Most stars received in any single UTC hour; input to the fake-star burst rule. */
+  starsMaxHour: number;
 }
 
 /**
@@ -56,4 +61,5 @@ export interface RepoScore {
   score: number;
   components: ScoreComponents;
   consensusCount: number;
+  fakeStarFlag: boolean;
 }

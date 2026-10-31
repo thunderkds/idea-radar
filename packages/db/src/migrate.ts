@@ -1,9 +1,5 @@
-import { readdir, readFile } from "node:fs/promises";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-
-const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+import { applyMigrations } from "./migrations.js";
 
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL;
@@ -11,25 +7,7 @@ async function main(): Promise<void> {
   const client = new pg.Client({ connectionString: url });
   await client.connect();
   try {
-    await client.query(
-      "CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
-    );
-    const applied = new Set(
-      (await client.query<{ name: string }>("SELECT name FROM schema_migrations")).rows.map((r) => r.name),
-    );
-    const files = (await readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).sort();
-    for (const file of files) {
-      if (applied.has(file)) continue;
-      const sql = await readFile(join(migrationsDir, file), "utf8");
-      await client.query("BEGIN");
-      await client.query(sql);
-      await client.query("INSERT INTO schema_migrations (name) VALUES ($1)", [file]);
-      await client.query("COMMIT");
-      console.log(`applied ${file}`);
-    }
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
+    for (const file of await applyMigrations(client)) console.log(`applied ${file}`);
   } finally {
     await client.end();
   }
