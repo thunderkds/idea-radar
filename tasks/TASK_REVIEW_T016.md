@@ -42,22 +42,33 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
-Paused: auto-mode check failed — tasks/TASK_REVIEW_T016.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T016.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T016" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode); Risk Medium, but the trace has no `security-review` Skill call
+
+## Auto decisions
+
+Mode: auto
+1. `window` (7d/30d) only chooses the star gain each item carries (`starsGained`); the list stays the latest scored day's tier ordered by `score` — DEBATED: list stays the latest day, `window` picks the figure (Advocate 1: `window` = which star-gain figure, because `repo_scores` holds one daily snapshot and tier rank is fixed by `docs/SPEC.md` § Tier scoring; Advocate 2: `window` = repos that held the tier on any day in the window, so "lowkey this month" stays visible — weakness: shows repos that have left the tier under a stale label) ⚠ decided for you — please review
+2. `/consensus` and `/topics/rising` stay stubs with `TODO(HUN-155)` / `TODO(HUN-158)` — FACT: `docs/ISSUES.md:79` "### HUN-155 — Source consensus score" and `docs/ISSUES.md:94` "### HUN-158 — Dashboard: rising topics, consensus, ops"
+3. Non-displayable sources are left out of `/ops/sources`, their signals are read only through `sources.displayable = TRUE`, component keys named after them are stripped, and repo-detail `consensusCount` counts displayable sources only (U4) — RULE: `AGENTS.md` § Rules ("`displayable: false` sources (Trendshift) never reach API responses or the UI")
+4. The latest day is `max(repo_scores.date)` with no run-complete marker; a half-written day cannot show because `scoreDay` writes a date inside one transaction — FACT: `packages/db/src/scores.ts:50` "await client.query("BEGIN");" (T009 branch)
+5. No CORS, auth or caching — RULE: `tasks/TASK_GUIDE_T016.md` § Approach ("Cut list: CORS (T017 decides whether the dashboard calls the API from the server side), auth, caching, OpenAPI file")
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 49/50 (1 pre-existing skip), db 54/54, api 15/15, worker 18/18, exit 0; reviews code-review — P0 0, P1 0, P2 2 (tier items carry no consensus count or fake-star flag that HUN-157's list wants; component-key stripping guesses a `<source>_` prefix, so T009/T015 must keep that naming), P3 0; security-review — no findings ≥ 8/10 (all SQL parameterised, text params capped at 200 chars, cursor validated, numeric id checked, errors return a generic 500); real run `createApi` on port 47318 over a temp schema — printed tier, 400 and ops bodies with no `trendshift` data (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: running (T182)
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/api/src/app.test.ts` (15 tests: tier list and order, each filter, window, limit, cursor paging over two pages, every 400 case, 404s, repo detail, ops, health, non-displayable leak check on every route). api `ℹ tests 15 ℹ fail 0` |
+| Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T016); `pnpm typecheck` exit 0 (agent) |
+| Negative cases hold | ☑ pass | bad window/limit/cursor/id/text → 400; unknown tier/repo → 404; non-GET → 405; removing the `so.displayable` join made the leak tests fail (agent mutation check) |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `apps/api/src/{app,app.test,index}.ts`, `packages/db/src/{api,index}.ts`. `lane: C2, 5 files, 767 lines, EXCEEDS (lines 767 > 500); unpredicted: apps/api/src/app.test.ts, packages/db/src/index.ts` — 400+ lines are tests |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: HTTP API only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: HTTP API only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: HTTP API only |
 
 ---
 
@@ -96,5 +107,4 @@ The `trendshift_boost` component and the `trendshift` source are absent. `TEST_D
 
 **DELTA**: The dashboard can now page through a tier with filters, open a repo's detail and read source health, and no response carries data from a non-displayable source.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session, 2026-10-31: reran `TEST_DATABASE_URL=… pnpm test` under T016 (exit 0, recorded in `memory/event-trace/T016.jsonl`) and read `app.ts` / `api.ts` for the displayable joins.
