@@ -19,7 +19,9 @@ Discover public GitHub repos in three tiers — **trending**, **medium** and **l
 | Source | Role | Required |
 | --- | --- | --- |
 | GitHub API | Canonical repo metadata, README, manifests | Yes |
-| GH Archive | Star/fork/push velocity for all public repos (lowkey tier) | Yes |
+| GitHub API snapshots | Daily star/fork/commit snapshots of tracked repos: the star-velocity source (see [Tracking strategy](docs/SPEC.md#tracking-strategy)) | Yes |
+| GitHub Search | Finds small, recent repos to track (daily `discover` job) | Yes |
+| GH Archive | Star/fork sample for public repos; thin since 2025, now a discovery signal and fallback | Yes |
 | GitHub Trending page | "Officially trending" flag | Yes |
 | OSS Insight | Trending by period/language, collections as categories | Optional |
 | Trendshift | Engagement spikes — **scoring only, never displayed** (license) | Optional |
@@ -32,8 +34,8 @@ Every source implements `SourceConnector` (`packages/core/src/connector.ts`) and
 
 ```
 apps/
-  worker/      scheduler: runs connectors (hourly/daily) and the scoring job
-  api/         read-only API for the dashboard
+  worker/      Postgres-backed job queue: connectors, snapshots, discovery, weekly regroup, scoring
+  api/         API for the dashboard: read-only GETs + one admin POST /rescrape
   dashboard/   Next.js dashboard
 packages/
   core/        shared types, SourceConnector interface, tier scoring
@@ -44,7 +46,7 @@ packages/
 ## Getting started
 
 ```bash
-cp .env.example .env          # add GITHUB_TOKEN
+cp .env.example .env          # add GITHUB_TOKEN; ADMIN_TOKEN (same value for api + dashboard) enables Refresh
 docker compose up -d postgres
 pnpm install
 pnpm build

@@ -80,9 +80,19 @@ Monorepo with core, connectors, db, worker, api, dashboard; CI; docker-compose.
 - `consensus_count` = distinct displayable-or-not sources with a signal for the repo in the last 7 days.
 - Store first-seen date per source (in `components` or a small view) for the "who caught it first" timeline.
 
+### HUN-171 — Tracked repos + GitHub API star snapshots (Urgent) — T024
+- Migration 006: `tracked_repos` (priority leader/normal/parked, next due time), `repo_snapshots` (stars, forks, pushed_at, 30-day commits per repo per day), view `repo_star_gains`.
+- Daily `snapshot` job, GraphQL batches of 100; scoring and candidates read star velocity from snapshots, GH Archive as fallback; activity from 30-day commits.
+
+### HUN-172 — GitHub Search discovery (High) — T025
+- Daily `discover` job: per-language Search queries (created ≤30 days or pushed ≤7 days, 5–200 stars), 30 req/min limiter, 1,000-result cap; new repos tracked as `normal`. `score` does not wait for it.
+
+### HUN-173 — Idea groups + leader picks (High) — T026
+- Group key = two most specific topics + primary stack; weekly `regroup` (key `W`+Monday): top 2 active repos per group `leader` (daily), rest `normal` (weekly), archived/inactive `parked` (on request). Second snapshot the next day.
+
 ## M4 Dashboard
 
-### HUN-156 — Read-only API (High)
+### HUN-156 — Read-only API (High) — plus `POST /rescrape` since HUN-174
 - Routes exist as stubs in `apps/api/src/index.ts`: `/tiers/:tier`, `/repos/:id`, `/topics/rising`, `/consensus`, `/ops/sources`, `/health`.
 - Filters: `language`, `topic`, `collection`, `window` (7d/30d), `limit`, `cursor`.
 - Never return signals from connectors with `displayable = false`.
@@ -93,6 +103,9 @@ Monorepo with core, connectors, db, worker, api, dashboard; CI; docker-compose.
 
 ### HUN-158 — Dashboard: rising topics, consensus, ops (Medium)
 - Rising topics/dependencies over 7/30 days; consensus list (2+ sources); ops table of sources with health and lag.
+
+### HUN-174 — Re-scrape on request (High) — T027
+- `POST /rescrape` (`{repoId}` or `{groupKey}`), `Authorization: Bearer <ADMIN_TOKEN>`; "Refresh now" / "Refresh group now" on the repo page via a server action. Unset token → 404 and no buttons. Anyone who can open the dashboard can press the button: keep it private until login or a rate limit (HUN-159).
 
 ### HUN-159 — Deploy v1 (Medium)
 - Hosting, secrets, monitoring. Decide public vs private-first.
