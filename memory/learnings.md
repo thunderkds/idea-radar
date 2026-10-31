@@ -36,3 +36,8 @@ On 2026-10-31 every `api.ossinsight.io/v1/collections/*` path (list, `{id}`, `{i
 - The merge gate blocks every `git merge`, branch-to-branch included, while any board row is In Progress. Order work so branch merges happen when nothing is In Progress.
 - `pnpm -r <script>` skips the workspace root project, and `pnpm -r lint` exits 0 when no package has a `lint` script. Root-level tests (`scripts/*.test.ts`) need their own command in the root `test` script.
 **Files**: `.github/workflows/ci.yml`, `package.json`, `.claude/hooks/pre_bash_block_unsafe_merge.py`
+
+### 2026-10-31 — easy-verifier score crash on top_level_import_cycles (Rework R1)
+- After wave-4 Rework R1, MCP `score` on `hun-150-lowkey-score` (scope changes, ref `b0dfcf3...HEAD`) fails with `metric 'top_level_import_cycles' (code-quality) reports a value but cites no evidence`, twice in a row; the CLI rung is not installed (`easy_verifier` not importable). Per the score skill's ladder the row is `☑ N/A` naming the error, never a pass and never a retry loop.
+- A reopened Done task needs its verify row reset to the template line, the `Closed:` line removed and `Not done:` set back to running, before `stop_auto_verify.py --start`.
+**Files**: `skills/score/SKILL.md`, `.claude/hooks/stop_auto_verify.py`
