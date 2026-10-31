@@ -107,5 +107,4 @@ $ pnpm --filter @idea-radar/connectors test   (7 tests, 7 pass, 0 fail; TODO(HUN
 
 **DELTA**: The Trending connector now fetches every language x period page and yields ranked entries, and fails loudly when nothing parses.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session reran `pnpm --filter @idea-radar/connectors test` in the T005 worktree at 2026-10-31 05:38:29 UTC (7/7 pass; trace `memory/event-trace/T005.jsonl`).
