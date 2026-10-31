@@ -18,9 +18,9 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers` | Reopened 2026-10-31: auto verify fail (branch lacked T015's API fields); `hun-155-consensus` merged in 7a73f18; rework R1
 
 ### Ready for Review
+- [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers` | Reopened 2026-10-31: auto verify fail (branch lacked T015's API fields); `hun-155-consensus` merged in 7a73f18; rework R1
 
 ### Done
 - [x] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus` | Done 2026-10-31: auto verify pass (session 2ae3f276-bc65-4c5d-b9d8-28abdd602e19, commit 39245bcad85167932d5d0b89760a75d0892586d8) | Reopened 2026-10-31: rework R1 — down migration, tests, score fixes (branch has T022 merged) | Done 2026-10-31: auto verify pass (session 97787e2e-a6f7-4c53-87b7-ef73ab3c0f68, commit ff07fbc1b5a317a5c06be14dd749fca59f7fc281)
