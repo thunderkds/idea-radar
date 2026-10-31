@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
-import { getRepo } from "../../lib/api";
-import { formatCount, formatDate, formatScore, formatText } from "../../lib/format";
+import { adminToken, getRepo } from "../../lib/api";
+import { formatCount, formatDate, formatDateTime, formatScore, formatText } from "../../lib/format";
 import { tierPath } from "../../lib/query";
 import { Notice } from "./notice";
 import { NoData, OrNoData, WarnIcon } from "./no-data";
+import { RescrapeButton } from "./rescrape-button";
 import { ScoreBreakdown } from "./score-breakdown";
 import { StarChart } from "./star-chart";
 import { Timeline } from "./timeline";
@@ -20,9 +21,10 @@ export async function RepoDetail({ id }: { id: string }) {
     }
     return <Notice title="The API returned an error">{result.message}</Notice>;
   }
-  const { repo, score, starsSeries, stackTags, readmeExcerpt, timeline } = result.data;
+  const { repo, score, starsSeries, stackTags, readmeExcerpt, timeline, tracking, groupRepos } = result.data;
   const backTier = score?.tier ?? "lowkey";
   const consensus = typeof score?.consensusCount === "number" ? String(score.consensusCount) : null;
+  const canRefresh = adminToken() !== undefined;
 
   return (
     <>
@@ -66,6 +68,41 @@ export async function RepoDetail({ id }: { id: string }) {
           </div>
         </div>
       ) : null}
+
+      <section className="section" aria-labelledby="h-tracking">
+        <h2 className="section-title" id="h-tracking">
+          Tracking
+        </h2>
+        {tracking ? (
+          <>
+            <p className="meta">
+              priority {tracking.priority} · last refresh <OrNoData text={formatDateTime(tracking.lastSnapshotAt)} /> · next refresh{" "}
+              {tracking.nextDueAt === null ? "on request" : <OrNoData text={formatDateTime(tracking.nextDueAt)} />}
+            </p>
+            {tracking.groupKey ? <p className="meta">group {tracking.groupKey}</p> : null}
+            {groupRepos && groupRepos.length > 0 ? (
+              <ul className="group-list">
+                {groupRepos.map((g) => (
+                  <li key={g.repoId}>
+                    <Link className="gm-link" href={`/repos/${g.repoId}`}>
+                      {g.fullName}
+                    </Link>
+                    <span>{g.priority}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {canRefresh ? (
+              <div className="rescrape-actions">
+                <RescrapeButton label="Refresh now" target={{ repoId: repo.repoId }} />
+                {tracking.groupKey ? <RescrapeButton label="Refresh group now" target={{ groupKey: tracking.groupKey }} /> : null}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="meta">not tracked</p>
+        )}
+      </section>
 
       <section className="section" aria-labelledby="h-stars">
         <h2 className="section-title" id="h-stars">

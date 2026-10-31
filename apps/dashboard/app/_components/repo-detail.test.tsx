@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { RepoResponse } from "../../lib/types";
 import { RepoDetail } from "./repo-detail";
@@ -145,5 +145,74 @@ describe("RepoDetail errors", () => {
   it("shows the API's own message for a 400, such as an id that is not a number", async () => {
     answer(400, { error: "repo id must be a number" });
     assert.match(await render("abc"), /<div>repo id must be a number<\/div>/);
+  });
+});
+
+describe("RepoDetail tracking and refresh buttons (T027)", () => {
+  const TOKEN = "tok-do-not-leak-0123456789";
+  const saved = process.env.ADMIN_TOKEN;
+  beforeEach(() => {
+    delete process.env.ADMIN_TOKEN;
+  });
+  afterEach(() => {
+    if (saved === undefined) delete process.env.ADMIN_TOKEN;
+    else process.env.ADMIN_TOKEN = saved;
+  });
+  const tracked: RepoResponse = {
+    ...full,
+    tracking: { priority: "normal", groupKey: "cli+go|go", lastSnapshotAt: "2026-10-30T03:00:00.000Z", nextDueAt: "2026-11-06T00:00:00.000Z" },
+    groupRepos: [
+      { repoId: 7, fullName: "acme/lead", priority: "leader" },
+      { repoId: 8, fullName: "acme/old", priority: "parked" },
+    ],
+  };
+  const buttons = (html: string) => (html.match(/<button[^>]*>([^<]*)<\/button>/g) ?? []).map((b) => b.replace(/<[^>]*>/g, ""));
+
+  it("shows the priority, the last refresh, the next refresh and the group's other repos as links", async () => {
+    answer(200, tracked);
+    const html = await render();
+    assert.match(html, /<h2 class="section-title" id="h-tracking">Tracking<\/h2>/);
+    assert.match(html, /priority normal · last refresh 2026-10-30 03:00 UTC · next refresh 2026-11-06 00:00 UTC/);
+    assert.match(html, /group cli\+go\|go/);
+    assert.match(html, /<a class="gm-link" href="\/repos\/7">acme\/lead<\/a><span>leader<\/span>/);
+    assert.match(html, /<a class="gm-link" href="\/repos\/8">acme\/old<\/a><span>parked<\/span>/);
+  });
+  it("shows 'no data' for a repo never refreshed and 'on request' for a parked one, never an invalid date", async () => {
+    answer(200, { ...tracked, tracking: { priority: "parked", groupKey: null, lastSnapshotAt: null, nextDueAt: null }, groupRepos: [] });
+    const html = await render();
+    assert.match(html, /priority parked · last refresh <span class="gm-nodata">no data<\/span> · next refresh on request/);
+    assert.doesNotMatch(html, /Invalid|NaN|Infinity/);
+    assert.doesNotMatch(html, /group /);
+  });
+  it("says the repo is not tracked, with no buttons even when the dashboard has ADMIN_TOKEN", async () => {
+    process.env.ADMIN_TOKEN = TOKEN;
+    answer(200, { ...full, tracking: null, groupRepos: [] });
+    const html = await render();
+    assert.match(html, /<p class="meta">not tracked<\/p>/);
+    assert.deepEqual(buttons(html), []);
+  });
+  it("hides every refresh button when the dashboard server has no ADMIN_TOKEN", async () => {
+    answer(200, tracked);
+    const html = await render();
+    assert.deepEqual(buttons(html), []);
+    assert.doesNotMatch(html, /Refresh/);
+  });
+  it("shows 'Refresh now' for the repo and one for its group when ADMIN_TOKEN is set, and never puts the token in the HTML", async () => {
+    process.env.ADMIN_TOKEN = TOKEN;
+    answer(200, tracked);
+    const html = await render();
+    assert.deepEqual(buttons(html), ["Refresh now", "Refresh group now"]);
+    assert.ok(!html.includes(TOKEN));
+    assert.ok(!html.includes("ADMIN_TOKEN"));
+  });
+  it("shows only the repo's button for a tracked repo that is in no group", async () => {
+    process.env.ADMIN_TOKEN = TOKEN;
+    answer(200, { ...tracked, tracking: { ...tracked.tracking!, groupKey: null }, groupRepos: [] });
+    assert.deepEqual(buttons(await render()), ["Refresh now"]);
+  });
+  it("escapes markup in a group key and a group repo name", async () => {
+    answer(200, { ...tracked, tracking: { ...tracked.tracking!, groupKey: "<img src=x>" }, groupRepos: [{ repoId: 9, fullName: "<b>x</b>", priority: "normal" }] });
+    const html = await render();
+    assert.doesNotMatch(html, /<img src=x>|<b>x<\/b>/);
   });
 });

@@ -28,6 +28,13 @@ export function formatDate(v: string | null | undefined): string | null {
   return Number.isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
 }
 
+/** ISO timestamp to "YYYY-MM-DD HH:MM UTC"; null for anything that is not a date. */
+export function formatDateTime(v: string | null | undefined): string | null {
+  if (typeof v !== "string" || v === "") return null;
+  const t = Date.parse(v);
+  return Number.isNaN(t) ? null : `${new Date(t).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
 /** Text value (language, license, ...) or null when empty. */
 export function formatText(v: string | null | undefined): string | null {
   return typeof v === "string" && v.trim() !== "" ? v : null;
