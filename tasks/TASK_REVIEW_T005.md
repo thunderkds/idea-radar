@@ -42,21 +42,34 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — no test run in memory/event-trace/T005.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T005" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop
+
+## Auto decisions
+
+Mode: auto
+1. Wave 1 runs T002–T005 in parallel from `wave1-base` (T001 + updated guides), in Supervisor-made worktrees — RULE: `docs/claude-md/tracks.md` `## Auto mode` row 12 (Supervisor's own breakdown)
+2. No HTML parser dependency; regex parsing accepted because it parses the real fixture (15 rows) — RULE: `tasks/TASK_GUIDE_T005.md` § Approach cut list ("HTML parser library unless regex/string parsing proves unreliable")
+3. Approved the agent's tdd plan as matching the guide — RULE: `docs/claude-md/tracks.md` `## Auto mode` row 15
+4. Left the two P2 review findings (rank counts parsed rows only; one non-200 page aborts the rest of the run) for T007's retry design rather than fixing now — SAFER OPTION: both are behaviour choices the scheduler task owns ⚠ decided for you — please review
+Checks: tests `pnpm --filter @idea-radar/connectors test` — 7/7 pass (Supervisor rerun 05:38 UTC); reviews code-review — P0 0, P1 0, P2 2 (rank = parsed-row position, so a skipped row shifts later ranks; one non-200 aborts all remaining language × period pages), P3 0; real run: fixture saved from one live `curl` of github.com/trending (HTTP 200, 15 rows) (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: ☑ pass (session 76dffb44-4455-4e9c-9254-27a9d14c436d, commit 29d75afd99117fd1ad0743a79e777c094d177ee2, log .claude/verify-runs/T005-29d75afd9911.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 76dffb44-4455-4e9c-9254-27a9d14c436d, commit 29d75afd99117fd1ad0743a79e777c094d177ee2); Gates 5 and 6 checked
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-trending.test.ts` (7 tests, AC 1–5). Supervisor rerun 05:38:29 UTC: `ℹ tests 7 ℹ pass 7 ℹ fail 0` |
+| Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` → 7/7 pass; agent: `pnpm typecheck` 0 errors |
+| Negative cases hold | ☑ pass | `✔ throws TrendingParseError on a page with no repo rows`; `✔ fetch throws with URL and status on a non-200 response` |
+| verify | ☑ pass | auto-run by hook, session 76dffb44-4455-4e9c-9254-27a9d14c436d, commit 29d75afd99117fd1ad0743a79e777c094d177ee2, log .claude/verify-runs/T005-29d75afd9911.log — pass |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-trending.ts`, its test, fixture, caller `packages/connectors/src/index.ts` (constructor still compatible). `lane: C1, 3 files, 3912 lines, EXCEEDS (lines 3912 > 250)` — 3,751 of those lines are the saved HTML fixture; label kept at C1 |
+| Full smoke suite still green (no regression) | ☑ pass | connectors suite 7/7; no other package touched |
+| **Companion score (easy-verifier)** | ☑ N/A | not run: Risk Low, single-connector change |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: scraper only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: scraper only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: scraper only |
 
 ---
 
@@ -67,12 +80,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE**:
+```
+$ date -u; pnpm --filter @idea-radar/connectors test; grep -n TODO packages/connectors/src/github-trending.ts
+Sat Oct 31 05:37:18 AM UTC 2026
+> @idea-radar/connectors@0.1.0 test /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T005/packages/connectors
+> tsx --conditions=source --test "src/**/*.test.ts"
+ℹ tests 0
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6.415124
+31:    // TODO(HUN-147): GET https://github.com/trending/{language}?since={period},
+```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**:
+```
+$ pnpm --filter @idea-radar/connectors test   (7 tests, 7 pass, 0 fail; TODO(HUN-147) removed from github-trending.ts)
+✔ parses the saved daily fixture
+✔ throws TrendingParseError on a page with no repo rows
+✔ fetch iterates languages x periods in order and yields all entries
+✔ fetch throws with URL and status on a non-200 response
+```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**DELTA**: The Trending connector now fetches every language x period page and yields ranked entries, and fails loudly when nothing parses.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session reran `pnpm --filter @idea-radar/connectors test` in the T005 worktree at 2026-10-31 05:38:29 UTC (7/7 pass; trace `memory/event-trace/T005.jsonl`).
