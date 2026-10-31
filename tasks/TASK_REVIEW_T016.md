@@ -47,13 +47,14 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 Mode: auto
 1. `window` (7d/30d) only chooses the star gain each item carries (`starsGained`); the list stays the latest scored day's tier ordered by `score` — DEBATED: list stays the latest day, `window` picks the figure (Advocate 1: `window` = which star-gain figure, because `repo_scores` holds one daily snapshot and tier rank is fixed by `docs/SPEC.md` § Tier scoring; Advocate 2: `window` = repos that held the tier on any day in the window, so "lowkey this month" stays visible — weakness: shows repos that have left the tier under a stale label) ⚠ decided for you — please review
-2. `/consensus` and `/topics/rising` stay stubs with `TODO(HUN-155)` / `TODO(HUN-158)` — FACT: `docs/ISSUES.md:79` "### HUN-155 — Source consensus score" and `docs/ISSUES.md:94` "### HUN-158 — Dashboard: rising topics, consensus, ops"
+2. `/consensus` and `/topics/rising` stay stubs with `TODO(HUN-155)` / `TODO(HUN-158)` — FACT: docs/ISSUES.md:79 "### HUN-155 — Source consensus score (Medium)"
 3. Non-displayable sources are left out of `/ops/sources`, their signals are read only through `sources.displayable = TRUE`, component keys named after them are stripped, and repo-detail `consensusCount` counts displayable sources only (U4) — RULE: `AGENTS.md` § Rules ("`displayable: false` sources (Trendshift) never reach API responses or the UI")
-4. The latest day is `max(repo_scores.date)` with no run-complete marker; a half-written day cannot show because `scoreDay` writes a date inside one transaction — FACT: `packages/db/src/scores.ts:50` "await client.query("BEGIN");" (T009 branch)
+4. The latest day is `max(repo_scores.date)` with no run-complete marker; a half-written day cannot show because `scoreDay` writes a date inside one transaction — FACT: tasks/TASK_GUIDE_T009.md:69 "Writes for `date` in one transaction"
 5. No CORS, auth or caching — RULE: `tasks/TASK_GUIDE_T016.md` § Approach ("Cut list: CORS (T017 decides whether the dashboard calls the API from the server side), auth, caching, OpenAPI file")
 Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 49/50 (1 pre-existing skip), db 54/54, api 15/15, worker 18/18, exit 0; reviews code-review — P0 0, P1 0, P2 2 (tier items carry no consensus count or fake-star flag that HUN-157's list wants; component-key stripping guesses a source-id prefix such as `trendshift_`, so T009/T015 must keep that naming), P3 0; security-review — no findings ≥ 8/10 (all SQL parameterised, text params capped at 200 chars, cursor validated, numeric id checked, errors return a generic 500); real run `createApi` on port 47318 over a temp schema — printed tier, 400 and ops bodies with no `trendshift` data (auto-checked, not /verify)
 Memory: nothing new
-Not done: merge (yours); auto verify: ☑ pass (session 1115d063-1c72-40c7-81fa-12d68be3cf27, commit 6736e9f30bad3175a4e1e32b968057fda65b59ad, log .claude/verify-runs/T016-6736e9f30bad.log)
+Not done: merge (yours); auto verify: ☑ pass (session df322962-d4a5-4761-a9bd-b67430d6de4c, commit 09ca46e52e1d59a3aecfc0bda3e486a02506bf52, log .claude/verify-runs/T016-09ca46e52e1d.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session df322962-d4a5-4761-a9bd-b67430d6de4c, commit 09ca46e52e1d59a3aecfc0bda3e486a02506bf52); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: ☑ pass (session 1115d063-1c72-40c7-81fa-
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/api/src/app.test.ts` (15 tests: tier list and order, each filter, window, limit, cursor paging over two pages, every 400 case, 404s, repo detail, ops, health, non-displayable leak check on every route). api `ℹ tests 15 ℹ fail 0` |
 | Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T016); `pnpm typecheck` exit 0 (agent) |
 | Negative cases hold | ☑ pass | bad window/limit/cursor/id/text → 400; unknown tier/repo → 404; non-GET → 405; removing the `so.displayable` join made the leak tests fail (agent mutation check) |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session df322962-d4a5-4761-a9bd-b67430d6de4c, commit 09ca46e52e1d59a3aecfc0bda3e486a02506bf52, log .claude/verify-runs/T016-09ca46e52e1d.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `apps/api/src/{app,app.test,index}.ts`, `packages/db/src/{api,index}.ts`. `lane: C2, 5 files, 767 lines, EXCEEDS (lines 767 > 500); unpredicted: apps/api/src/app.test.ts, packages/db/src/index.ts` — 400+ lines are tests |
 | Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
 | **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
