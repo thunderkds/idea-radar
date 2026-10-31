@@ -18,9 +18,9 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T023** — Job queue run token + heartbeat (no double run after stuck-job reclaim) | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-t023-job-fencing` | Started 2026-10-31: branch `hun-t023-job-fencing`
 
 ### Ready for Review
+- [ ] **T023** — Job queue run token + heartbeat (no double run after stuck-job reclaim) | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-t023-job-fencing` | Started 2026-10-31: branch `hun-t023-job-fencing`
 
 ### Done
 - [x] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers` | Reopened 2026-10-31: auto verify fail (branch lacked T015's API fields); `hun-155-consensus` merged in 7a73f18; rework R1 | Done 2026-10-31: auto verify pass (session 43c42cf4-908e-42dc-be66-cfa226cc1d57, commit f9d663c5ea56e6564944606e23c1568fdec81a43)
