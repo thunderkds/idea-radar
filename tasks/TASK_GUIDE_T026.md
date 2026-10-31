@@ -5,7 +5,7 @@
 **Priority**: P1
 **Assigned agent**: backend-developer
 **Agent guide**: `agents/backend.md`
-**Linear**: none yet (`docs/SPEC.md` § Tracking strategy)
+**Linear**: HUN-173
 
 ---
 
@@ -50,6 +50,7 @@ User 2026-10-31 (chat, verbatim): "if for the same idea, same category, we shoul
 | 2 | `groupingConfig` in `scoring.ts`: `leadersPerGroup` 2, generic-topic list, the leader ranking weights | config |
 | 3 | `regroup` job, weekly (Mondays UTC, cap 1): sets `tracked_repos.group_key` for every tracked repo; ranks each group by latest `repo_scores.score` plus 30-day `commits_30d` (weights from config); top `leadersPerGroup` → `leader`, rest → `normal`; archived, or no score and no snapshot in 30 days → `parked`. A repo with `group_key` null keeps its own priority (one-repo group of itself) | leaders |
 | 4 | A newly promoted leader becomes due now; a demoted repo keeps its `next_due_at` | cadence |
+| 6 | A tracked repo with exactly one snapshot is due again the next UTC day whatever its priority, so it shows velocity after 1 day instead of 7 (T024 review follow-up); `parked` repos are set with `next_due_at = 'infinity'` (T024 convention) | cadence |
 | 5 | Postgres tests: 10 repos of one key with 2 active → those 2 `leader`, 8 `normal`; an archived repo → `parked`; two keys stay independent; rerun is idempotent | tests |
 
 ---

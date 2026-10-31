@@ -11,9 +11,9 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
-- [ ] **T027** — Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1
-- [ ] **T025** — GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1
-- [ ] **T026** — Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1
+- [ ] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1
+- [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1
+- [ ] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1
 - [ ] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2
 - [ ] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
@@ -23,7 +23,7 @@
 ### In Progress
 
 ### Ready for Review
-- [ ] **T024** — Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots`
+- [ ] **T024** — HUN-171 Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots`
 
 ### Done
 - [x] **T023** — Job queue run token + heartbeat (no double run after stuck-job reclaim) | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-t023-job-fencing` | Started 2026-10-31: branch `hun-t023-job-fencing` | Done 2026-10-31: auto verify pass (session caa06316-710d-4618-94b6-c5f054bcc071, commit 60d4de7189f256124707bad69c264dcc0941cb88)

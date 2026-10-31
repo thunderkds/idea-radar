@@ -5,7 +5,7 @@
 **Priority**: P0
 **Assigned agent**: backend-developer
 **Agent guide**: `agents/backend.md`
-**Linear**: none yet (tracking strategy, `docs/SPEC.md` § Tracking strategy)
+**Linear**: HUN-171
 
 ---
 
