@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "node --experimental-strip-types src/index.ts"
+    "dev": "tsx --conditions=source src/index.ts",
+    "test": "tsx --conditions=source --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@idea-radar/connectors": "workspace:*",

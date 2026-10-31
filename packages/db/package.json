@@ -5,10 +5,18 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "migrate": "node --experimental-strip-types src/migrate.ts"
+    "migrate": "tsx src/migrate.ts",
+    "test": "tsx --conditions=source --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "pg": "^8.13.0"
