@@ -123,3 +123,39 @@ Full suite after the change: `TEST_DATABASE_URL=postgres://radar:radar@localhost
 **DELTA**: After each score run every scored repo has a stored `consensus_count`, Trending rows are boosted by it, and the API shows displayable-only consensus on tier items, a per-source timeline on a repo, and a paged `/consensus` list instead of the empty stub.
 
 **WITNESS**: Supervisor session, 2026-10-31T08:40:15Z: reran `TEST_DATABASE_URL=… pnpm test` under T015 (exit 0, recorded in `memory/event-trace/T015.jsonl`) and applied migration 005 up, down and up again on a scratch database.
+
+### Rework R1
+
+**BEFORE** (captured 2026-10-31T10:53Z, before any R1 implementation commit; worktree HEAD 7ffdfc8; `pnpm install --frozen-lockfile` and `pnpm build` ran first because the worktree had no node_modules):
+
+```
+=== 2026-10-31T10:53:09Z ls packages/db/migrations/; pnpm lint ===
+001_init.sql
+002_pending_signals_and_cursors.sql
+003_candidates.sql
+004_jobs.sql
+005_source_first_seen.sql
+
+> idea-radar@0.1.0 lint /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T015
+> pnpm -r lint && eslint scripts eslint.config.js
+
+Scope: 6 of 7 workspace projects
+apps/dashboard lint$ eslint .
+packages/core lint$ eslint .
+apps/dashboard lint: Done
+packages/core lint: Done
+packages/connectors lint$ eslint .
+packages/db lint$ eslint .
+packages/db lint: /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T015/packages/db/src/api.ts
+packages/db lint:   98:27  error  '_consensusBoost' is assigned a value but never used  @typescript-eslint/no-unused-vars
+packages/db lint: ✖ 1 problem (1 error, 0 warnings)
+packages/db lint: Failed
+/home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T015/packages/db:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @idea-radar/db@0.1.0 lint: `eslint .`
+Exit status 1
+packages/connectors lint: Done
+ ELIFECYCLE  Command failed with exit code 1.
+exit 1
+```
+
+Shows: only one migration file per migration (no `005_source_first_seen.down.sql`), and `pnpm lint` fails on `api.ts:98:27 _consensusBoost`.
