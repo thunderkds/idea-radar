@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — tasks/TASK_REVIEW_T023.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T023.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T023" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode); Risk Medium, but the trace has no `security-review` Skill call
 
 ## Evidence
 
@@ -67,8 +68,17 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31T13:43:25Z on `main` code @ 7eeeac1, before any implementation commit; script `/tmp/claude-1000/-home-hungnguyenhuu-workspace-pets-hungnguyen111-idea-radar/38a748fd-166b-4d4f-b351-2bf435c26688/scratchpad/t023-demo.mts`, throwaway schema in `idea-radar-test-pg`):
+
+```
+$ TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm exec tsx --conditions=source t023-demo.mts
+2026-10-31T13:43:25Z
+run 1 claimed         {"id":1,"name":"a","dataKey":"1","attempts":0}
+run 2 reclaimed       {"id":1,"name":"a","dataKey":"1","attempts":1} (run 1 was slow but alive)
+run 1 completeJob returned undefined
+row after stale completeJob: {"status":"ok","attempts":1,"locked_at":null}
+run 2 still holds the job? NO - stale run overwrote it
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
