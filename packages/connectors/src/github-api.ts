@@ -1,4 +1,5 @@
-import type { Repo, SourceConnector, Signal } from "@idea-radar/core";
+import { fakeStarConfig } from "@idea-radar/core";
+import type { Repo, SourceConnector, Signal, StargazerAccount } from "@idea-radar/core";
 import { deriveStackTags, MANIFEST_FILES } from "./stack-tags.js";
 
 export interface GithubRepoNode {
@@ -57,6 +58,20 @@ export interface ResolveNamesResult {
 
 type ContentNode = Record<string, unknown> & { databaseId: number };
 
+interface StargazerNode {
+  stargazers?: {
+    edges: ({
+      starredAt: string;
+      node: {
+        createdAt: string;
+        repositories: { totalCount: number };
+        followers: { totalCount: number };
+        contributionsCollection: { contributionCalendar: { totalContributions: number } };
+      } | null;
+    } | null)[];
+  };
+}
+
 interface RateLimitInfo {
   cost: number;
   remaining: number;
@@ -94,6 +109,20 @@ const CONTENT_FIELDS = `
   tree: object(expression: "HEAD:") { ... on Tree { entries { name type } } }
   ${README_FILES.map((f, i) => `r${i}: ${blob(f)}`).join("\n  ")}
   ${MANIFEST_FILES.map((f, i) => `m${i}: ${blob(f)}`).join("\n  ")}`;
+/** GraphQL `first:` limit; one query returns at most this many stargazers. */
+const STARGAZER_PAGE_MAX = 100;
+const STARGAZER_FIELDS = `
+  stargazers(first: $n, orderBy: {field: STARRED_AT, direction: DESC}) {
+    edges {
+      starredAt
+      node {
+        createdAt
+        repositories(privacy: PUBLIC) { totalCount }
+        followers { totalCount }
+        contributionsCollection { contributionCalendar { totalContributions } }
+      }
+    }
+  }`;
 const RATE_LIMIT_FIELDS = "rateLimit { cost remaining limit resetAt }";
 
 /**
@@ -280,6 +309,31 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
       contents: batches.flatMap((b) => b.contents),
       missing: [...missing, ...batches.flatMap((b) => b.gone)],
     };
+  }
+
+  /**
+   * Fake-star sample (HUN-151): the newest `n` stargazers of one repo (default `fakeStarConfig.sampleSize`,
+   * at most 100) in a single query through the shared rate-limit state. Deleted accounts are left out.
+   * Returns [] for a missing repo or an id that cannot be encoded.
+   */
+  async sampleStargazers(repoId: number, n: number = fakeStarConfig.sampleSize): Promise<StargazerAccount[]> {
+    const nodeId = toNodeId(repoId);
+    if (nodeId === null) return [];
+    const first = Math.max(1, Math.min(Math.floor(n), STARGAZER_PAGE_MAX));
+    const query = `query($ids: [ID!]!, $n: Int!) { nodes(ids: $ids) { ... on Repository {${STARGAZER_FIELDS} } } ${RATE_LIMIT_FIELDS} }`;
+    const data = await this.request<{ nodes: (StargazerNode | null)[] }>(query, { ids: [nodeId], n: first });
+    const accounts: StargazerAccount[] = [];
+    for (const edge of data.nodes[0]?.stargazers?.edges ?? []) {
+      if (!edge?.node) continue;
+      accounts.push({
+        starredAt: edge.starredAt,
+        createdAt: edge.node.createdAt,
+        publicRepos: edge.node.repositories.totalCount,
+        followers: edge.node.followers.totalCount,
+        contributions: edge.node.contributionsCollection.contributionCalendar.totalContributions,
+      });
+    }
+    return accounts;
   }
 
   /** Resolve `owner/name` strings to canonical repos, ≤100 per GraphQL query. */

@@ -349,6 +349,58 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     });
   });
 
+  describe("score fake-star check (HUN-151)", () => {
+    const logs: string[] = [];
+    /** Fake GitHub: every sampled repo's stargazers are all brand-new accounts. */
+    class SamplingGithub extends GithubApiConnector {
+      sampled: [number, number][] = [];
+      override async sampleStargazers(repoId: number, n?: number) {
+        this.sampled.push([repoId, n as number]);
+        return Array.from({ length: 10 }, () => ({
+          starredAt: "2026-10-30T12:00:00Z", createdAt: "2026-10-29T00:00:00Z", publicRepos: 0, followers: 0, contributions: 0,
+        }));
+      }
+    }
+    const seed = async () => {
+      await pool.query("INSERT INTO repos (repo_id, full_name, stars) VALUES (5, 'o/burst', 800)");
+      await pool.query(
+        "INSERT INTO signals (repo_id, source, signal_type, observed_at) VALUES (5, 'github_trending', 'x', '2026-10-30T10:00:00Z')",
+      );
+      await pool.query("INSERT INTO repo_daily (repo_id, date, stars_new, stars_max_hour) VALUES (5, '2026-10-30', 200, 80)");
+    };
+    const scoreOnly = (github?: GithubApiConnector) => {
+      const handlers = buildHandlers({ connectors: github ? [github] : [], log: (l) => logs.push(l) });
+      return once({ score: handlers.score! });
+    };
+    const scoreRow = async () =>
+      (await pool.query("SELECT score, fake_star_flag, components FROM repo_scores WHERE repo_id = 5")).rows[0];
+
+    beforeEach(() => void (logs.length = 0));
+
+    it("samples the burst repo right after scoreDay, flags it and discounts the score (AC 4)", async () => {
+      await seed();
+      const gh = new SamplingGithub("tok", true);
+      await scoreOnly(gh);
+      assert.equal((await job("score")).status, "ok");
+      assert.deepEqual(gh.sampled, [[5, 100]]);
+      const row = await scoreRow();
+      assert.equal(row.fake_star_flag, true);
+      assert.equal(row.score, 0); // share 1: 200 * (1 - 1)
+      assert.equal(row.components.fakeStarSampled, 10);
+      assert.deepEqual(JSON.parse(logs[0]!), { job: "score", date: "2026-10-31", checked: 1, flagged: 1 });
+    });
+
+    it("without a token, scores normally and logs that the check was skipped", async () => {
+      await seed();
+      await scoreOnly(new SamplingGithub(undefined));
+      assert.equal((await job("score")).status, "ok");
+      const row = await scoreRow();
+      assert.equal(row.fake_star_flag, false);
+      assert.equal(row.score, 200);
+      assert.match(logs.join("\n"), /fake-star check skipped/);
+    });
+  });
+
   describe("shortlist (HUN-148)", () => {
     const DAY = "2026-10-30";
     const setCursorTo = (day: string) =>

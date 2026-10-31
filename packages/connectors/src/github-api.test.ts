@@ -447,6 +447,63 @@ describe("GithubApiConnector.fetchContent", () => {
   });
 });
 
+const stargazersFixture = JSON.parse(
+  readFileSync(new URL("./fixtures/github-api/stargazers.json", import.meta.url), "utf8"),
+) as unknown;
+
+describe("GithubApiConnector.sampleStargazers", () => {
+  it("fetches the newest n stargazers in one query and maps the account facts", async () => {
+    const { calls, fetchImpl } = stub(() => stargazersFixture);
+    const out = await make(fetchImpl).sampleStargazers(27193779, 100);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]!.variables.ids[0], toNodeId(27193779));
+    assert.equal(calls[0]!.variables.n, 100);
+    assert.match(calls[0]!.query, /stargazers\(first: \$n, orderBy: \{field: STARRED_AT, direction: DESC\}\)/);
+    assert.match(calls[0]!.query, /rateLimit \{ cost remaining limit resetAt \}/);
+    // The fixture's third edge has a null node (a deleted account): it is left out.
+    assert.deepEqual(out, [
+      { starredAt: "2026-10-30T11:58:12Z", createdAt: "2026-10-28T09:00:00Z", publicRepos: 0, followers: 0, contributions: 0 },
+      { starredAt: "2026-10-30T11:41:03Z", createdAt: "2019-03-14T17:22:40Z", publicRepos: 42, followers: 130, contributions: 1204 },
+    ]);
+  });
+
+  it("defaults n to fakeStarConfig.sampleSize and caps it at 100 per query", async () => {
+    const { calls, fetchImpl } = stub(() => stargazersFixture);
+    const c = make(fetchImpl);
+    await c.sampleStargazers(1);
+    await c.sampleStargazers(1, 5000);
+    assert.deepEqual(calls.map((x) => x.variables.n), [100, 100]);
+  });
+
+  it("returns [] for a missing repo and makes no request for an unencodable id", async () => {
+    const { calls, fetchImpl } = stub(() => ({ data: { nodes: [null], rateLimit: rl() } }));
+    const c = make(fetchImpl);
+    assert.deepEqual(await c.sampleStargazers(5, 10), []);
+    assert.deepEqual(await c.sampleStargazers(-1, 10), []);
+    assert.equal(calls.length, 1);
+  });
+
+  it("goes through the shared rate-limit pause", async () => {
+    const sleeps: number[] = [];
+    const low = { data: { nodes: [null], rateLimit: rl(100, 5000) } };
+    const { fetchImpl } = stub(() => low);
+    const c = make(fetchImpl, sleeps);
+    await c.sampleStargazers(1, 10);
+    await c.sampleStargazers(1, 10);
+    assert.deepEqual(sleeps, [Date.parse(RESET_AT) - NOW]);
+  });
+
+  it("never leaks the token, and needs one", async () => {
+    const { fetchImpl } = stub(() => ({ errors: [{ message: `bad ${TOKEN}` }] }));
+    await assert.rejects(make(fetchImpl).sampleStargazers(1, 10), (err: Error) => {
+      assert.match(err.message, /redacted/);
+      assert.ok(!err.message.includes(TOKEN));
+      return true;
+    });
+    await assert.rejects(new GithubApiConnector(undefined, false).sampleStargazers(1, 10), /no token/);
+  });
+});
+
 describe("integration (real GitHub)", { skip: !process.env.GITHUB_TOKEN }, () => {
   it("resolves nodejs/node and fetches it back by id", async () => {
     const c = new GithubApiConnector(process.env.GITHUB_TOKEN);

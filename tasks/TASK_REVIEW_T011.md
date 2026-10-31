@@ -119,9 +119,40 @@ apps/worker test: ℹ skipped 0
 
 Reading: the only writers of `fake_star_flag` are `scoreDay` (hard-coded `false`, `scores.ts:127`) and the generic `upsertRepoScores`; no `sampleStargazers`, `applyFakeStarFlags` or `fakeStarConfig` exists (count 0). `pnpm typecheck` clean at the start.
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (captured 2026-10-31T08:35:02Z on the implementation branch):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+2026-10-31T08:35:02Z
+$ grep -rnE "sampleStargazers|applyFakeStarFlags|fakeStarConfig" packages apps | wc -l
+50
+$ grep -rn "fake_star_flag = " packages/db/src/fake-stars.ts
+54:       SET fake_star_flag = $3,
+$ TEST_DATABASE_URL=... pnpm test (counts per package)
+packages/core test: ℹ tests 26
+packages/core test: ℹ pass 26
+packages/core test: ℹ fail 0
+packages/core test: ℹ skipped 0
+packages/connectors test: ℹ tests 86
+packages/connectors test: ℹ pass 85
+packages/connectors test: ℹ fail 0
+packages/connectors test: ℹ skipped 1
+packages/db test: ℹ tests 81
+packages/db test: ℹ pass 81
+packages/db test: ℹ fail 0
+packages/db test: ℹ skipped 0
+apps/api test: ℹ tests 15
+apps/api test: ℹ pass 15
+apps/api test: ℹ fail 0
+apps/api test: ℹ skipped 0
+apps/worker test: ℹ tests 26
+apps/worker test: ℹ pass 26
+apps/worker test: ℹ fail 0
+apps/worker test: ℹ skipped 0
+$ pnpm typecheck
+0
+```
+
+**DELTA**: After each daily scoring run the score job samples the newest 100 stargazers of every repo with a 50+ stars-an-hour burst, sets `repo_scores.fake_star_flag` when at least half are new or inactive accounts, and multiplies that repo's trending or lowkey score by the genuine share, without removing it from the list.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]

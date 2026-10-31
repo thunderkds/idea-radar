@@ -1,6 +1,7 @@
 import type { SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import {
+  applyFakeStarFlags,
   completeJob,
   DEFAULT_GLOBAL_CONCURRENCY,
   getCursor,
@@ -179,11 +180,20 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
     };
   }
   // Windows end at the last ingested GH Archive day when it lags behind the last complete UTC day.
+  // The fake-star check (HUN-151) must run right after `scoreDay`, which rewrites the date's rows.
+  const log = deps.log ?? (() => {});
   handlers[SCORE_JOB] = {
     sourceId: null,
     async run({ db, job }) {
       const cursor = await getCursor(db, GH_ARCHIVE_ID);
-      await scoreDay(db, job.dataKey, cursor ? { windowEnd: cursor } : {});
+      const windows = cursor ? { windowEnd: cursor } : {};
+      await scoreDay(db, job.dataKey, windows);
+      if (!github?.enabled) {
+        log(JSON.stringify({ job: SCORE_JOB, date: job.dataKey, skipped: "fake-star check skipped: GitHub API connector disabled (no token)" }));
+        return;
+      }
+      const run = await applyFakeStarFlags(db, job.dataKey, (id, n) => github.sampleStargazers(id, n), windows);
+      log(JSON.stringify({ job: SCORE_JOB, date: job.dataKey, ...run }));
     },
   };
   return handlers;
