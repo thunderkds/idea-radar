@@ -11,7 +11,6 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
-- [ ] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | Risk: Low | P0
 - [ ] **T002** — HUN-142 Postgres data-access module + migration 002 | backend-developer | C2 | Risk: Med | P0
 - [ ] **T003** — HUN-145 GitHub API connector (metadata, name resolution, rate limit) | backend-developer | C2 | Risk: Med | P0
 - [ ] **T004** — HUN-146 GH Archive streaming + repo_daily rollup | backend-developer | C2 | Risk: Low | P1
@@ -32,6 +31,7 @@
 - [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
 
 ### In Progress
+- [ ] **T001** — Test runner + workspace install (infra for all tasks) | common-infrastructure | C1 | Risk: Low | P0 | Started 2026-10-31: branch `hun-t001-test-runner`
 
 ### Ready for Review
 
