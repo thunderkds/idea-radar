@@ -75,9 +75,15 @@ Paused: auto-mode check failed — tasks/TASK_REVIEW_T026.md has no `## Auto dec
 2026-10-31T15:38:54.646Z regroupTracked is not exported from @idea-radar/db: nothing can pick leaders
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: captured 2026-10-31T15:45Z at commit `99e2573`, same script and data (`pnpm exec tsx --conditions=source .../t026-demo.mts`):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+2026-10-31T15:45:39.305Z before regroup [{"priority":"normal","n":10,"group_key":null}]
+2026-10-31T15:45:39.306Z regroup result {"tracked":10,"groups":1,"leaders":2,"normal":8,"parked":0,"promoted":2}
+2026-10-31T15:45:39.314Z after regroup [{"priority":"leader","n":2,"group_key":"rag+vector-database|"},{"priority":"normal","n":8,"group_key":"rag+vector-database|"}]
+```
+
+**DELTA**: The weekly `regroup` job now groups tracked repos by idea (topics given in a different order and case give one key) and makes the 2 active repos of a 10-repo group `leader` (daily snapshots, due now) and the other 8 `normal` (weekly); before, all 10 stayed `normal`.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
