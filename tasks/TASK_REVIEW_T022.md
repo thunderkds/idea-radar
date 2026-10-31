@@ -43,20 +43,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. LICENSE is MIT with copyright holder `thunderkds` (the repo's git author name) — RULE: user decision 2026-10-31 "approve all, MIT"; the holder name ⚠ decided for you — please review
+2. Lint rules that existing code trips (no-explicit-any 12 hits, require-yield 4, preserve-caught-error 1, no-unused-expressions 1) are switched off in `eslint.config.js` with their hit counts, and no-unused-vars ignores args (10 hits), instead of editing other tasks' source — RULE: `tasks/TASK_GUIDE_T022.md` § Approach ("turn that rule off in the config with a one-line comment giving the hit count")
+3. Root `package.json` gains `"type": "module"` so Node loads `eslint.config.js` as ESM without a MODULE_TYPELESS warning in every package — SAFER OPTION: matches every workspace package, which is already ESM ⚠ decided for you — please review
+4. CI replaces the per-package build and dashboard typecheck steps with the root `pnpm typecheck`, which builds the packages and typechecks every workspace — FACT: package.json:11 "build && pnpm -r typecheck"
+5. The easy-verifier score row stays fail at overall 61: the verifier redacts the pinned SHAs before its pin check, so pinning reads as unpinned; the run is binding and not rerun — RULE: `skills/score/SKILL.md` ("A run that happened is binding") ⚠ decided for you — please review
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 18/18, connectors 80/81 (1 pre-existing skip), db 70/70, api 15/15, worker 24/24, root hygiene 5/5, exit 0; `pnpm lint` and `pnpm typecheck` exit 0; reviews code-review — P0 0, P1 0, P2 2 (root `package.json` `type` and `test` lines will conflict with T010's root changes on merge; dashboard `eslint .` is unproven on T017's 41 files), P3 0; lane check `EXCEEDS (files 13 > 6)`, mostly one-line `lint` scripts, label kept at C1; action SHAs checked with `git ls-remote` against `refs/tags/v4` (auto-checked, not /verify); easy-verifier score — overall 61, floor 80 missed (Companion score row)
+Memory: memory/learnings.md — easy-verifier masks pinned action SHAs; pnpm -r skips the root (T022)
+Not done: merge (yours); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `scripts/repo-hygiene.test.ts` — LICENSE is MIT, `license` field, every `uses:` pinned to a 40-hex SHA, `--frozen-lockfile` + `permissions: contents: read` + `timeout-minutes`, CI runs lint/typecheck/test; `ℹ tests 5 ℹ pass 5 ℹ fail 0` under the root `pnpm test`; failed first against the old `ci.yml` (agent) |
+| Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && TEST_DATABASE_URL=… pnpm test` exit 0 (agent); Supervisor rerun under T022: `pnpm test` exit 0, `pnpm typecheck` exit 0 |
+| Negative cases hold | ☑ pass | the hygiene tests fail on an unpinned `uses:` line, a missing `permissions:` block or a missing CI step (red run against the old `ci.yml`, agent) |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | 14 files of `4d7cd4c...HEAD`: config, manifests, lockfile, CI, one test; no `src` file changed |
+| Full smoke suite still green (no regression) | ☑ pass | all package suites unchanged in count and green: core 18, connectors 80 + 1 skip, db 70, api 15, worker 24 |
+| **Companion score (easy-verifier)** | ☑ fail | overall 61 (floor 80 missed), change_risk abstained (chore, confirmed: all metrics abstained, chore has no test expectation), scope changes, ref `4d7cd4c...HEAD`, abstentions: solution-fit, requirement-fidelity, code-quality, reliability, api, data, operations, infrastructure, gates: none offered, divergence: no findings sent, drags: supply-chain 55 (`ci_actions_unpinned_share` 1 although all three actions are pinned to full SHAs — the excerpt shows the SHAs redacted by `high_entropy_hex`, so the pin rule reads masked text; `ci_provenance_step_missing` 1), security 30 (`redaction_hits_observed` 137, including the three SHAs and lockfile hashes), blast-radius 46 (manifest churn), report: `/home/hungnguyenhuu/.easy-verifier-reports/T022/evidence-report-changes-20261031T104454-605068Z.html` |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI in this task |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI in this task |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI in this task |
 
 ---
 
@@ -83,9 +95,8 @@ $ grep -n "uses:\|pnpm install" .github/workflows/ci.yml
 19:      - run: pnpm install
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: captured 2026-10-31T10:42:12Z (agent): `LICENSE` exists and starts `MIT License`; `pnpm lint` runs `eslint .` in all 6 packages plus the root `scripts/`, exit 0; `ci.yml` lines 16–18 read `uses: actions/checkout@11d5960a… # v4`, `pnpm/action-setup@b906affc… # v4`, `actions/setup-node@49933ea5… # v4`, line 22 `run: pnpm install --frozen-lockfile`
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**DELTA**: no LICENSE → MIT LICENSE; `pnpm lint` from a silent no-op (no package had a `lint` script) to a real ESLint run, exit 0; CI actions from `@v4` tags to full commit SHAs, `pnpm install` to `--frozen-lockfile`, plus `permissions: contents: read`, `timeout-minutes: 15` and lint/typecheck/test steps
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session, 2026-10-31T10:44Z: reran `TEST_DATABASE_URL=… pnpm test` and `pnpm typecheck` under T022 (exit 0, recorded in `memory/event-trace/T022.jsonl`), read `.github/workflows/ci.yml`, `eslint.config.js`, `scripts/repo-hygiene.test.ts`, and checked the three SHAs with `git ls-remote`.
