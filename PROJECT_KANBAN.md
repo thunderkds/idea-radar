@@ -11,6 +11,7 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
+- [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-172-search-discovery` | Started 2026-10-31: branch `hun-172-search-discovery` (stacked on `hun-t024-star-snapshots`) | Paused 2026-10-31: reviewed (code-review R1, score), auto verify blocked — a real Search run needs `GITHUB_TOKEN`; branch kept unmerged until then
 - [ ] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2
 - [ ] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
@@ -22,6 +23,9 @@
 ### Ready for Review
 
 ### Done
+- [x] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-174-rescrape-button` | Started 2026-10-31: branch `hun-174-rescrape-button` (stacked on `hun-173-idea-groups`) | Done 2026-10-31: auto verify pass (session 1386189b-4cfc-48c4-a94f-c78d719d417d, commit 55da1ad8aaa38d59ff8f0ee858260ced27719926)
+- [x] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-173-idea-groups` | Started 2026-10-31: branch `hun-173-idea-groups` (stacked on `hun-t024-star-snapshots`) | Done 2026-10-31: auto verify pass (session a3ba81c8-7338-462d-a122-b9e1704523ab, commit 7a195041fce843a7cac0529c07ff17d64e1ef738)
+- [x] **T024** — HUN-171 Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots` | Done 2026-10-31: auto verify pass (session e3465657-3348-46ea-bf97-c984f413ff60, commit 937d891d3473e8a6a8d6f1487d6be50dccdc91f1)
 - [x] **T023** — Job queue run token + heartbeat (no double run after stuck-job reclaim) | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-t023-job-fencing` | Started 2026-10-31: branch `hun-t023-job-fencing` | Done 2026-10-31: auto verify pass (session caa06316-710d-4618-94b6-c5f054bcc071, commit 60d4de7189f256124707bad69c264dcc0941cb88)
 - [x] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers` | Reopened 2026-10-31: auto verify fail (branch lacked T015's API fields); `hun-155-consensus` merged in 7a73f18; rework R1 | Done 2026-10-31: auto verify pass (session 43c42cf4-908e-42dc-be66-cfa226cc1d57, commit f9d663c5ea56e6564944606e23c1568fdec81a43)
 - [x] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus` | Done 2026-10-31: auto verify pass (session 2ae3f276-bc65-4c5d-b9d8-28abdd602e19, commit 39245bcad85167932d5d0b89760a75d0892586d8) | Reopened 2026-10-31: rework R1 — down migration, tests, score fixes (branch has T022 merged) | Done 2026-10-31: auto verify pass (session 97787e2e-a6f7-4c53-87b7-ef73ab3c0f68, commit ff07fbc1b5a317a5c06be14dd749fca59f7fc281)

@@ -36,3 +36,14 @@
 **Why**: user chose "small fix" (2026-10-31). BullMQ would add Redis (hosting, `noeviction`), split job state from Postgres data (no shared transaction), stays at-least-once anyway, and means rewriting runner, caps and the score dependency.
 **Revisit when**: several worker hosts run at once and lost/double runs show in logs (`status: "lost"`), or Redis is in the stack for another reason. Then compare BullMQ with a Postgres library (Graphile Worker, pg-boss) before choosing.
 **Files**: `packages/db/src/jobs.ts`, `apps/worker/src/runner.ts`, `apps/worker/src/handlers.ts`
+
+### 2026-10-31 — Tracking strategy: GitHub API snapshots, idea groups, leaders (T024–T027)
+**Decision**: star velocity comes from our own daily GitHub API snapshots of a tracked set (`tracked_repos`, `repo_snapshots`), not from GH Archive alone. Repos are grouped by idea (v1: normalised topics + stack tags; README similarity later); each group's top 1–2 are `leader` (daily snapshot), the rest `normal` (weekly), dead ones `parked` (only on request). A dashboard "Refresh now" button calls `POST /rescrape`, guarded by `ADMIN_TOKEN`. Discovery adds GitHub Search slices.
+**Why**: GH Archive shrank ~55× since 2024 with no PushEvents (`memory/learnings.md`); the user asked to "pick 1 or 2 of repos in that field to track frequently, not all", others "Weekly + on request", trigger "Dashboard button", grouping "Topics now, README later" (2026-10-31).
+**Files**: `docs/SPEC.md`, `packages/db/migrations/006_tracking.sql`, `packages/db/src/tracking.ts`, `packages/db/src/scores.ts`, `packages/db/src/candidates.ts`, `packages/connectors/src/github-api.ts`, `apps/worker/src/handlers.ts`, `apps/api/src/app.ts`
+
+### 2026-10-31 — Re-scrape on request via ADMIN_TOKEN; dashboard must stay private until auth (T027)
+**Decision**: the API's only write route is `POST /rescrape` (`{repoId}` or `{groupKey}`), guarded by `Authorization: Bearer <ADMIN_TOKEN>` (constant-time); unset token → 404. It sets `next_due_at = now()` without changing `priority` and re-opens today's `snapshot` job only when `ok`/`failed` (keeps `attempts`, the T023 run token). The dashboard's "Refresh now" / "Refresh group now" buttons go through a Next.js server action that adds the token server-side; buttons hidden without `ADMIN_TOKEN`.
+**Why**: user chose "Dashboard button" (2026-10-31); no accounts in v1, so the token keeps the button off the public API.
+**Consequence**: the server action is a public POST of the dashboard, so anyone who can open the dashboard can queue refreshes (costs GitHub API points). Keep the dashboard private, or add login / a rate limit, before a public launch (T019 / HUN-159). `ADMIN_TOKEN` must be the same for the API and dashboard processes and never `NEXT_PUBLIC_`.
+**Files**: `apps/api/src/app.ts`, `packages/db/src/tracking.ts`, `apps/dashboard/app/_components/rescrape-action.ts`, `apps/dashboard/lib/api.ts`, `AGENTS.md`

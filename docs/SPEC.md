@@ -30,7 +30,7 @@ GitHub API is the single source of truth for repo metadata; every other source c
 | Source | Ingest | Limits / cost | Role | Required |
 | --- | --- | --- | --- | --- |
 | [GitHub API](https://docs.github.com/en/graphql/overview/rate-limits-and-query-limits-for-the-graphql-api) | REST + GraphQL | 5,000 GraphQL points/hr per token; 2,000 points/min; Search 30 req/min; max 100 concurrent (REST + GraphQL) | Metadata, README, manifests, issues | Yes |
-| [GH Archive](https://www.gharchive.org) | Hourly dumps or BigQuery | Free dumps; BigQuery query cost | Star/fork/push velocity for all public repos — basis of the lowkey tier | Yes |
+| [GH Archive](https://www.gharchive.org) | Hourly dumps or BigQuery | Free dumps; BigQuery query cost | Star/fork velocity sample for public repos (thin since 2025; see Tracking strategy) — a discovery signal and fallback | Yes |
 | GitHub Trending page | Daily HTML scrape | ~25 repos per language/period; brittle | "Officially trending" flag | Yes |
 | [OSS Insight](https://ossinsight.io/docs/api) | Public REST API, `api.ossinsight.io/v1` | No key; 600 req/hr per IP | Trending by period/language; curated collections as category tags | Optional |
 | [Trendshift](https://trendshift.io/signal) | Signal API | $9/month Starter; **no redistribution of raw data** | Engagement-spike signal; historical GitHub Trending snapshots | Optional, internal scoring only |
@@ -122,6 +122,16 @@ score = 0.35 · velocity_lift + 0.25 · activity + 0.15 · contributors
 **Fake-star filter** — discount stars from accounts under 30 days old or with no public activity, and flag bursts (e.g. 50+ stars within an hour from low-activity accounts). Flagged repos are shown with a warning, not hidden.
 
 **Source consensus** — `consensus_count` = number of distinct sources flagging the repo in the last 7 days, with the first-seen date per source. It boosts Trending ranking and powers the "who caught it first" timeline.
+
+## Tracking strategy
+
+Added 2026-10-31. **Why:** GH Archive's public event feed has shrunk about 55× since 2024 (same hour: 268,172 events in 2024-10, 4,887 in 2026-10; 0 PushEvents), so it can no longer carry star velocity or activity on its own (`memory/learnings.md`). Star velocity now comes from our own GitHub API snapshots, and the API budget goes to the repos most worth following.
+
+- **Tracked set.** A repo enters `tracked_repos` when discovery finds it: a GitHub Trending or OSS Insight signal, a GH Archive star burst, or a GitHub Search slice (recently created or pushed, under ~200 stars). Each tracked repo has a priority: `leader`, `normal` or `parked`.
+- **Snapshots.** A daily `snapshot` job reads, for every tracked repo that is due, its star count, fork count, `pushed_at` and default-branch commits in the last 30 days, in GraphQL batches of 100, and writes one `repo_snapshots` row per repo per day. Star velocity = the difference between snapshots, spread evenly over the days between them. GH Archive `stars_new` stays as a fallback signal for days with no snapshot.
+- **Idea groups.** Repos are grouped by idea: v1 key = their normalised GitHub topics plus detected stack tags (OSS Insight collections as a hint); v2 may swap in README similarity. Each week, every group's top 1–2 repos (active, good direction: the tier score plus recent activity) become `leader`s; the rest of the group become `normal`.
+- **Cadence.** `leader`: snapshot daily. `normal`: weekly. `parked` (no group activity, archived, or never scored): only on request. A weekly regroup re-picks leaders, so a rising repo can move up.
+- **Re-scrape on request.** The dashboard has a refresh button on a repo and on a group. It calls the API's one write endpoint, which marks the repo (or every repo of the group) due now and queues the job. The endpoint needs an admin token (`ADMIN_TOKEN`); without it the button is hidden and the endpoint returns 404.
 
 ## Dashboard views
 
