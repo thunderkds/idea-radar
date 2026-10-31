@@ -9,10 +9,12 @@
  */
 import { createPool } from "../../../packages/db/src/index.js";
 
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error("DATABASE_URL is not set");
-const dbName = new URL(url).pathname.slice(1);
-if (!dbName.startsWith("dash_")) throw new Error(`refusing to seed "${dbName}": the database name must start with dash_`);
+/** The database name of `url`; throws unless it starts with `dash_`, because seeding empties the data tables. */
+export function demoDbName(url: string): string {
+  const dbName = new URL(url).pathname.slice(1);
+  if (!dbName.startsWith("dash_")) throw new Error(`refusing to seed "${dbName}": the database name must start with dash_`);
+  return dbName;
+}
 
 interface Seed {
   id: number;
@@ -61,7 +63,8 @@ function daily(id: number, day: number): number {
   return day >= 83 ? base + 4 : base;
 }
 
-async function main() {
+export async function seedDemo(url: string): Promise<{ database: string; repos: number; date: string }> {
+  const database = demoDbName(url);
   const db = createPool(url);
   try {
     await db.query("TRUNCATE repos, repo_daily, signals, repo_content, repo_scores, sources RESTART IDENTITY");
@@ -109,17 +112,23 @@ async function main() {
       for (const [i, sig] of (s.signals ?? []).entries()) {
         await db.query(
           "INSERT INTO signals (repo_id, source, signal_type, value, observed_at) VALUES ($1, $2, $3, $4, now() - ($5 || ' days')::interval)",
-          [s.id, sig.source, sig.type, JSON.stringify(sig.value ?? {}), String(i)],
+          [s.id, sig.source, sig.type, JSON.stringify(sig.value ?? {}), String(i + 1)],
         );
       }
     }
-    console.log(`seeded ${seeds.length} repos into ${dbName} (score date ${today})`);
+    return { database, repos: seeds.length, date: today };
   } finally {
     await db.end();
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  seedDemo(url)
+    .then((r) => console.log(`seeded ${r.repos} repos into ${r.database} (score date ${r.date})`))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}
