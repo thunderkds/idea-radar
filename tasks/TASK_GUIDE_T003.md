@@ -64,6 +64,9 @@
 | 6 | Concurrency of in-flight requests ≤ `rateLimit.concurrency` (10) | 100-concurrent cap |
 | 7 | Integration test calling real GitHub for one known repo (e.g. `nodejs/node`) runs only when `GITHUB_TOKEN` is set; otherwise skipped | token guard |
 | 8 | `fetch(since)` yields nothing when constructed without a token and `enabled` is false | negative |
+| 9 | `normalize()` returns `[]`: metadata goes to `repos` through `toRepo()`, never into `signals`, so GitHub API refreshes do not inflate `consensus_count` | gap A7 (`docs/analysis/2026-10-31-gaps.md`) |
+| 10 | No mutable candidate-id state on the connector: `fetchByIds` and `resolveNames` are plain methods the T007 pipeline jobs call; `fetch(since)` yields nothing | gap A9 |
+| 11 | When a numeric id cannot be turned into a GraphQL node id, or the node comes back `null`, the id is returned in a `missing` list so the caller can fall back to `resolveNames` | gap A6 |
 
 ---
 
@@ -89,11 +92,12 @@ pnpm --filter @idea-radar/connectors test && pnpm typecheck
 
 **Pattern reference**: `packages/connectors/src/github-api.ts` (existing class shape, `normalize`) — extend in place.
 **Vital slice**: one batched GraphQL request function with rate-limit tracking; `fetchByIds` and `resolveNames` built on it.
-**Cut list**: REST fallback; Search API; GitHub App auth; persistent rate-limit state across process restarts.
+**Cut list**: REST fallback; Search API; GitHub App auth; persistent / cross-process rate-limit budget (T007, gap A6).
 
 - Use global `fetch` (Node 22+) with an injectable `fetchImpl` for tests — no Octokit dependency (Simplicity First, `AGENTS.md` § Karpathy Engineering Principles).
 - Token goes only in the `Authorization: bearer` header; never log request headers.
-- `fetch(since)` semantics for the scheduler: accept a candidate id list via constructor or a setter; document the choice in the report. Keep `SourceConnector` interface unchanged (`docs/ISSUES.md` § HUN-143 "keep it stable").
+- Keep `SourceConnector` interface unchanged (`docs/ISSUES.md` § HUN-143 "keep it stable"). `fetch(since)` yields nothing (AC 10).
+- `Repo.createdAt` becomes `Date | null` in T002 (parallel); write `toRepo` so it compiles with either (e.g. `createdAt: new Date(node.createdAt)` is fine for both).
 
 ---
 

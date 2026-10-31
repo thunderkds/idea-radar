@@ -69,6 +69,10 @@ Plus two storage needs of wave-1 siblings, owned here so only one task writes mi
 | 8 | `getCursor`/`setCursor` round-trip a value per source id | T004 need |
 | 9 | Integration tests run against `TEST_DATABASE_URL` and **skip** (not fail) when it is unset or unreachable | AGENTS.md § Rules |
 | 10 | A signal with `repoId: 0` and no `fullName` throws (programmer error) | negative |
+| 11 | Migration 002 adds `repo_daily.contributors` and `repo_daily.stars_max_hour` (INTEGER NOT NULL DEFAULT 0); `upsertRepoDaily` writes them; `RepoDaily` in `packages/core/src/types.ts` gains `contributors` and `starsMaxHour` | gap A4/A5 (`docs/analysis/2026-10-31-gaps.md`) |
+| 12 | `pending_signals` has `attempts` and `last_attempt_at`; `resolvePending` moves rows to `signals` keeping the original `observed_at`; `markNotFound(names)` bumps `attempts`, and rows at `attempts >= 5` are deleted (count returned) | gap A8 |
+| 13 | `pg` returns BIGINT and NUMERIC columns as JS numbers (type parsers set in `packages/db/src/index.ts`); `RepoScore` gains `fakeStarFlag`; `Repo.createdAt` becomes `Date \| null` to match the nullable column | gap A16 |
+| 14 | `migrate.ts` takes `pg_advisory_lock` for the run so two processes cannot apply migrations at once | gap A19 |
 
 ---
 
@@ -95,7 +99,7 @@ docker compose up -d postgres && pnpm --filter @idea-radar/db test && TEST_DATAB
 
 **Pattern reference**: `packages/db/src/migrate.ts` — plain `pg` client, parameterised SQL, no ORM. Imitate it.
 **Vital slice**: `insertSignals` with resolution + queue, then the five upserts.
-**Cut list**: query helpers for API reads (T016); connection retry logic; ORM / query builder.
+**Cut list**: query helpers for API reads (T016); connection retry logic; ORM / query builder; signal dedup / `run_id` on retries (T007, gap A12).
 
 - Plain SQL with `$n` parameters only — never string-concatenate values.
 - Functions take a `Pool | PoolClient` (a `Queryable` type) as first arg so the worker can run them in a transaction.
@@ -122,6 +126,7 @@ docker compose up -d postgres && pnpm --filter @idea-radar/db test && TEST_DATAB
 | `packages/db/src/index.ts` | re-export |
 | `packages/db/src/*.test.ts` | integration tests |
 | `packages/db/package.json` | depend on `@idea-radar/core` for types if needed |
+| `packages/core/src/types.ts` | `RepoDaily`, `RepoScore`, `Repo.createdAt` changes (AC 11, 13) — this task is the only wave-1 owner of this file |
 
 ## Files Must NOT Touch
 
@@ -134,7 +139,7 @@ docker compose up -d postgres && pnpm --filter @idea-radar/db test && TEST_DATAB
 ---
 
 ## Test Plan
-Integration tests per function against `TEST_DATABASE_URL` (fresh schema per run: create a temp schema or truncate tables in `beforeEach`). Show the skip path with the env var unset.
+Integration tests per function against `TEST_DATABASE_URL`. Run every test in a temporary schema (`CREATE SCHEMA test_<random>`, `SET search_path`, apply migrations there, `DROP SCHEMA … CASCADE` after) — `TEST_DATABASE_URL` points at the same `radar` database as dev data, so never truncate shared tables. Local Postgres: `POSTGRES_PORT=5433 docker compose up -d postgres` (host port 5432 is taken by another container); `TEST_DATABASE_URL=postgres://radar:radar@localhost:5433/radar`. Show the skip path with the env var unset.
 
 ---
 
