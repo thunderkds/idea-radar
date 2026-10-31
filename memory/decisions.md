@@ -29,3 +29,9 @@
 ### 2026-10-31 — Score job order: scoreDay → applyConsensus → applyFakeStarFlags (wave-4 merge)
 **Decision (Supervisor, wave-4 merge):** the worker `score` handler runs `scoreDay`, then `applyConsensus` (Trending × consensus factor), then `applyFakeStarFlags` (flagged trending/lowkey × (1 − share)). Both later steps multiply the stored score, so the order does not change the result beyond 6-decimal rounding; consensus goes first because the fake-star step returns early when the GitHub connector has no token. Each is valid only right after `scoreDay`; a rerun starts from `scoreDay`.
 **Files**: `apps/worker/src/handlers.ts`, `packages/db/src/consensus.ts`, `packages/db/src/fake-stars.ts`
+
+### 2026-10-31 — Job queue stays on Postgres; BullMQ deferred (T023)
+**Decision**: fix the stuck-job double run in the in-repo `jobs` queue with a run token (the `attempts` column; `completeJob`/`failJob`/`heartbeatJob` match `id` + `status='running'` + `attempts`) and a runner heartbeat on `locked_at`. No BullMQ, no Redis, no queue library now.
+**Why**: user chose "small fix" (2026-10-31). BullMQ would add Redis (hosting, `noeviction`), split job state from Postgres data (no shared transaction), stays at-least-once anyway, and means rewriting runner, caps and the score dependency.
+**Revisit when**: several worker hosts run at once and lost/double runs show in logs (`status: "lost"`), or Redis is in the stack for another reason. Then compare BullMQ with a Postgres library (Graphile Worker, pg-boss) before choosing.
+**Files**: `packages/db/src/jobs.ts`, `apps/worker/src/runner.ts`, `apps/worker/src/handlers.ts`
