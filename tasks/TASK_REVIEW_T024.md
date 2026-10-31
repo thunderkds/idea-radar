@@ -77,9 +77,15 @@ repo_snapshots table: absent (no way to record the +70 stars)
 repo 1: stars7d=0 / no tier (not scored; no repo_scores row)
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: same script (`demo.mjs`), same data, captured 2026-10-31T15:29Z on branch `hun-t024-star-snapshots` after commit "SPEC data model lists tracked_repos and repo_snapshots"; the script now also inserts two `repo_snapshots` rows for repo 1 (100 stars 7 days before, 170 on the window end day, commits_30d 20 then 25).
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+2026-10-31T15:29:31.003Z migrations applied: 001_init.sql, 002_pending_signals_and_cursors.sql, 003_candidates.sql, 004_jobs.sql, 005_source_first_seen.sql, 006_tracking.sql
+2026-10-31T15:29:31.100Z scoreDay: {"scored":1,"byTier":{"lowkey":1},"skippedNoMetadata":0}
+repo 1: stars7d=70 tier=lowkey score=0.6276 activity=0.833333
+```
+
+**DELTA**: A repo whose stars GH Archive no longer sees is now scored from its two GitHub API star counts (+70 in 7 days gives stars7d 70 and a lowkey score, activity 25/30 from its commits), where before it had stars7d 0 and no tier.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
