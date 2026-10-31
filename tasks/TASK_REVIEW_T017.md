@@ -88,3 +88,30 @@ first implementation commit] OR [verbatim excerpt of the prior content, for non-
 **DELTA**: A developer can open the dashboard on the Lowkey tab, switch to Medium or Trending, filter by language, topic, collection and window, page through results, and open a repo to see its star history, score breakdown, source timeline, README excerpt and stack in Graphite Mint at phone, tablet and desktop widths.
 
 **WITNESS**: Supervisor session, 2026-10-31T08:52:38Z: reran `TEST_DATABASE_URL=… pnpm test` and the dashboard build under T017 (exit 0, recorded in `memory/event-trace/T017.jsonl`), confirmed the five easy-ui session reports say `passed`, and viewed screenshot `/home/hungnguyenhuu/workspace/pets/hungnguyen111/easy-ui-mcp/reports/screenshot-1793436538676.png`.
+
+### Rework R1
+
+**BEFORE** (captured 2026-10-31T10:55Z, HEAD `7a73f18` = T017 + merged T015 API fields + T022, before any R1 change; API `API_PORT=4418`, `next start -p 3448`, database `dash_t017` on 5436 seeded by the unchanged `seed-demo.ts`; step file generated from the expectations below). The `ui_assert`s state the target: exactly 2 consensus badges (`consensus 1`, `consensus 2`) and 1 fake-star warning on the Lowkey list, 2 timeline rows on `/repos/1001`. The badge assert fails: the seed writes its signals at `now()`, outside the API's consensus window (it ends at 00:00Z of the score date), so `consensus 2` never shows (the API says `consensusCount: 1` for repo 1001). The other two hold.
+
+```
+BEFORE captured 2026-10-31T10:55:55Z (HEAD 7a73f18, no R1 change yet; dashboard :3448, API :4418, DB dash_t017)
+[ui_start_session] Session 22870c3d-e060-4874-a99d-76539822c6f9 started for target "T017 R1 BEFORE: consensus badges, fake-star warnings and timeline rows"
+[ui_navigate] Navigated to http://localhost:3448/ (title: "Idea Radar")
+[ui_wait_for] Condition held after 11ms
+[ui_step] Step: Count consensus badges, fake-star warnings on the Lowkey list
+[ui_check] Check evaluated false (session not failed)
+[ui_assert] Assertion failed
+[ui_assert] Assertion passed
+[ui_navigate] Navigated to http://localhost:3448/repos/1001 (title: "Idea Radar")
+[ui_wait_for] Condition held after 1ms
+[ui_step] Step: Count timeline rows on /repos/1001
+[ui_assert] Assertion passed
+[ui_end_session] Session 22870c3d-e060-4874-a99d-76539822c6f9 ended (failed). Reports: /app/reports/session-20261031-105555-t017-r1-before-consensus-badges-fake-sta-22870c3d.json, /app/reports/session-20261031-105555-t017-r1-before-consensus-badges-fake-sta-22870c3d.html
+
+dashboard lint (2026-10-31T10:55:56Z):
+
+> @idea-radar/dashboard@0.1.0 lint /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/worktrees/T017/apps/dashboard
+> eslint .
+
+lint exit 0
+```
