@@ -19,6 +19,7 @@ export { applyMigrations } from "./migrations.js";
 export * from "./repository.js";
 export * from "./sources.js";
 export * from "./candidates.js";
+export * from "./content.js";
 export * from "./jobs.js";
 export * from "./api.js";
 export * from "./scores.js";

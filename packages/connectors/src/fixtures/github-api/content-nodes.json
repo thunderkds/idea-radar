@@ -1,0 +1,31 @@
+{
+  "full": {
+    "databaseId": 101,
+    "tree": { "entries": [
+      { "name": "README.md", "type": "blob" },
+      { "name": "package.json", "type": "blob" },
+      { "name": "requirements.txt", "type": "blob" },
+      { "name": "src", "type": "tree" }
+    ] },
+    "r0": { "text": "# Hello\n\nA small tool.\n" },
+    "r1": null, "r2": null, "r3": null, "r4": null, "r5": null,
+    "m0": { "text": "{\"dependencies\":{\"next\":\"14.0.0\",\"react\":\"18.2.0\"}}" },
+    "m1": null, "m2": null,
+    "m3": { "text": "fastapi==0.110\n" },
+    "m4": null, "m5": null, "m6": null
+  },
+  "lowercaseReadmeOnly": {
+    "databaseId": 102,
+    "tree": { "entries": [{ "name": "readme.md", "type": "blob" }] },
+    "r0": null,
+    "r1": { "text": "lowercase readme" },
+    "r2": null, "r3": null, "r4": null, "r5": null,
+    "m0": null, "m1": null, "m2": null, "m3": null, "m4": null, "m5": null, "m6": null
+  },
+  "emptyRepo": {
+    "databaseId": 103,
+    "tree": null,
+    "r0": null, "r1": null, "r2": null, "r3": null, "r4": null, "r5": null,
+    "m0": null, "m1": null, "m2": null, "m3": null, "m4": null, "m5": null, "m6": null
+  }
+}

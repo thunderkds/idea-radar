@@ -1,4 +1,5 @@
 import type { Repo, SourceConnector, Signal } from "@idea-radar/core";
+import { deriveStackTags, MANIFEST_FILES } from "./stack-tags.js";
 
 export interface GithubRepoNode {
   databaseId: number;
@@ -30,11 +31,31 @@ export interface FetchByIdsResult {
   missing: number[];
 }
 
+/**
+ * One `repo_content` row as fetched. Same shape as `RepoContent` in `@idea-radar/db`
+ * (connectors do not depend on db); `fetchedAt` is left to the database default.
+ */
+export interface FetchedRepoContent {
+  repoId: number;
+  readmeMd: string | null;
+  manifests: Record<string, string>;
+  fileTreeSummary: { entries: { name: string; type: string }[]; total: number };
+  stackTags: string[];
+}
+
+export interface FetchContentResult {
+  contents: FetchedRepoContent[];
+  /** Ids that could not be fetched (bad id, deleted, private). */
+  missing: number[];
+}
+
 export interface ResolveNamesResult {
   /** Keyed by the name as requested, even if GitHub followed a rename redirect. */
   resolved: Map<string, Repo>;
   notFound: string[];
 }
+
+type ContentNode = Record<string, unknown> & { databaseId: number };
 
 interface RateLimitInfo {
   cost: number;
@@ -49,6 +70,14 @@ interface GraphqlError {
 }
 
 const BATCH_SIZE = 100;
+/** Repos per content query: each repo carries 14 `object()` lookups, so a batch is small. */
+const CONTENT_BATCH_SIZE = 10;
+const README_MAX_BYTES = 100 * 1024;
+const MANIFEST_MAX_BYTES = 50 * 1024;
+/** Top-level entries kept in `file_tree_summary`; `total` still counts all of them. */
+const TREE_MAX_ENTRIES = 200;
+/** README file names tried in order at the repo root; the first one present wins. */
+const README_FILES = ["README.md", "readme.md", "README.markdown", "README.rst", "README.txt", "README"];
 const LOW_BUDGET_FRACTION = 0.1;
 const ENDPOINT = "https://api.github.com/graphql";
 const NAME_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
@@ -59,6 +88,12 @@ const REPO_FIELDS = `
   licenseInfo { spdxId }
   repositoryTopics(first: 20) { nodes { topic { name } } }
   createdAt pushedAt`;
+const blob = (path: string) => `object(expression: "HEAD:${path}") { ... on Blob { text } }`;
+const CONTENT_FIELDS = `
+  databaseId
+  tree: object(expression: "HEAD:") { ... on Tree { entries { name type } } }
+  ${README_FILES.map((f, i) => `r${i}: ${blob(f)}`).join("\n  ")}
+  ${MANIFEST_FILES.map((f, i) => `m${i}: ${blob(f)}`).join("\n  ")}`;
 const RATE_LIMIT_FIELDS = "rateLimit { cost remaining limit resetAt }";
 
 /**
@@ -83,6 +118,41 @@ export function toRepo(node: GithubRepoNode): Repo {
     archived: node.isArchived,
     createdAt: new Date(node.createdAt),
     pushedAt: node.pushedAt === null ? null : new Date(node.pushedAt),
+  };
+}
+
+/** Text of an `object() { ... on Blob { text } }` alias; null when absent, binary or empty. */
+function blobText(node: Record<string, unknown>, alias: string, maxBytes: number): string | null {
+  const text = (node[alias] as { text?: string | null } | null | undefined)?.text;
+  if (typeof text !== "string") return null;
+  // Postgres TEXT and JSONB reject NUL characters.
+  const clean = text.replaceAll("\u0000", "");
+  if (clean.trim() === "") return null;
+  if (Buffer.byteLength(clean) <= maxBytes) return clean;
+  return Buffer.from(clean).subarray(0, maxBytes).toString("utf8").replace(/\uFFFD$/, "");
+}
+
+/** Build the `repo_content` row for one `nodes(ids:)` result. */
+export function toRepoContent(node: Record<string, unknown> & { databaseId: number }): FetchedRepoContent {
+  let readmeMd: string | null = null;
+  for (let i = 0; i < README_FILES.length && readmeMd === null; i++) {
+    readmeMd = blobText(node, `r${i}`, README_MAX_BYTES);
+  }
+  const manifests: Record<string, string> = {};
+  MANIFEST_FILES.forEach((file, i) => {
+    const text = blobText(node, `m${i}`, MANIFEST_MAX_BYTES);
+    if (text !== null) manifests[file] = text;
+  });
+  const entries = (node.tree as { entries?: { name: string; type: string }[] } | null)?.entries ?? [];
+  return {
+    repoId: node.databaseId,
+    readmeMd,
+    manifests,
+    fileTreeSummary: {
+      entries: entries.slice(0, TREE_MAX_ENTRIES).map((e) => ({ name: e.name, type: e.type })),
+      total: entries.length,
+    },
+    stackTags: deriveStackTags(manifests),
   };
 }
 
@@ -172,6 +242,42 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
     );
     return {
       repos: batches.flatMap((b) => b.repos),
+      missing: [...missing, ...batches.flatMap((b) => b.gone)],
+    };
+  }
+
+  /**
+   * Fetch README, root manifests and the top-level tree for numeric repo ids, ≤10 per GraphQL query,
+   * through the same rate-limit state as `fetchByIds`. README is capped at 100 KB, each manifest at
+   * 50 KB; absent files are left out. `stackTags` come from the manifests.
+   */
+  async fetchContent(ids: number[]): Promise<FetchContentResult> {
+    const missing: number[] = [];
+    const encodable: { id: number; nodeId: string }[] = [];
+    for (const id of ids) {
+      const nodeId = toNodeId(id);
+      if (nodeId === null) missing.push(id);
+      else encodable.push({ id, nodeId });
+    }
+
+    const query = `query($ids: [ID!]!) { nodes(ids: $ids) { ... on Repository {${CONTENT_FIELDS} } } ${RATE_LIMIT_FIELDS} }`;
+    const batches = await Promise.all(
+      chunk(encodable, CONTENT_BATCH_SIZE).map(async (batch) => {
+        const data = await this.request<{ nodes: (ContentNode | null)[] }>(query, {
+          ids: batch.map((b) => b.nodeId),
+        });
+        const contents: FetchedRepoContent[] = [];
+        const gone: number[] = [];
+        batch.forEach((b, i) => {
+          const node = data.nodes[i];
+          if (node && typeof node.databaseId === "number") contents.push(toRepoContent(node));
+          else gone.push(b.id);
+        });
+        return { contents, gone };
+      }),
+    );
+    return {
+      contents: batches.flatMap((b) => b.contents),
       missing: [...missing, ...batches.flatMap((b) => b.gone)],
     };
   }

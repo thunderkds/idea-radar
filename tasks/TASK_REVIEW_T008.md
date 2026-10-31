@@ -43,20 +43,33 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Folded the missing wiring (select candidates → fetch metadata → fetch content) into one daily `shortlist` job, because no job called `selectCandidates` or `fetchByIds` — RULE: `docs/ISSUES.md` § HUN-148 ("Shortlist = repos with any tier candidate signal in the last 7 days") plus gap A1 in `docs/analysis/2026-10-31-gaps.md`
+2. Raised T008 from P2 to P1, because T009 can only score repos that have a `repos` row — FACT: `packages/db/src/scores.ts` doc comment "Only repos with a `repos` row … are scored" (T009 branch)
+3. The shortlist reads the GH Archive cursor as its day (usually D−2 when it runs at 00:00 UTC), and T009 now ends score windows at the same cursor — SAFER OPTION: both jobs work on the last ingested day, not on a day with no data ⚠ decided for you — please review
+4. Work is written every 200 repos, and `shortlist` gets a 6 h stuck-job timeout like `gh_archive` (a rate-limit pause can last an hour) — SAFER OPTION: a retry redoes only what is not fresh, and a live job is not reclaimed mid-pause ⚠ decided for you — please review
+5. README = first present of 6 root names; files over the cap (README 100 KB, manifest 50 KB) are truncated, not dropped; NUL characters stripped — RULE: `tasks/TASK_GUIDE_T008.md` § Acceptance Criteria (AC 1 caps)
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 6/6, connectors 66/67 (1 pre-existing live-GitHub skip), db 57/57, worker 24/24, exit 0; reviews code-review — P0 0, P1 0, P2 2 (live GraphQL content path unverified without a token, including a repo with no HEAD; repos GitHub cannot return are retried every day with no give-up mark), P3 1 (`FetchedRepoContent` duplicates db `RepoContent`; move it to core later); real run: none — needs a GitHub token (auto-checked, not /verify)
+Memory: nothing new
+Not done: merge (yours); auto verify: ☑ pass (session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e, log .claude/verify-runs/T008-7f1c2f8cc3cf.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e); Gates 5 and 6 checked
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-api.test.ts` (8 new `fetchContent` tests: batching, caps, absent manifests, missing repo), `packages/connectors/src/stack-tags.test.ts`, `packages/db/src/content.test.ts`, `apps/worker/src/worker.test.ts` (6 shortlist tests incl. score waits for shortlist). connectors `ℹ tests 67 ℹ fail 0`, worker `ℹ tests 24 ℹ fail 0` |
+| Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T008); `pnpm typecheck` clean (agent) |
+| Negative cases hold | ☑ pass | no cursor → skip; no token → select only, no `github_api` health row; invalid JSON/TOML manifests give no tags, never throw; missing repo listed in `missing` |
+| verify | ☑ pass | auto-run by hook, session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e, log .claude/verify-runs/T008-7f1c2f8cc3cf.log — pass |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-api.ts`, `stack-tags.ts`, `content.ts`, `scoring.ts` (`contentMaxAgeDays`), worker handlers/index + tests. `lane: C2, 12 files, 894 lines, EXCEEDS (lines 894 > 500); unpredicted: apps/worker/src/index.ts, apps/worker/src/worker.test.ts, packages/connectors/src/github-api.test.ts, packages/connectors/src/stack-tags.test.ts, packages/db/src/content.test.ts, packages/db/src/index.ts` — about half is tests |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: worker job only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: worker job only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: worker job only |
 
 ---
 
@@ -67,12 +80,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31T07:43:32Z, branch `hun-148-shortlist`, before any implementation commit):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+$ TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test    # per-package totals
+packages/core:       tests 6   pass 6   fail 0 skipped 0
+packages/connectors: tests 50  pass 49  fail 0 skipped 1
+packages/db:         tests 54  pass 54  fail 0 skipped 0
+apps/worker:         tests 18  pass 18  fail 0 skipped 0
+$ grep -rniE "shortlist|fetchContent|stack-tags|deriveStackTags|contentMaxAgeDays" packages/*/src apps/worker/src
+packages/db/src/repository.ts:13:/** README + manifests for a shortlisted repo (`repo_content`). */
+```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+No `shortlist` job, no `fetchContent`, no `deriveStackTags`, no `contentMaxAgeDays` exist: the only hit is a comment. `buildHandlers` registers only `resolve_pending`, the fetch connectors, `gh_archive` and the `score` placeholder.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**AFTER** (2026-10-31T07:46:55Z, same command, after the change):
+
+```
+packages/core:       tests 6   pass 6   fail 0 skipped 0
+packages/connectors: tests 67  pass 66  fail 0 skipped 1   (+17: fetchContent 8, deriveStackTags 9)
+packages/db:         tests 57  pass 57  fail 0 skipped 0   (+3: listCandidatesNeedingContent)
+apps/worker:         tests 24  pass 24  fail 0 skipped 0   (+6: shortlist job)
+pnpm typecheck: all 6 workspace projects Done
+```
+
+`buildHandlers` now registers `shortlist` (`SHORTLIST_JOB`); `GithubApiConnector.fetchContent` and `deriveStackTags` exist.
+
+**DELTA**: The daily job now selects the day's candidates, fetches their metadata and README, manifests and file tree, and stores stack tags, so every candidate has a `repos` row and `repo_content` row before scoring.
+
+**WITNESS**: Supervisor session, 2026-10-31T07:52:25Z: reran `TEST_DATABASE_URL=… pnpm test` under T008 (exit 0, recorded in `memory/event-trace/T008.jsonl`) and read the handler and query diff.
