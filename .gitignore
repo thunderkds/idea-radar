@@ -13,3 +13,4 @@ __pycache__/
 .claude/hooks/.state/
 .claude/verify-runs/
 memory/event-trace/
+.claude/worktrees/
