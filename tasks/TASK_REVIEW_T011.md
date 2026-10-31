@@ -43,6 +43,17 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Only repos with a star burst (`repo_daily.stars_max_hour` >= 50 on a day of the 7-day window) are sampled, 100 newest stargazers each — SAFER OPTION: bounds the GitHub API cost (U3 open) ⚠ decided for you — please review
+2. Low-activity account = created under 30 days before it starred, or 0 public repos, 0 followers and 0 contributions in the last year — RULE: `docs/SPEC.md` § Tier scoring ("discount stars from accounts under 30 days old or with no public activity")
+3. Flag when the low-activity share >= 0.5; a flagged trending or lowkey score is multiplied by (1 - share); medium is flagged but not discounted — SAFER OPTION: flagged repos stay listed with a warning, and the discount is proportional to the evidence ⚠ decided for you — please review
+4. `applyFakeStarFlags` is valid only right after `scoreDay` (not re-entrant; a retry reruns `scoreDay` first) — RULE: `tasks/TASK_GUIDE_T011.md` § Approach ("valid only right after `scoreDay` for that date")
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 26/26, connectors 85/86 (1 pre-existing live-GitHub skip), db 81/81, api 15/15, worker 26/26, exit 0; reviews code-review — P0 0, P1 0, P2 2 (live GraphQL query and its point cost unverified without a token; the pre-discount score is not kept in `components`), P3 1 (`scoreDay` doc comment still says the flag is false until T011); real run: none — needs a GitHub token (auto-checked, not /verify); easy-verifier score — overall 52, floor 80 missed (Companion score row)
+Memory: memory/learnings.md — kit gotchas from wave 4 (report helper, verify close-out)
+Not done: merge (yours); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
@@ -50,7 +61,7 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/core/src/fake-stars.test.ts` (rule edges 29/30 days, 0/1 repo, follower, contribution), `packages/connectors/src/github-api.test.ts` (`sampleStargazers` on a saved fixture), `packages/db/src/fake-stars.test.ts` (burst + suspicious flagged and discounted, burst + healthy, no burst not sampled, medium not discounted, `scoreDay` resets), `apps/worker/src/worker.test.ts` (wiring, no-token skip). db `ℹ tests 81 ℹ fail 0` |
 | Verification command run | ☑ pass | `TEST_DATABASE_URL=… pnpm test` exit 0 (Supervisor rerun under T011); `pnpm typecheck` clean (agent) |
 | Negative cases hold | ☑ pass | no burst → not sampled; healthy sample → not flagged; empty sample → unchanged; no token → check skipped and logged; flagged repos keep their row and tier |
-| verify | ☑ pass | auto-run by hook, session c2f42538-1cca-4583-91ba-fea051984c72, commit a7cb34516090145c6433a4a6029616eae19529d8, log .claude/verify-runs/T011-a7cb34516090.log — pass |
+| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | core rule + config, `github-api.ts` `sampleStargazers`, db `fake-stars.ts`, worker score handler. `lane: C2, 12 files, 615 lines, EXCEEDS (lines 615 > 500)` — mostly tests and the fixture |
 | Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
 | **Companion score (easy-verifier)** | ☑ fail | overall 52 (floor 80 missed), change_risk 0 (feature, confirmed; rule `new_code_without_test_share` failed: 0.29 > 0.2, unpaired `packages/core/src/index.ts`, `packages/db/src/index.ts` — re-export lines), scope changes, ref `b0dfcf3...HEAD`, abstentions: solution-fit, requirement-fidelity, api, data, operations, infrastructure, gates: none offered, divergence: no findings sent, task-specific drags: reliability 0 (`outbound_calls_without_timeout_observed` 2 in `packages/connectors/src/github-api.ts`, `swallowed_errors_observed` 1 in `apps/worker/src/handlers.ts`), security 30 (3 redaction hits incl. `apps/worker/src/handlers.ts`); repo-wide drags: supply-chain 20, code-quality 73 (no lint/format config), report: `/home/hungnguyenhuu/.easy-verifier-reports/T011/evidence-report-changes-20261031T084858-828455Z.html` |
