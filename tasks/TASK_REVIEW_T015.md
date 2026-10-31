@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — tasks/TASK_REVIEW_T015.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T015.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T015" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
 ## Evidence
 
@@ -67,12 +68,48 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31T08:32-08:33Z, before any implementation commit; worktree HEAD b0dfcf3; throwaway schema `t015_before` seeded with repo 1 trending, 2 displayable sources + 1 hidden source signal, repo 2 lowkey):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+=== 2026-10-31T08:33:16Z schema t015_before, API :47015 ===
+$ curl /consensus
+{"items":[]}
+$ curl /tiers/trending
+{"tier":"trending","date":"2026-10-30","items":[{"repoId":1,"fullName":"a/one","description":null,"language":null,"topics":[],"stars":900,"score":100,"starsGained":0,"components":{},"stackTags":[]}],"nextCursor":null}
+$ curl /repos/1 -> score + timeline key
+{"score":{"date":"2026-10-30","tier":"trending","score":100,"components":{},"consensusCount":2,"fakeStarFlag":true},"hasTimeline":false}
+stored repo_scores:
+1|trending|0|100|{}
+2|lowkey|0|0.5|{}
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+=== 2026-10-31T08:32:51Z verification command (BEFORE): TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test ===
+packages/core: tests 18, pass 18, fail 0
+packages/connectors: tests 81, pass 80, fail 0 (1 skipped)
+packages/db: tests 70, pass 70, fail 0
+apps/api: tests 15, pass 15, fail 0
+apps/worker: tests 24, pass 24, fail 0
+```
+
+Shows: `/consensus` is the stub `{"items":[]}`; tier items have no `consensusCount` / `fakeStarFlag`; `/repos/1` has no `timeline`; stored `consensus_count` is 0 and the trending score is unboosted (100).
+
+**AFTER** (2026-10-31T08:37-08:38Z; same seed, then `applyConsensus(pool, "2026-10-30")` -> `{"updated":2,"boosted":1}`, and two more displayable-source signals added for repo 2 afterwards, so only repo 2's stored count is still 0):
+
+```
+=== 2026-10-31T08:38:34Z schema t015_before, API :47017 ===
+$ curl /consensus
+{"date":"2026-10-30","items":[{"repoId":2,"fullName":"a/two","consensusCount":2,"sources":[{"source":"github_trending","firstSeenAt":"2026-10-27T10:00:00.000Z"},{"source":"ossinsight","firstSeenAt":"2026-10-29T12:00:00.000Z"}]},{"repoId":1,"fullName":"a/one","consensusCount":2,"sources":[{"source":"github_trending","firstSeenAt":"2026-10-28T10:00:00.000Z"},{"source":"ossinsight","firstSeenAt":"2026-10-29T10:00:00.000Z"}]}],"nextCursor":null}
+$ curl /tiers/trending
+{"tier":"trending","date":"2026-10-30","items":[{"repoId":1,"fullName":"a/one","description":null,"language":null,"topics":[],"stars":900,"score":120,"starsGained":0,"components":{},"stackTags":[],"consensusCount":2,"fakeStarFlag":true}],"nextCursor":null}
+$ curl /repos/1 -> score + timeline key
+{"score":{"date":"2026-10-30","tier":"trending","score":120,"components":{},"consensusCount":2,"fakeStarFlag":true},"hasTimeline":true}
+stored repo_scores:
+1|trending|3|120.000000|{"consensusBoost": 1.2}
+2|lowkey|0|0.5|{}
+```
+
+Full suite after the change: `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` -> core 18/18, connectors 80 pass + 1 skipped of 81, db 78/78, api 22/22, worker 24/24; `pnpm typecheck` clean.
+
+**DELTA**: After each score run every scored repo has a stored `consensus_count`, Trending rows are boosted by it, and the API shows displayable-only consensus on tier items, a per-source timeline on a repo, and a paged `/consensus` list instead of the empty stub.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]

@@ -1,6 +1,7 @@
 import type { SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import {
+  applyConsensus,
   completeJob,
   DEFAULT_GLOBAL_CONCURRENCY,
   getCursor,
@@ -179,11 +180,14 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
     };
   }
   // Windows end at the last ingested GH Archive day when it lags behind the last complete UTC day.
+  // Order matters: applyConsensus boosts the scores scoreDay just wrote (a rerun starts with scoreDay again).
   handlers[SCORE_JOB] = {
     sourceId: null,
     async run({ db, job }) {
       const cursor = await getCursor(db, GH_ARCHIVE_ID);
-      await scoreDay(db, job.dataKey, cursor ? { windowEnd: cursor } : {});
+      const opts = cursor ? { windowEnd: cursor } : {};
+      await scoreDay(db, job.dataKey, opts);
+      await applyConsensus(db, job.dataKey, opts);
     },
   };
   return handlers;

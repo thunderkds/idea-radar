@@ -93,7 +93,7 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
     );
     await pool.query(
       `INSERT INTO repo_scores (repo_id, date, tier, score, components, consensus_count, fake_star_flag) VALUES
-         (1, '2026-10-30', 'lowkey', 0.9, '{"velocityLift":0.8,"${HIDDEN}_boost":0.3}', 3, FALSE),
+         (1, '2026-10-30', 'lowkey', 0.9, '{"velocityLift":0.8,"${HIDDEN}_boost":0.3,"consensusBoost":1.2}', 3, FALSE),
          (2, '2026-10-30', 'lowkey', 0.5, '{"velocityLift":0.5}', 1, FALSE),
          (3, '2026-10-30', 'lowkey', 0.5, '{"velocityLift":0.4}', 1, FALSE),
          (4, '2026-10-30', 'lowkey', 0.3, '{}', 0, TRUE),
@@ -123,9 +123,8 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
   const ids = (body: any): number[] => body.items.map((i: any) => i.repoId);
 
   describe("GET /health and stubs", () => {
-    it("answers health and keeps consensus / rising-topics as stubs; non-GET is 405", async () => {
+    it("answers health and keeps rising-topics as a stub; non-GET is 405", async () => {
       assert.deepEqual((await get("/health")).body, { ok: true });
-      assert.deepEqual((await get("/consensus")).body, { items: [] });
       assert.deepEqual((await get("/topics/rising")).body, { items: [] });
       assert.equal((await get("/nope")).status, 404);
       const post = await fetch(`${base}/health`, { method: "POST" });
@@ -142,7 +141,8 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(body.nextCursor, null);
       assert.deepEqual(ids(body), [1, 2, 3, 4, 5]);
       assert.deepEqual(Object.keys(body.items[0]).sort(), [
-        "components", "description", "fullName", "language", "repoId", "score", "stackTags", "stars", "starsGained", "topics",
+        "components", "consensusCount", "description", "fakeStarFlag", "fullName", "language", "repoId", "score", "stackTags", "stars",
+        "starsGained", "topics",
       ]);
       const one = body.items[0];
       assert.equal(one.fullName, "a/one");
@@ -150,8 +150,19 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(one.stars, 120);
       assert.deepEqual(one.topics, ["cli", "tools"]);
       assert.deepEqual(one.stackTags, ["node", "postgres"]);
-      assert.deepEqual(one.components, { velocityLift: 0.8 }, "a non-displayable source's component is removed");
+      assert.deepEqual(one.components, { velocityLift: 0.8 }, "a non-displayable source's component and consensusBoost are removed");
       assert.deepEqual(body.items[3].stackTags, [], "no repo_content row gives an empty list");
+    });
+
+    it("carries consensusCount (displayable sources only, 7 days) and fakeStarFlag (AC 5, 7)", async () => {
+      const { body } = await get("/tiers/lowkey");
+      const by = new Map<number, any>(body.items.map((i: any) => [i.repoId, i]));
+      // stored consensus_count of repo 1 is 3; one of its three sources is hidden
+      assert.equal(by.get(1).consensusCount, 2);
+      assert.equal(by.get(2).consensusCount, 0, "its only displayable signal is older than 7 days");
+      assert.equal(by.get(3).consensusCount, 1);
+      assert.equal(by.get(5).consensusCount, 0);
+      assert.deepEqual([1, 2, 3, 4, 5].map((id) => by.get(id).fakeStarFlag), [false, false, false, true, false]);
     });
 
     it("returns another tier, an empty tier, and 404 for an unknown tier", async () => {
@@ -268,6 +279,17 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(body.score.consensusCount, 2, "stored count was 3; the non-displayable source is not counted");
     });
 
+    it("has a timeline of displayable sources, oldest first-seen first, with first and last seen (AC 5, 7)", async () => {
+      await pool.query(
+        `INSERT INTO signals (repo_id, source, signal_type, observed_at) VALUES (1, 'ossinsight', 'trending_rank', '2026-10-01T10:00:00Z')`,
+      );
+      const { body } = await get("/repos/1");
+      assert.deepEqual(body.timeline, [
+        { source: "ossinsight", firstSeenAt: "2026-10-01T10:00:00.000Z", lastSeenAt: "2026-10-29T10:00:00.000Z" },
+        { source: "github_trending", firstSeenAt: "2026-10-30T09:00:00.000Z", lastSeenAt: "2026-10-30T09:00:00.000Z" },
+      ]);
+    });
+
     it("handles a repo with no score, no content and no signals", async () => {
       await pool.query("INSERT INTO repos (repo_id, full_name) VALUES (7, 'c/seven')");
       const { status, body } = await get("/repos/7");
@@ -277,6 +299,82 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.deepEqual(body.stackTags, []);
       assert.equal(body.readmeExcerpt, null);
       assert.deepEqual(body.signals, []);
+      assert.deepEqual(body.timeline, []);
+    });
+  });
+
+  describe("GET /consensus (AC 6, 7)", () => {
+    /**
+     * Seed adds to the base data. Displayable sources in the 7 days up to 2026-10-30:
+     * repo 4: three (ossinsight, github_trending, hackernews, all 10-26); repo 3: ossinsight 10-28 + hackernews 10-27;
+     * repo 1: ossinsight 10-29T10 + github_trending 10-30T09 (+ hidden trendshift); repo 5: ossinsight + hackernews, both
+     * 10-29T10 (ties repo 1 on count and first seen); repo 6: one displayable + hidden; repo 2: one in the window;
+     * repo 99 (no repos row): two.
+     */
+    beforeEach(async () => {
+      await pool.query("INSERT INTO sources (id, name, enabled, displayable) VALUES ('hackernews', 'Hacker News', TRUE, TRUE)");
+      await pool.query(
+        `INSERT INTO signals (repo_id, source, signal_type, observed_at) VALUES
+           (4, 'ossinsight', 'x', '2026-10-26T10:00:00Z'), (4, 'github_trending', 'x', '2026-10-26T10:00:00Z'),
+           (4, 'hackernews', 'x', '2026-10-26T10:00:00Z'),
+           (3, 'hackernews', 'x', '2026-10-27T10:00:00Z'),
+           (5, 'ossinsight', 'x', '2026-10-29T10:00:00Z'), (5, 'hackernews', 'x', '2026-10-29T10:00:00Z'),
+           (6, 'hackernews', 'x', '2026-10-29T10:00:00Z'), (6, '${HIDDEN}', 'spike', '2026-10-29T10:00:00Z'),
+           (2, 'github_trending', 'x', '2026-10-29T10:00:00Z'),
+           (99, 'ossinsight', 'x', '2026-10-29T10:00:00Z'), (99, 'hackernews', 'x', '2026-10-29T10:00:00Z')`,
+      );
+    });
+
+    it("lists repos with 2+ displayable sources in the window, by count then earliest first-seen then repo id", async () => {
+      const { status, body } = await get("/consensus");
+      assert.equal(status, 200);
+      assert.equal(body.date, "2026-10-30");
+      assert.equal(body.nextCursor, null);
+      assert.deepEqual(ids(body), [4, 3, 1, 5]);
+      assert.deepEqual(Object.keys(body.items[0]).sort(), ["consensusCount", "fullName", "repoId", "sources"]);
+      assert.deepEqual(body.items.map((i: any) => i.consensusCount), [3, 2, 2, 2]);
+      assert.equal(body.items[0].fullName, "a/four");
+      assert.deepEqual(body.items[1].sources, [
+        { source: "hackernews", firstSeenAt: "2026-10-27T10:00:00.000Z" },
+        { source: "ossinsight", firstSeenAt: "2026-10-28T10:00:00.000Z" },
+      ]);
+      assert.deepEqual(body.items[2].sources, [
+        { source: "ossinsight", firstSeenAt: "2026-10-29T10:00:00.000Z" },
+        { source: "github_trending", firstSeenAt: "2026-10-30T09:00:00.000Z" },
+      ]);
+    });
+
+    it("pages with cursor one item at a time without gaps or repeats (ties included)", async () => {
+      const seen: number[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < 6; page++) {
+        const { status, body }: { status: number; body: any } = await get(`/consensus?limit=1${cursor ? `&cursor=${cursor}` : ""}`);
+        assert.equal(status, 200);
+        seen.push(...ids(body));
+        cursor = body.nextCursor;
+        if (!cursor) break;
+      }
+      assert.deepEqual(seen, [4, 3, 1, 5]);
+      assert.deepEqual(ids((await get("/consensus?limit=3")).body), [4, 3, 1]);
+    });
+
+    it("returns 400 naming the parameter for a bad limit or cursor", async () => {
+      for (const q of ["limit=0", "limit=201", "limit=x", "cursor=abc", `cursor=${Buffer.from('{"count":2,"firstSeen":"nope","repoId":1}').toString("base64url")}`]) {
+        const r = await get(`/consensus?${q}`);
+        assert.equal(r.status, 400, q);
+        assert.match(r.body.error, /^(limit|cursor):/, q);
+      }
+    });
+
+    it("is empty before anything is scored", async () => {
+      await pool.query("TRUNCATE repo_scores");
+      assert.deepEqual((await get("/consensus")).body, { date: null, items: [], nextCursor: null });
+    });
+
+    it("never counts or names the non-displayable source: repo 6 has one displayable source plus a hidden one", async () => {
+      const { text } = await get("/consensus");
+      assert.ok(!text.toLowerCase().includes(HIDDEN));
+      assert.ok(!ids(JSON.parse(text)).includes(6), "a hidden source does not make a second source");
     });
   });
 
@@ -305,8 +403,14 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
 
   describe("displayable rule (AC 6)", () => {
     it("no route's body contains the non-displayable source's id, name, signals or count", async () => {
+      // Repos 1 and 3 get a second displayable source, so /consensus has rows that also carry hidden signals.
+      await pool.query("INSERT INTO sources (id, name, enabled, displayable) VALUES ('hackernews', 'Hacker News', TRUE, TRUE)");
+      await pool.query(
+        `INSERT INTO signals (repo_id, source, signal_type, value, observed_at) VALUES
+           (3, 'hackernews', 'x', '{}', '2026-10-29T10:00:00Z'), (3, '${HIDDEN}', 'spike', '{}', '2026-10-29T10:00:00Z')`,
+      );
       const paths = [
-        "/health", "/consensus", "/topics/rising", "/ops/sources",
+        "/health", "/consensus", "/consensus?limit=1", "/topics/rising", "/ops/sources",
         "/tiers/lowkey", "/tiers/medium", "/tiers/trending", "/tiers/lowkey?window=30d&topic=cli",
         "/repos/1", "/repos/2", "/repos/6",
       ];
@@ -320,6 +424,13 @@ describe("read-only API (needs TEST_DATABASE_URL)", { skip }, () => {
       await pool.query(`INSERT INTO signals (repo_id, source, signal_type, value) VALUES (1, 'mystery', 'x', '{}')`);
       const detail = await get("/repos/1");
       assert.ok(!detail.text.includes("mystery"));
+      const consensus = await get("/consensus");
+      assert.ok(!consensus.text.includes("mystery"));
+      assert.deepEqual(ids(consensus.body), [3, 1], "repos 3 (first seen earlier) and 1 have two displayable sources; the hidden one adds nothing");
+      assert.deepEqual(consensus.body.items.map((i: any) => i.consensusCount), [2, 2]);
+      // The stored count includes the hidden source; the body never shows it (repo 1 stored 3, shown 2).
+      assert.equal((await get("/repos/1")).body.score.consensusCount, 2);
+      assert.equal((await get("/tiers/lowkey")).body.items[0].consensusCount, 2);
     });
   });
 });

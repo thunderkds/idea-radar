@@ -111,3 +111,11 @@ export const candidateConfig: CandidateConfig = {
   metadataMaxAgeDays: 7,
   contentMaxAgeDays: 7,
 };
+
+/** Source consensus (HUN-155): how many distinct sources flagging a repo count, and what they add to Trending. */
+export const consensusConfig = {
+  /** Days of signals, ending at the scoring window end (inclusive), in which a source counts as flagging a repo. */
+  windowDays: 7,
+  /** Trending score is multiplied by 1 + this × (consensus_count - 1), never below 1. */
+  trendingBoostPerSource: 0.1,
+} as const;
