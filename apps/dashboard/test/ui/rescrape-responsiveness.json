@@ -1,0 +1,321 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T027 responsiveness: repo page with refresh buttons at 375, 768 and 1280px (same-origin iframes)"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { document.querySelector('.app').style.display = 'none'; document.body.style.background = 'black'; return true; })()"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "375px: /repos/1001"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { document.querySelectorAll('iframe').forEach(x => x.remove()); const f = document.createElement('iframe'); f.id = 'f375'; f.style.cssText = 'position:fixed;left:0;top:0;width:375px;height:900px;border:0;background:white'; f.src = '/repos/1001'; document.body.append(f); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument; return !!d && d.readyState === 'complete' && !!d.querySelector('.rescrape button') && Object.keys(d.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps')); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return d.documentElement.scrollWidth <= 375 && d.body.scrollWidth <= 375; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return [...d.querySelectorAll('.rescrape-actions button')].length === 2 && [...d.querySelectorAll('.rescrape-actions button')].every(b => { const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= 375 && r.width > 0; }); })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return [...d.querySelectorAll('.group-list li')].every(l => l.getBoundingClientRect().right <= 375) && d.querySelector('.group-list').getBoundingClientRect().right <= 375; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return [...d.querySelectorAll('.rescrape-actions button')].every(b => b.getBoundingClientRect().height >= 44); })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return (d.querySelectorAll('.rescrape-actions button')[1].click(), true); })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return d.querySelectorAll('.rescrape__status')[1].textContent.startsWith('Refresh queued for'); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return d.documentElement.scrollWidth <= 375 && d.body.scrollWidth <= 375 && d.querySelectorAll('.rescrape__status')[1].getBoundingClientRect().right <= 375; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return !d.querySelectorAll('.rescrape-actions button')[1].disabled; })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "375px: /repos/1004"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { document.querySelectorAll('iframe').forEach(x => x.remove()); const f = document.createElement('iframe'); f.id = 'f375'; f.style.cssText = 'position:fixed;left:0;top:0;width:375px;height:900px;border:0;background:white'; f.src = '/repos/1004'; document.body.append(f); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument; return !!d && d.readyState === 'complete' && !!d.querySelector('.rescrape button') && Object.keys(d.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps')); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "375px: a long repo name in the group list and on the page does not scroll the page sideways"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return d.documentElement.scrollWidth <= 375 && d.body.scrollWidth <= 375; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return [...d.querySelectorAll('.group-list li')].every(l => l.getBoundingClientRect().right <= 375); })()"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "375px: /repos/1001"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { document.querySelectorAll('iframe').forEach(x => x.remove()); const f = document.createElement('iframe'); f.id = 'f375'; f.style.cssText = 'position:fixed;left:0;top:0;width:375px;height:900px;border:0;background:white'; f.src = '/repos/1001'; document.body.append(f); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument; return !!d && d.readyState === 'complete' && !!d.querySelector('.rescrape button') && Object.keys(d.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps')); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f375').contentDocument, w = document.getElementById('f375').contentWindow; return d.querySelector('.group-list').getBoundingClientRect().right <= 375; })()"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "768px: /repos/1001"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { document.querySelectorAll('iframe').forEach(x => x.remove()); const f = document.createElement('iframe'); f.id = 'f768'; f.style.cssText = 'position:fixed;left:0;top:0;width:768px;height:900px;border:0;background:white'; f.src = '/repos/1001'; document.body.append(f); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument; return !!d && d.readyState === 'complete' && !!d.querySelector('.rescrape button') && Object.keys(d.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps')); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return d.documentElement.scrollWidth <= 768 && d.body.scrollWidth <= 768; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return [...d.querySelectorAll('.rescrape-actions button')].length === 2 && [...d.querySelectorAll('.rescrape-actions button')].every(b => { const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= 768 && r.width > 0; }); })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return [...d.querySelectorAll('.group-list li')].every(l => l.getBoundingClientRect().right <= 768) && d.querySelector('.group-list').getBoundingClientRect().right <= 768; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return [...d.querySelectorAll('.rescrape-actions button')].every(b => b.getBoundingClientRect().height >= 36); })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return (d.querySelectorAll('.rescrape-actions button')[1].click(), true); })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return d.querySelectorAll('.rescrape__status')[1].textContent.startsWith('Refresh queued for'); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return d.documentElement.scrollWidth <= 768 && d.body.scrollWidth <= 768 && d.querySelectorAll('.rescrape__status')[1].getBoundingClientRect().right <= 768; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f768').contentDocument, w = document.getElementById('f768').contentWindow; return !d.querySelectorAll('.rescrape-actions button')[1].disabled; })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "1280px: /repos/1001"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { document.querySelectorAll('iframe').forEach(x => x.remove()); const f = document.createElement('iframe'); f.id = 'f1280'; f.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:900px;border:0;background:white'; f.src = '/repos/1001'; document.body.append(f); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument; return !!d && d.readyState === 'complete' && !!d.querySelector('.rescrape button') && Object.keys(d.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps')); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return d.documentElement.scrollWidth <= 1280 && d.body.scrollWidth <= 1280; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return [...d.querySelectorAll('.rescrape-actions button')].length === 2 && [...d.querySelectorAll('.rescrape-actions button')].every(b => { const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= 1280 && r.width > 0; }); })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return [...d.querySelectorAll('.group-list li')].every(l => l.getBoundingClientRect().right <= 1280) && d.querySelector('.group-list').getBoundingClientRect().right <= 1280; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return [...d.querySelectorAll('.rescrape-actions button')].every(b => b.getBoundingClientRect().height >= 36); })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return (d.querySelectorAll('.rescrape-actions button')[1].click(), true); })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return d.querySelectorAll('.rescrape__status')[1].textContent.startsWith('Refresh queued for'); })()",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return d.documentElement.scrollWidth <= 1280 && d.body.scrollWidth <= 1280 && d.querySelectorAll('.rescrape__status')[1].getBoundingClientRect().right <= 1280; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const d = document.getElementById('f1280').contentDocument, w = document.getElementById('f1280').contentWindow; return !d.querySelectorAll('.rescrape-actions button')[1].disabled; })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

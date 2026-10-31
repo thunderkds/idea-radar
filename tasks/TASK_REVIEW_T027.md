@@ -91,9 +91,37 @@ $ psql: SELECT repo_id, priority, next_due_at FROM tracked_repos WHERE repo_id=1
 (0 rows)
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (captured 2026-10-31T16:03:19Z by the implementing agent on branch `hun-174-rescrape-button`; same API on :4427 and the same throwaway database `dash_t027`, started with `ADMIN_TOKEN=demo-admin-token`; repo 1003 was `parked`, `next_due_at = infinity` before the call):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+2026-10-31T16:03:19Z
+$ curl -i -X POST http://localhost:4427/rescrape -H "Authorization: Bearer demo-admin-token" -H "content-type: application/json" -d "{\"repoId\":1003}"
+HTTP/1.1 202 Accepted
+content-type: application/json
+Date: Sat, 31 Oct 2026 16:03:19 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"queued":1}
+$ psql: SELECT repo_id, priority, next_due_at, now() FROM tracked_repos WHERE repo_id=1003; SELECT name,data_key,status,run_after FROM jobs
+ repo_id | priority |        next_due_at         |              now              
+---------+----------+----------------------------+-------------------------------
+    1003 | parked   | 2026-10-31 16:03:19.947+00 | 2026-10-31 16:03:20.018011+00
+(1 row)
+
+   name   |  data_key  | status  |         run_after          
+----------+------------+---------+----------------------------
+ snapshot | 2026-10-31 | pending | 2026-10-31 16:03:19.947+00
+(1 row)
+
+$ without token / wrong token:
+HTTP/1.1 401 Unauthorized
+{"error":"unauthorized"}HTTP/1.1 401 Unauthorized
+{"error":"unauthorized"}
+```
+
+**DELTA**: With the admin token, a user can press "Refresh now" (or "Refresh group now") on the repo page, or call `POST /rescrape`, and a parked or weekly repo is made due now and today's `snapshot` job is queued, where before the API answered 405 to every write and no repo could be refreshed on request.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]

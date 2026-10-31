@@ -1,0 +1,292 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T027 design-system compliance: refresh buttons and tracking section use Graphite Mint tokens"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Button is the secondary button: transparent fill, text colour, strong line, no glow, 36px high"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).backgroundColor === 'rgba(0, 0, 0, 0)'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).borderTopColor === (() => { const p = document.createElement('i'); p.style.color = 'var(--line-strong)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).boxShadow === 'none'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).height === '36px'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).fontFamily.startsWith('\"IBM Plex Sans\"')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.rescrape button')].every(b => getComputedStyle(b).backgroundColor !== (() => { const p = document.createElement('i'); p.style.color = 'var(--neon)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })())"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.gm-btn--primary').length === 0"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Hover uses the raised surface; focus ring is 2px solid neon with a 2px offset"
+  }
+ },
+ {
+  "tool": "ui_hover",
+  "args": {
+   "selector": ".rescrape-actions > .rescrape:first-child button"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape button')).backgroundColor === (() => { const p = document.createElement('i'); p.style.color = 'var(--bg-raised)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_press_key",
+  "args": {
+   "key": "Tab"
+  }
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { document.querySelector('.rescrape button').focus(); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.activeElement === document.querySelector('.rescrape button')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.activeElement).outlineStyle === 'solid' && getComputedStyle(document.activeElement).outlineWidth === '2px' && getComputedStyle(document.activeElement).outlineOffset === '2px' && getComputedStyle(document.activeElement).outlineColor === (() => { const p = document.createElement('i'); p.style.color = 'var(--neon)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Tracking text: mono, muted; no data in text-dim; group list outlined with line, no shadow, links in accent"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('[aria-labelledby=h-tracking] .meta')).fontFamily.startsWith('\"IBM Plex Mono\"')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('[aria-labelledby=h-tracking] .meta')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text-muted)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.group-list')).borderTopColor === (() => { const p = document.createElement('i'); p.style.color = 'var(--line)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.group-list')).boxShadow === 'none'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.group-list li a')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--accent)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.group-list li span')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text-muted)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('#h-tracking')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text-strong)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('#h-tracking')).fontFamily.startsWith('\"IBM Plex Sans\"')"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1003"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('[aria-labelledby=h-tracking] .gm-nodata')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text-dim)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "![...document.styleSheets].some(s => [...s.cssRules].some(r => r.selectorText && /rescrape|group-list/.test(r.selectorText) && /#[0-9a-fA-F]{3,8}\\b/.test(r.cssText)))"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Status line: mono, text-2 when queued; danger colour with the word 'failed' on error"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "Object.keys(document.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps'))",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": ".rescrape-actions > .rescrape:first-child button"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').textContent.startsWith('Refresh queued')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape__status')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text-2)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })() && getComputedStyle(document.querySelector('.rescrape__status')).fontFamily.startsWith('\"IBM Plex Mono\"')"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3429/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "Object.keys(document.querySelector('.rescrape button')).some(k => k.startsWith('__reactProps'))",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": ".rescrape-actions > .rescrape:first-child button"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.rescrape__status').textContent.startsWith('Refresh failed')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.rescrape__status')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--danger)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })() && document.querySelector('.rescrape__status').classList.contains('rescrape__status--error')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

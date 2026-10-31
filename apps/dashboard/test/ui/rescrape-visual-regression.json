@@ -1,0 +1,262 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T027 visual regression: repo page tracking section and refresh buttons (seeded dash_t027)"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Tracked leader with a group: tracking line, group repos, two buttons"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('#h-tracking').textContent === 'Tracking'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^priority leader \u00b7 last refresh \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC \u00b7 next refresh \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} UTC$/.test(document.querySelector('[aria-labelledby=h-tracking] .meta').textContent)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('[aria-labelledby=h-tracking] .meta')].some(e => e.textContent === 'group cli+terminal|typescript')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.group-list li')].map(l => l.firstChild.getAttribute('href') + ' ' + l.lastChild.textContent).join(',') === '/repos/1002 normal,/repos/1004 parked'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.rescrape-actions button')].map(b => b.textContent).join('|') === 'Refresh now|Refresh group now'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape [role=status]').length === 2 && [...document.querySelectorAll('.rescrape [role=status]')].every(e => e.textContent === '')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.rescrape-actions button')].every(b => b.classList.contains('gm-btn--secondary') && !b.classList.contains('gm-btn--primary') && !b.disabled)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const h = document.querySelector('#h-tracking'), s = document.querySelector('#h-stars'), g = document.querySelector('.gm-strip'); return !!(g.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(h.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.gm-strip, #h-stars, #h-score, #h-timeline, #h-stack, #h-readme').length === 6"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Parked repo with no group: only the repo button; next refresh is on request; last refresh is no data"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1003"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^priority parked \u00b7 last refresh no data \u00b7 next refresh on request$/.test(document.querySelector('[aria-labelledby=h-tracking] .meta').textContent)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[aria-labelledby=h-tracking] .meta .gm-nodata').textContent === 'no data'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.rescrape-actions button')].map(b => b.textContent).join('|') === 'Refresh now'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.group-list') === null && !document.querySelector('[aria-labelledby=h-tracking]').textContent.includes('group ')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!/Invalid|NaN|Infinity/.test(document.body.textContent)"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "A repo that is not tracked shows 'not tracked' and no button"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/2001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[aria-labelledby=h-tracking] .meta').textContent === 'not tracked'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape, .rescrape-actions').length === 0 && ![...document.querySelectorAll('button')].some(b => /Refresh/.test(b.textContent))"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Dashboard server without ADMIN_TOKEN: tracking is shown, every refresh button is hidden"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3428/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^priority leader \u00b7 last refresh/.test(document.querySelector('[aria-labelledby=h-tracking] .meta').textContent)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.rescrape, .rescrape-actions').length === 0"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!/Refresh/.test(document.body.textContent)"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "The admin token is not in the page HTML or in any script the page loads (dashboard with a token)"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3427/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('#h-tracking') !== null",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!document.documentElement.outerHTML.includes('demo-admin-token') && !document.documentElement.outerHTML.includes('ADMIN_TOKEN')"
+  }
+ },
+ {
+  "tool": "ui_check",
+  "args": {
+   "condition": "(() => { window.__leak = 'pending'; Promise.all([...document.scripts].filter(s => s.src).map(s => fetch(s.src).then(r => r.text()))).then(t => { window.__leak = t.some(x => x.includes('demo-admin-token') || x.includes('ADMIN_TOKEN')) ? 'leak' : 'clean:' + t.length; }); return true; })()"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "window.__leak !== 'pending'",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "/^clean:[1-9]/.test(window.__leak)"
+  }
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]
