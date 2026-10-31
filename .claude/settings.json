@@ -122,6 +122,7 @@
   },
   "enabledMcpjsonServers": [
     "easy-memory",
+    "easy-ui",
     "easy-verifier"
   ]
 }

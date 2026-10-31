@@ -67,6 +67,12 @@ Copied from `AGENTS.md` § Rules — they bind every agent:
 
 ---
 
+## UI Evidence (Hard-Stop Gate 6)
+
+Every task with a UI component (T017, T018) records its three design Evidence rows — visual regression, design-system compliance, responsiveness — with the **easy-ui** MCP server (`.mcp.json`: the local `easy-ui-mcp` container, `http://127.0.0.1:8765/mcp`). Paste the tool's verdict or screenshot path into `tasks/TASK_REVIEW_Txxx.md`. If the container is not running, the row stays unchecked and the task is not done.
+
+---
+
 ## CLI Model Table
 
 > No other CLI was named by the user. Per `docs/claude-md/tracks.md` § Auto mode row 14, every spawn

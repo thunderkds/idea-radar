@@ -7,7 +7,14 @@
     "easy-memory": {
       "type": "stdio",
       "command": "python3",
-      "args": ["${HOME}/workspace/pets/hungnguyen111/easy-memory-mcp/easy_memory.py", "serve"]
+      "args": [
+        "${HOME}/workspace/pets/hungnguyen111/easy-memory-mcp/easy_memory.py",
+        "serve"
+      ]
+    },
+    "easy-ui": {
+      "type": "http",
+      "url": "http://127.0.0.1:8765/mcp"
     }
   }
 }
