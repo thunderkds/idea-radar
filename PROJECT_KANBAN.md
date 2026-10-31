@@ -20,10 +20,10 @@
 ### In Progress
 
 ### Ready for Review
-- [ ] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-174-rescrape-button` | Started 2026-10-31: branch `hun-174-rescrape-button` (stacked on `hun-173-idea-groups`)
 - [ ] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-172-search-discovery` | Started 2026-10-31: branch `hun-172-search-discovery` (stacked on `hun-t024-star-snapshots`)
 
 ### Done
+- [x] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-174-rescrape-button` | Started 2026-10-31: branch `hun-174-rescrape-button` (stacked on `hun-173-idea-groups`) | Done 2026-10-31: auto verify pass (session 1386189b-4cfc-48c4-a94f-c78d719d417d, commit 55da1ad8aaa38d59ff8f0ee858260ced27719926)
 - [x] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-173-idea-groups` | Started 2026-10-31: branch `hun-173-idea-groups` (stacked on `hun-t024-star-snapshots`) | Done 2026-10-31: auto verify pass (session a3ba81c8-7338-462d-a122-b9e1704523ab, commit 7a195041fce843a7cac0529c07ff17d64e1ef738)
 - [x] **T024** — HUN-171 Tracked repos + GitHub API star snapshots as the velocity source | backend-developer | C3 | Risk: Medium | P0 | PR/branch: `hun-t024-star-snapshots` | Started 2026-10-31: branch `hun-t024-star-snapshots` | Done 2026-10-31: auto verify pass (session e3465657-3348-46ea-bf97-c984f413ff60, commit 937d891d3473e8a6a8d6f1487d6be50dccdc91f1)
 - [x] **T023** — Job queue run token + heartbeat (no double run after stuck-job reclaim) | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-t023-job-fencing` | Started 2026-10-31: branch `hun-t023-job-fencing` | Done 2026-10-31: auto verify pass (session caa06316-710d-4618-94b6-c5f054bcc071, commit 60d4de7189f256124707bad69c264dcc0941cb88)
