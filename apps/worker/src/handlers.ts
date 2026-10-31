@@ -1,3 +1,4 @@
+import { trackingConfig } from "@idea-radar/core";
 import type { SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import {
@@ -9,13 +10,16 @@ import {
   insertSignals,
   listCandidates,
   listCandidatesNeedingContent,
+  listDueTracked,
   listUnresolvedNames,
   markNotFound,
+  recordSnapshots,
   resolvePending,
   SCORE_JOB,
   scoreDay,
   selectCandidates,
   setCursor,
+  trackCandidates,
   upsertRepo,
   upsertRepoContent,
   upsertRepoDaily,
@@ -27,6 +31,7 @@ type RollupStore = Parameters<GhArchiveConnector["ingest"]>[0];
 
 export const RESOLVE_PENDING_JOB = "resolve_pending";
 export const SHORTLIST_JOB = "shortlist";
+export const SNAPSHOT_JOB = "snapshot";
 const GH_ARCHIVE_ID = "gh_archive";
 const GITHUB_API_ID = "github_api";
 const DAY_MS = 24 * 3_600_000;
@@ -37,6 +42,10 @@ const RESOLVE_LIMIT = 100;
 const GH_ARCHIVE_TIMEOUT_MS = 6 * 3_600_000;
 /** A shortlist run can sit out a GitHub rate-limit reset (up to an hour), so it gets the same long timeout. */
 const SHORTLIST_TIMEOUT_MS = 6 * 3_600_000;
+/** A snapshot run can sit out a GitHub rate-limit reset (up to an hour), so it gets the same long timeout. */
+const SNAPSHOT_TIMEOUT_MS = 6 * 3_600_000;
+/** The snapshot job writes to the database after every this many repos (5 GraphQL queries), so a failure keeps earlier work. */
+const SNAPSHOT_CHUNK = 5 * trackingConfig.batchSize;
 /** The shortlist job writes to the database after every this many repos, so a failure keeps earlier work. */
 const SHORTLIST_CHUNK = 200;
 
@@ -143,6 +152,7 @@ function shortlistHandler(github: GithubApiConnector | undefined, log: (line: st
         return;
       }
       const selection = await selectCandidates(db, day);
+      await trackCandidates(db, day);
       const summary: Record<string, unknown> = { job: SHORTLIST_JOB, day, selected: selection.selected };
       if (!github?.enabled) {
         log(JSON.stringify({ ...summary, skipped: "GitHub API connector disabled (no token): no metadata or content fetch" }));
@@ -166,6 +176,35 @@ function shortlistHandler(github: GithubApiConnector | undefined, log: (line: st
   };
 }
 
+/**
+ * Daily snapshot (T024): read stars, forks, `pushed_at` and 30-day commits from GitHub for the tracked repos
+ * that are due (oldest due first, at most `trackingConfig.dailyCap`) and store them under the job's date.
+ * Each chunk is written before the next is fetched, and a repo's due time moves only when its snapshot is
+ * stored, so a retry after a failure only does the remainder. A repo GitHub no longer returns becomes `parked`.
+ * Without a token the run is skipped and logged. Registered before `score` for the date: score waits for it.
+ */
+function snapshotHandler(github: GithubApiConnector | undefined, log: (line: string) => void): JobHandler {
+  const enabled = Boolean(github?.enabled);
+  return {
+    sourceId: enabled ? GITHUB_API_ID : null,
+    async run({ db, job, now }) {
+      if (!github?.enabled) {
+        log(JSON.stringify({ job: SNAPSHOT_JOB, date: job.dataKey, skipped: "GitHub API connector disabled (no token): no snapshots" }));
+        return;
+      }
+      const due = await listDueTracked(db, now, trackingConfig.dailyCap);
+      let snapshots = 0, missing = 0;
+      for (const ids of chunks(due, SNAPSHOT_CHUNK)) {
+        const res = await github.fetchSnapshots(ids);
+        await recordSnapshots(db, job.dataKey, res.snapshots, res.missing, now);
+        snapshots += res.snapshots.length;
+        missing += res.missing.length;
+      }
+      log(JSON.stringify({ job: SNAPSHOT_JOB, date: job.dataKey, due: due.length, snapshots, missing }));
+    },
+  };
+}
+
 /** Queue names, the schedule and the claim caps all derive from the connector registry. */
 export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
   const handlers: Record<string, JobHandler> = {};
@@ -184,6 +223,7 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
     };
   }
   handlers[SHORTLIST_JOB] = shortlistHandler(github, deps.log ?? (() => {}));
+  handlers[SNAPSHOT_JOB] = snapshotHandler(github, deps.log ?? (() => {}));
   if (github?.enabled) {
     handlers[RESOLVE_PENDING_JOB] = {
       sourceId: GITHUB_API_ID,
@@ -228,10 +268,10 @@ export function buildSchedule(handlers: Record<string, JobHandler>): JobSchedule
 /**
  * Per-name caps from each connector's `rateLimit.concurrency`. `gh_archive` is capped at 1: its ingest
  * walks one cursor, so two at once would process the same day twice. `resolve_pending` is the
- * GitHub API connector's work and takes its limit. `shortlist` and `score` run alone.
+ * GitHub API connector's work and takes its limit. `shortlist`, `snapshot` and `score` run alone.
  */
 export function buildCaps(connectors: SourceConnector[], env: NodeJS.ProcessEnv = process.env): ClaimCaps {
-  const perName: Record<string, number> = { [GH_ARCHIVE_ID]: 1, [SHORTLIST_JOB]: 1, [SCORE_JOB]: 1 };
+  const perName: Record<string, number> = { [GH_ARCHIVE_ID]: 1, [SHORTLIST_JOB]: 1, [SNAPSHOT_JOB]: 1, [SCORE_JOB]: 1 };
   for (const c of connectors) {
     if (c.id === GH_ARCHIVE_ID) continue;
     perName[c.id === GITHUB_API_ID ? RESOLVE_PENDING_JOB : c.id] = c.rateLimit.concurrency;
@@ -240,6 +280,6 @@ export function buildCaps(connectors: SourceConnector[], env: NodeJS.ProcessEnv 
   return {
     global: Number.isInteger(requested) && requested >= 1 ? requested : DEFAULT_GLOBAL_CONCURRENCY,
     perName,
-    timeoutMs: { [GH_ARCHIVE_ID]: GH_ARCHIVE_TIMEOUT_MS, [SHORTLIST_JOB]: SHORTLIST_TIMEOUT_MS },
+    timeoutMs: { [GH_ARCHIVE_ID]: GH_ARCHIVE_TIMEOUT_MS, [SHORTLIST_JOB]: SHORTLIST_TIMEOUT_MS, [SNAPSHOT_JOB]: SNAPSHOT_TIMEOUT_MS },
   };
 }
