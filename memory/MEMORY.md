@@ -17,6 +17,7 @@
 ---
 
 ## Index
+- [Job queue: Postgres + run token, BullMQ deferred](decisions.md#2026-10-31--job-queue-stays-on-postgres-bullmq-deferred-t023) — T023 fencing by `attempts` + heartbeat; revisit BullMQ only on multi-host lost runs
 
 <!-- Format: - [Title](cold-file.md#section) — one-line summary.
      Target ≤150 chars/entry. Advisory: reported by the size test, never enforced.

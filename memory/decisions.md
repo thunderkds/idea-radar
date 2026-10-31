@@ -12,6 +12,7 @@
 ### 2026-10-31 — Worker job queue is an in-repo `jobs` table (T007)
 **Decision**: `apps/worker` uses migration 004's `jobs` table (`UNIQUE (name, data_key)`), claimed with `FOR UPDATE SKIP LOCKED` under an advisory xact lock; no pg-boss. `score(D)` waits until 02:00 UTC and until every other job of date D is `ok`. Backoff 30s·2^n, `failed` after 5 attempts; stuck jobs reclaimed after 2h (gh_archive 6h). New jobs = an entry in `buildHandlers` + a cap in `buildCaps` (`apps/worker/src/handlers.ts`).
 **Why**: debated (pg-boss vs own table); no new dependency, fits the plain-`pg` migration runner, "score after ingestion" is one claim rule.
+**Update (T023)**: `completeJob`/`failJob`/`heartbeatJob` now take the claim (`id` + `attempts` token) and apply only while that token holds; the runner heartbeats `locked_at` every 60 s; `JobHandler.run` may return `"completed"` when it completed the job in its own transaction (`fetchHandler`).
 **Files**: `packages/db/migrations/004_jobs.sql`, `packages/db/src/jobs.ts`, `apps/worker/src/handlers.ts`, `apps/worker/src/runner.ts`, `apps/worker/src/index.ts`
 
 ### 2026-10-31 — Tier rule readings for U1 and U8 (T009)
