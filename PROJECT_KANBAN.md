@@ -57,6 +57,6 @@
 | 1 Environment Setup | 🔄 In Progress (T001) |
 | 1.5 Sub-Agent Architecture | ✅ Done (base team) |
 | 2 Planning (/plan) | 🔄 In Progress (wave 1 guides written) |
-| 3 Execution | 🔄 In Progress (wave 1 merged to main; wave 2: T006, T007, T021) |
-| 4 Review | 🔄 In Progress (wave 1 reviewed; auto verify running) |
+| 3 Execution | 🔄 In Progress (waves 1–2 merged to main: T001–T007, T021; next: T008, T009, T012, T016) |
+| 4 Review | ✅ Done for waves 1–2 |
 | 5 Integration & Verify | ⬜ Not Started |
