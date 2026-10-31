@@ -11,17 +11,17 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
-- [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1
-- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2
 - [ ] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2
 - [ ] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2
-- [ ] **T015** — HUN-155 Source consensus score | backend-developer | C1 | Risk: Low | P2
-- [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
 - [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
+- [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-150-lowkey-score` | Started 2026-10-31: branch `hun-150-lowkey-score`
+- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars`
+- [ ] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus`
+- [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers`
 
 ### Ready for Review
 
@@ -57,6 +57,6 @@
 | 1 Environment Setup | 🔄 In Progress (T001) |
 | 1.5 Sub-Agent Architecture | ✅ Done (base team) |
 | 2 Planning (/plan) | 🔄 In Progress (wave 1 guides written) |
-| 3 Execution | 🔄 In Progress (waves 1–3 merged to main: T001–T009, T012, T016, T021; next: T010, T011, T015, T017) |
+| 3 Execution | 🔄 In Progress (waves 1–3 merged to main: T001–T009, T012, T016, T021; wave 4 in progress: T010, T011, T015, T017) |
 | 4 Review | ✅ Done for waves 1–2 |
 | 5 Integration & Verify | ⬜ Not Started |
