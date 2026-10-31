@@ -1,0 +1,259 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T017 interaction: filters round-trip to the URL and API, next page, API 400"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Filter by language and window"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length > 0",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_fill",
+  "args": {
+   "selector": "#filter-language",
+   "value": "Rust"
+  }
+ },
+ {
+  "tool": "ui_select_option",
+  "args": {
+   "selector": "#filter-window",
+   "value": "30d"
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": "form.filters button[type=submit]"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "location.pathname === '/tiers/lowkey' && new URLSearchParams(location.search).get('language') === 'Rust'",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 13",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.repo-row')].every(r => r.querySelector('.stats dd').textContent === 'Rust')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "new URLSearchParams(location.search).get('window') === '30d' && document.querySelector('.stats').textContent.includes('30d stars')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.getElementById('filter-language').value === 'Rust' && document.getElementById('filter-window').value === '30d'"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Topic and collection filters"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/tiers/lowkey?topic=terminal"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length > 0",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 1 && document.querySelector('.repo-row__name').textContent === 'mintlab/graphite-cli'"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/tiers/medium?collection=Web%20Framework"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length > 0",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 1 && document.querySelector('.repo-row__name').textContent === 'steady/ledger'"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Next page uses nextCursor and keeps the filters"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 50",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.pager a')].map(a => a.textContent).join() === 'Next page'"
+  }
+ },
+ {
+  "tool": "ui_click",
+  "args": {
+   "selector": ".pager a"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "new URLSearchParams(location.search).has('cursor')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 4",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.pager a')].map(a => a.textContent).join() === 'First page'"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "API 400 message is shown"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/?window=90d"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes('window: must be 7d or 30d')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Unknown tier and unknown repo give the styled not-found page"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/tiers/nope"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('h1')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('h1').textContent === 'Not found'"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/repos/999999"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('h1')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('h1').textContent === 'Not found'"
+  }
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

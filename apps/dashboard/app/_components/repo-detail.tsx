@@ -61,7 +61,8 @@ export async function RepoDetail({ id }: { id: string }) {
         <div className="gm-notice gm-notice--warn">
           <WarnIcon />
           <div>
-            <strong>suspicious stars</strong> The star pattern of this repo looks inflated.
+            <strong>suspicious stars</strong>
+            <div>The star pattern of this repo looks inflated.</div>
           </div>
         </div>
       ) : null}

@@ -9,14 +9,16 @@ import { TIERS } from "../../lib/types";
 /** App shell: top bar, sidebar, main. Below 1024px the sidebar is a drawer behind the Menu button. */
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  // The drawer is open for one pathname only, so navigating to another page closes it without an effect.
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const open = openPath === pathname;
+  const setOpen = (value: boolean) => setOpenPath(value ? pathname : null);
   const current = activeTier(pathname);
 
-  useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") setOpenPath(null);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -30,7 +32,7 @@ export function Shell({ children }: { children: ReactNode }) {
           className="menu-btn gm-btn gm-btn--secondary gm-btn--sm"
           aria-expanded={open}
           aria-controls="sidebar"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => setOpen(!open)}
         >
           Menu
         </button>

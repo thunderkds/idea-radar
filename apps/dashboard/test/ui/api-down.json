@@ -1,0 +1,60 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T017 robustness: API unreachable shows a visible state"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes('API unreachable')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.tabs') && document.querySelector('.sidebar')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes('API unreachable')"
+  }
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

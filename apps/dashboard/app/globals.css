@@ -35,7 +35,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .topbar { padding: 0 var(--space-4); }
   .menu-btn { display: inline-flex; }
   .main { grid-column: 1; padding: var(--space-6) var(--space-7) var(--space-8); }
-  .sidebar { position: fixed; top: var(--app-header-h); left: 0; bottom: 0; z-index: 25; width: var(--app-sidebar-w); height: auto; transform: translateX(-100%); visibility: hidden; transition: transform 160ms ease, visibility 0s linear 160ms; }
+  .sidebar { position: fixed; top: var(--app-header-h); left: 0; bottom: 0; z-index: 25; width: var(--app-sidebar-w); height: auto; align-self: auto; transform: translateX(-100%); visibility: hidden; transition: transform 160ms ease, visibility 0s linear 160ms; }
   .app[data-nav-open="true"] .sidebar { transform: translateX(0); visibility: visible; transition: transform 160ms ease; }
   .app[data-nav-open="true"] .backdrop { display: block; position: fixed; inset: var(--app-header-h) 0 0 0; z-index: 24; background: var(--bg-sunken); opacity: 0.7; }
 }

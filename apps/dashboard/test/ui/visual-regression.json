@@ -1,0 +1,265 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T017 visual regression: tier lists and repo detail (T015 API dd94de1, seeded dash_t017)"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Lowkey is the default tab at /"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length > 0",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('h1').textContent === 'Lowkey repos'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 50"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.tabs a[aria-current=page]').textContent === 'Lowkey'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.gm-sidenav__item[aria-current=page]').textContent === 'Lowkey'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "['/tiers/trending','/tiers/medium','/tiers/lowkey'].every(h => document.querySelector('.tabs a[href=\"'+h+'\"]'))"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Row shows name link, description, language, stars, 7d stars, score, consensus badge, fake-star warning"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const r = document.querySelector('.repo-row'); return r.querySelector('a[href=\"/repos/1001\"]').textContent === 'mintlab/graphite-cli' && /dark-mode/.test(r.textContent) && /TypeScript/.test(r.textContent) && r.querySelector('.stats').textContent.includes('7d stars+43') && r.querySelector('.stats').textContent.includes('score0.812') && r.querySelector('.gm-chip').textContent === 'consensus 2'; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.warn-flag')].some(e => e.textContent.includes('suspicious stars') && e.closest('.repo-row').textContent.includes('quiet-owl/star-farm'))"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.repo-row')].some(r => r.textContent.includes('nobody/undocumented') && r.querySelectorAll('.gm-nodata').length === 2)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!document.body.textContent.includes('trendshift')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Trending tab"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/tiers/trending"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length > 0",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length === 2"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.tabs a[aria-current=page]').textContent === 'Trending'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.repo-row').textContent.includes('hot/agent-runtime')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Repo detail for 1001: chart, score breakdown, timeline, README as plain text, stack"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.chart')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('h1').textContent === 'mintlab/graphite-cli'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.chart rect').length === 90"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.chart-bar--current').length === 1 && document.querySelectorAll('.chart-bar:not(.chart-bar--current)').length === 89"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.gm-table tbody tr')].map(r => r.cells[0].textContent).sort().join() === 'activity,contributors,issueResponsiveness,readmeQuality,velocityLift'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.timeline li')].map(l => l.firstChild.textContent).join() === 'ossinsight,github_trending'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.readme').textContent.includes('<script>window.__pwned = true</script>') && window.__pwned === undefined && document.querySelectorAll('.readme *').length === 0"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.gm-chips .gm-chip')].map(c => c.textContent).join() === 'typescript,node,vitest'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!document.body.textContent.includes('trendshift')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Repo detail for 1002: fake-star warning and a repo with no README shows no data"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/repos/1002"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.chart')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.gm-notice--warn').textContent.includes('suspicious stars')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3417/repos/1003"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.chart')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.section')].find(s => s.textContent.startsWith('README excerpt')).querySelector('.gm-nodata').textContent === 'no data'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "[...document.querySelectorAll('.section')].find(s => s.textContent.startsWith('Source timeline')).querySelector('.gm-nodata').textContent === 'no data'"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]
