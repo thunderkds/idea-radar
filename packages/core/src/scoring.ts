@@ -159,3 +159,19 @@ export const fakeStarConfig = {
   /** A repo is flagged when at least this share of the sample is low-activity. */
   flagShare: 0.5,
 };
+
+/** Source consensus (HUN-155): how many distinct sources flagging a repo count, and what they add to Trending. */
+export const consensusConfig = {
+  /** Days of signals, ending at the scoring window end (inclusive), in which a source counts as flagging a repo. */
+  windowDays: 7,
+  /** Trending score is multiplied by 1 + this × (consensus_count - 1), never below 1. */
+  trendingBoostPerSource: 0.1,
+} as const;
+
+/**
+ * The Trending score factor for `consensusCount` sources: 1 + `trendingBoostPerSource` × (count - 1), never below 1.
+ * `applyConsensus` computes the same factor in SQL; `consensus.test.ts` checks the two agree.
+ */
+export function consensusBoostFactor(consensusCount: number): number {
+  return 1 + consensusConfig.trendingBoostPerSource * Math.max(consensusCount - 1, 0);
+}

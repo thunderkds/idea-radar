@@ -41,3 +41,10 @@ test("T011 exports applyFakeStarFlags from the package entry and it flags a burs
   assert.equal(updates[0]![0], 42);
   assert.equal(updates[0]![2], true);
 });
+
+
+test("T015 exports applyConsensus, rollbackMigration and the consensus query functions", () => {
+  for (const name of ["applyConsensus", "rollbackMigration", "listConsensus", "listTier", "getRepoDetail"] as const) {
+    assert.equal(typeof db[name], "function", name);
+  }
+});

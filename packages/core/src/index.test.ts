@@ -50,3 +50,9 @@ test("T011 exports isLowActivity, suspiciousShare and fakeStarConfig from the pa
   assert.equal(suspiciousShare([fresh, account()]), 0.5);
   assert.equal(suspiciousShare([]), null);
 });
+
+
+test("T015 exports consensusConfig and consensusBoostFactor", () => {
+  assert.equal(typeof core.consensusBoostFactor, "function");
+  assert.equal(core.consensusConfig.windowDays, 7);
+});

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Queryable, StarsWindow, TierQuery } from "@idea-radar/db";
-import { getRepoDetail, listDisplayableSources, listTier } from "@idea-radar/db";
+import type { ConsensusQuery, Queryable, StarsWindow, TierQuery } from "@idea-radar/db";
+import { getRepoDetail, listConsensus, listDisplayableSources, listTier } from "@idea-radar/db";
 import type { Tier } from "@idea-radar/core";
 
 /**
@@ -32,6 +32,38 @@ function decodeCursor(raw: string): NonNullable<TierQuery["after"]> {
   throw new BadRequest("cursor: not a cursor returned by this API");
 }
 
+function encodeConsensusCursor(count: number, firstSeen: string, repoId: number): string {
+  return Buffer.from(JSON.stringify({ count, firstSeen, repoId })).toString("base64url");
+}
+
+// A timestamptz as Postgres prints it, e.g. 2026-10-29 10:00:00.123456+00 (checked here so a forged cursor is a 400, not a 500).
+const TIMESTAMPTZ_TEXT = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:?\d{2})?$/;
+
+function decodeConsensusCursor(raw: string): NonNullable<ConsensusQuery["after"]> {
+  try {
+    const v = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as { count?: unknown; firstSeen?: unknown; repoId?: unknown };
+    if (
+      Number.isSafeInteger(v.count) &&
+      typeof v.firstSeen === "string" &&
+      TIMESTAMPTZ_TEXT.test(v.firstSeen) &&
+      Number.isSafeInteger(v.repoId)
+    ) {
+      return { count: v.count as number, firstSeen: v.firstSeen, repoId: v.repoId as number };
+    }
+  } catch {
+    // fall through to the error below
+  }
+  throw new BadRequest("cursor: not a cursor returned by this API");
+}
+
+function parseLimit(params: URLSearchParams): number {
+  const rawLimit = params.get("limit");
+  if (rawLimit === null) return DEFAULT_LIMIT;
+  const limit = /^\d+$/.test(rawLimit) ? Number(rawLimit) : NaN;
+  if (!(limit >= 1 && limit <= MAX_LIMIT)) throw new BadRequest(`limit: must be an integer from 1 to ${MAX_LIMIT}`);
+  return limit;
+}
+
 function text(params: URLSearchParams, name: string): string | undefined {
   const v = params.get(name);
   if (v === null) return undefined;
@@ -44,13 +76,6 @@ function parseTierQuery(tier: Tier, params: URLSearchParams): TierQuery {
   const window = params.get("window") ?? "7d";
   if (!WINDOWS.includes(window as StarsWindow)) throw new BadRequest("window: must be 7d or 30d");
 
-  let limit = DEFAULT_LIMIT;
-  const rawLimit = params.get("limit");
-  if (rawLimit !== null) {
-    limit = /^\d+$/.test(rawLimit) ? Number(rawLimit) : NaN;
-    if (!(limit >= 1 && limit <= MAX_LIMIT)) throw new BadRequest(`limit: must be an integer from 1 to ${MAX_LIMIT}`);
-  }
-
   const cursor = params.get("cursor");
   return {
     tier,
@@ -58,7 +83,7 @@ function parseTierQuery(tier: Tier, params: URLSearchParams): TierQuery {
     topic: text(params, "topic"),
     collection: text(params, "collection"),
     window: window as StarsWindow,
-    limit,
+    limit: parseLimit(params),
     after: cursor === null ? undefined : decodeCursor(cursor),
   };
 }
@@ -121,7 +146,23 @@ async function handle(db: Queryable, req: IncomingMessage): Promise<[number, unk
   if (path === "/ops/sources") return [200, { items: await listDisplayableSources(db) }];
 
   if (path === "/topics/rising") return [200, { items: [] }]; // TODO(HUN-158): rising topics over 7/30 days
-  if (path === "/consensus") return [200, { items: [] }]; // TODO(HUN-155): repos flagged by 2+ displayable sources
+
+  if (path === "/consensus") {
+    const cursor = url.searchParams.get("cursor");
+    const page = await listConsensus(db, {
+      limit: parseLimit(url.searchParams),
+      after: cursor === null ? undefined : decodeConsensusCursor(cursor),
+    });
+    const last = page.items[page.items.length - 1];
+    return [
+      200,
+      {
+        date: page.date,
+        items: page.items.map(({ firstSeenText: _firstSeenText, ...item }) => item),
+        nextCursor: page.hasMore && last ? encodeConsensusCursor(last.consensusCount, last.firstSeenText, last.repoId) : null,
+      },
+    ];
+  }
 
   return [404, { error: "not found" }];
 }

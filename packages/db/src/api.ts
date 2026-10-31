@@ -1,3 +1,4 @@
+import { consensusConfig } from "@idea-radar/core";
 import type { Queryable } from "./index.js";
 
 /**
@@ -21,11 +22,24 @@ export const STARS_WINDOW_DAYS: Record<StarsWindow, number> = { "7d": 7, "30d": 
 /** Days of OSS Insight signals that count for the `collection` filter. */
 const COLLECTION_DAYS = 30;
 /** Days of signals that count towards a repo's consensus. */
-const CONSENSUS_DAYS = 7;
+const CONSENSUS_DAYS = consensusConfig.windowDays;
 /** Days of `repo_daily` returned on the repo detail. */
 const SERIES_DAYS = 90;
 const README_EXCERPT_CHARS = 2000;
 const DETAIL_SIGNAL_LIMIT = 100;
+
+/**
+ * The consensus window, the same one `applyConsensus` and `scoreDay` use: [score date - days 00:00Z, score
+ * date 00:00Z), i.e. the 7 UTC days ending at E = score date - 1. `scoreDate` is a SQL expression for a DATE.
+ * One rule behind `consensusCount` on tier items and the repo detail, and the membership of `listConsensus`.
+ */
+const consensusWindow = (scoreDate: string, daysParam: string) =>
+  `g.observed_at >= (${scoreDate}::timestamp AT TIME ZONE 'UTC') - make_interval(days => ${daysParam}::int)
+   AND g.observed_at < (${scoreDate}::timestamp AT TIME ZONE 'UTC')`;
+const displayableConsensusCount = (scoreDate: string, repoId: string, daysParam: string) =>
+  `(SELECT count(DISTINCT g.source)::int FROM signals g
+      JOIN sources so ON so.id = g.source AND so.displayable
+     WHERE g.repo_id = ${repoId} AND ${consensusWindow(scoreDate, daysParam)})`;
 
 export interface TierQuery {
   tier: ApiTier;
@@ -50,6 +64,9 @@ export interface TierItem {
   starsGained: number;
   components: Record<string, number>;
   stackTags: string[];
+  /** Distinct displayable sources with a signal in the 7 UTC days before the score date, the scoring window (a hidden source is not counted). */
+  consensusCount: number;
+  fakeStarFlag: boolean;
   /** Only for the cursor; not part of the API response. */
   scoreText: string;
 }
@@ -71,6 +88,16 @@ export function stripHiddenComponents<T>(components: Record<string, T>, hiddenId
     out[key] = value;
   }
   return out;
+}
+
+/**
+ * `components` as the API shows it: hidden-source keys are dropped, and so is `consensusBoost`, because
+ * the factor (1 + boost × (count - 1)) would give away the count including a non-displayable source.
+ */
+function publicComponents(components: Record<string, number>, hiddenIds: string[]): Record<string, number> {
+  const rest = stripHiddenComponents(components, hiddenIds);
+  delete rest.consensusBoost;
+  return rest;
 }
 
 async function hiddenSourceIds(db: Queryable): Promise<string[]> {
@@ -96,12 +123,16 @@ export async function listTier(db: Queryable, q: TierQuery): Promise<TierPage> {
     components: Record<string, number>;
     stars_gained: number;
     stack_tags: string[];
+    consensus_count: number;
+    fake_star_flag: boolean;
   }>(
     `SELECT s.repo_id, r.full_name, r.description, r.language, r.topics, r.stars,
             s.score, s.score::text AS score_text, s.components,
             COALESCE((SELECT sum(d.stars_new) FROM repo_daily d
                        WHERE d.repo_id = s.repo_id AND d.date <= s.date AND d.date > s.date - $4::int), 0)::int AS stars_gained,
-            COALESCE(c.stack_tags, '{}') AS stack_tags
+            COALESCE(c.stack_tags, '{}') AS stack_tags,
+            ${displayableConsensusCount("s.date", "s.repo_id", "$11")} AS consensus_count,
+            s.fake_star_flag
        FROM repo_scores s
        JOIN repos r ON r.repo_id = s.repo_id
        LEFT JOIN repo_content c ON c.repo_id = s.repo_id
@@ -128,6 +159,7 @@ export async function listTier(db: Queryable, q: TierQuery): Promise<TierPage> {
       q.after?.score ?? null,
       q.after?.repoId ?? null,
       q.limit + 1,
+      CONSENSUS_DAYS,
     ],
   );
 
@@ -141,8 +173,10 @@ export async function listTier(db: Queryable, q: TierQuery): Promise<TierPage> {
     stars: r.stars,
     score: r.score,
     starsGained: r.stars_gained,
-    components: stripHiddenComponents(r.components, hidden),
+    components: publicComponents(r.components, hidden),
     stackTags: r.stack_tags,
+    consensusCount: r.consensus_count,
+    fakeStarFlag: r.fake_star_flag,
     scoreText: r.score_text,
   }));
   return { date, items, hasMore: res.rows.length > q.limit };
@@ -168,11 +202,13 @@ export interface RepoDetail {
     tier: ApiTier;
     score: number;
     components: Record<string, number>;
-    /** Distinct displayable sources with a signal in the 7 days up to the score date. */
+    /** Distinct displayable sources with a signal in the 7 UTC days before the score date (the scoring window). */
     consensusCount: number;
     fakeStarFlag: boolean;
   } | null;
   starsSeries: { date: string; starsNew: number }[];
+  /** "Who caught it first": each displayable source that ever flagged the repo, oldest first-seen first. */
+  timeline: { source: string; firstSeenAt: Date; lastSeenAt: Date }[];
   stackTags: string[];
   readmeExcerpt: string | null;
   signals: { source: string; signalType: string; value: Record<string, unknown>; observedAt: Date }[];
@@ -191,14 +227,10 @@ export async function getRepoDetail(db: Queryable, repoId: number): Promise<Repo
   const r = repoRes.rows[0];
   if (!r) return null;
 
-  const [scoreRes, seriesRes, signalRes, hidden] = await Promise.all([
+  const [scoreRes, seriesRes, signalRes, timelineRes, hidden] = await Promise.all([
     db.query(
       `SELECT s.date::text AS date, s.tier, s.score, s.components, s.fake_star_flag,
-              (SELECT count(DISTINCT g.source)::int FROM signals g
-                 JOIN sources so ON so.id = g.source AND so.displayable
-                WHERE g.repo_id = s.repo_id
-                  AND g.observed_at > (s.date::timestamp AT TIME ZONE 'UTC') + interval '1 day' - make_interval(days => $2::int)
-                  AND g.observed_at <= (s.date::timestamp AT TIME ZONE 'UTC') + interval '1 day') AS consensus_count
+              ${displayableConsensusCount("s.date", "s.repo_id", "$2")} AS consensus_count
          FROM repo_scores s WHERE s.repo_id = $1 ORDER BY s.date DESC LIMIT 1`,
       [repoId, CONSENSUS_DAYS],
     ),
@@ -214,6 +246,12 @@ export async function getRepoDetail(db: Queryable, repoId: number): Promise<Repo
          FROM signals g JOIN sources so ON so.id = g.source AND so.displayable
         WHERE g.repo_id = $1 ORDER BY g.observed_at DESC, g.id DESC LIMIT $2`,
       [repoId, DETAIL_SIGNAL_LIMIT],
+    ),
+    db.query(
+      `SELECT v.source, v.first_seen_at, v.last_seen_at
+         FROM repo_source_first_seen v JOIN sources so ON so.id = v.source AND so.displayable
+        WHERE v.repo_id = $1 ORDER BY v.first_seen_at, v.source`,
+      [repoId],
     ),
     hiddenSourceIds(db),
   ]);
@@ -238,12 +276,13 @@ export async function getRepoDetail(db: Queryable, repoId: number): Promise<Repo
           date: s.date,
           tier: s.tier,
           score: s.score,
-          components: stripHiddenComponents(s.components, hidden),
+          components: publicComponents(s.components, hidden),
           consensusCount: s.consensus_count,
           fakeStarFlag: s.fake_star_flag,
         }
       : null,
     starsSeries: seriesRes.rows.map((d) => ({ date: d.date, starsNew: d.stars_new })),
+    timeline: timelineRes.rows.map((t) => ({ source: t.source, firstSeenAt: t.first_seen_at, lastSeenAt: t.last_seen_at })),
     stackTags: r.stack_tags,
     readmeExcerpt: r.readme_excerpt,
     signals: signalRes.rows.map((g) => ({
@@ -277,4 +316,79 @@ export async function listDisplayableSources(db: Queryable): Promise<SourceHealt
     lastStatus: r.last_status,
     lastError: r.last_error,
   }));
+}
+
+export interface ConsensusQuery {
+  limit: number;
+  /** Keyset position of the last row of the previous page; `firstSeen` is the timestamptz as text (exact). */
+  after?: { count: number; firstSeen: string; repoId: number };
+}
+
+export interface ConsensusItem {
+  repoId: number;
+  fullName: string;
+  /** Distinct displayable sources in the 7 UTC days before the latest scored date; equals `sources.length`. */
+  consensusCount: number;
+  /** Those sources, the one that flagged the repo first leading; `firstSeenAt` is the source's first signal ever. */
+  sources: { source: string; firstSeenAt: Date }[];
+  /** Only for the cursor; not part of the API response. */
+  firstSeenText: string;
+}
+
+export interface ConsensusPage {
+  /** Latest `repo_scores.date` (YYYY-MM-DD) the window ends at, or null when nothing is scored yet. */
+  date: string | null;
+  items: ConsensusItem[];
+  hasMore: boolean;
+}
+
+/**
+ * Repos flagged by 2 or more displayable sources in the 7 UTC days before the latest scored date, ordered by
+ * source count DESC, earliest first-seen ASC, `repo_id`. Repos with no `repos` row are left out.
+ */
+export async function listConsensus(db: Queryable, q: ConsensusQuery): Promise<ConsensusPage> {
+  const dateRes = await db.query<{ date: string | null }>("SELECT max(date)::text AS date FROM repo_scores");
+  const date = dateRes.rows[0]?.date ?? null;
+  if (!date) return { date: null, items: [], hasMore: false };
+
+  const res = await db.query<{
+    repo_id: number;
+    full_name: string;
+    n: number;
+    first_seen_text: string;
+    sources: string[];
+    first_seen_ats: Date[];
+  }>(
+    `WITH ws AS (
+       SELECT DISTINCT g.repo_id, g.source FROM signals g
+         JOIN sources so ON so.id = g.source AND so.displayable
+        WHERE ${consensusWindow("$1::date", "$2")}
+     ), agg AS (
+       SELECT ws.repo_id, count(*)::int AS n, min(f.first_seen_at) AS first_seen,
+              array_agg(ws.source ORDER BY f.first_seen_at, ws.source) AS sources,
+              array_agg(f.first_seen_at ORDER BY f.first_seen_at, ws.source) AS first_seen_ats
+         FROM ws
+        CROSS JOIN LATERAL (SELECT v.first_seen_at FROM repo_source_first_seen v
+                             WHERE v.repo_id = ws.repo_id AND v.source = ws.source) f
+        GROUP BY ws.repo_id
+       HAVING count(*) >= 2
+     )
+     SELECT a.repo_id, r.full_name, a.n, a.first_seen::text AS first_seen_text, a.sources, a.first_seen_ats
+       FROM agg a JOIN repos r ON r.repo_id = a.repo_id
+      WHERE ($4::int IS NULL OR a.n < $4::int
+             OR (a.n = $4::int AND (a.first_seen > $5::timestamptz
+                                    OR (a.first_seen = $5::timestamptz AND a.repo_id > $6::bigint))))
+      ORDER BY a.n DESC, a.first_seen, a.repo_id
+      LIMIT $3`,
+    [date, CONSENSUS_DAYS, q.limit + 1, q.after?.count ?? null, q.after?.firstSeen ?? null, q.after?.repoId ?? null],
+  );
+
+  const items = res.rows.slice(0, q.limit).map<ConsensusItem>((r) => ({
+    repoId: r.repo_id,
+    fullName: r.full_name,
+    consensusCount: r.n,
+    sources: r.sources.map((source, i) => ({ source, firstSeenAt: r.first_seen_ats[i]! })),
+    firstSeenText: r.first_seen_text,
+  }));
+  return { date, items, hasMore: res.rows.length > q.limit };
 }

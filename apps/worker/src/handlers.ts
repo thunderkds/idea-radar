@@ -1,6 +1,7 @@
 import type { SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import {
+  applyConsensus,
   applyFakeStarFlags,
   completeJob,
   DEFAULT_GLOBAL_CONCURRENCY,
@@ -191,7 +192,8 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
     };
   }
   // Windows end at the last ingested GH Archive day when it lags behind the last complete UTC day.
-  // The fake-star check (HUN-151) must run right after `scoreDay`, which rewrites the date's rows.
+  // Order matters: scoreDay rewrites the date's rows, then applyConsensus boosts Trending and the fake-star
+  // check (HUN-151) discounts flagged repos. Both multiply the stored score, so a rerun starts with scoreDay again.
   const log = deps.log ?? (() => {});
   handlers[SCORE_JOB] = {
     sourceId: null,
@@ -199,6 +201,7 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
       const cursor = await getCursor(db, GH_ARCHIVE_ID);
       const windows = cursor ? { windowEnd: cursor } : {};
       await scoreDay(db, job.dataKey, windows);
+      await applyConsensus(db, job.dataKey, windows);
       if (!github?.enabled) {
         log(JSON.stringify({ job: SCORE_JOB, date: job.dataKey, skipped: "fake-star check skipped: GitHub API connector disabled (no token)" }));
         return;
