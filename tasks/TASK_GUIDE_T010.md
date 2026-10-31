@@ -111,3 +111,20 @@ pnpm test && pnpm typecheck
 - [ ] Implementation done
 - [ ] Tests written AND pass — output in report
 - [ ] Supervisor notified: ready for Stage 4 review
+
+---
+
+## Rework R1 (2026-10-31): easy-verifier score fixes
+
+User decision 2026-10-31 (chat, verbatim): "approve all, MIT" — fix the score gaps and rescore. The Companion score row in `tasks/TASK_REVIEW_T010.md` reads ☑ fail: overall 63, `new_code_without_test_share` 0.56 (unpaired `packages/core/src/index.ts`, `packages/db/src/index.ts`, `scripts/cli-args.ts`, `scripts/label.ts`, `scripts/precision.ts`). The floor is overall ≥ 80 and no failing `change_risk` rule. The branch already carries T022 (LICENSE, lint, CI) by merge before this rework starts.
+
+Rule `new_code_without_test_share` must be ≤ 0.2: it counts source files changed on this branch (`b0dfcf3...HEAD`) with no paired `*.test.ts` changed beside them. Pair a file by adding or extending its sibling test with real assertions on its behaviour. Never add an empty or trivially true test just to pair a file.
+
+| # | Criterion (testable) |
+|---|----------------------|
+| R1.1 | `scripts/cli-args.test.ts` covers every flag and the error on a bad value |
+| R1.2 | `scripts/label.test.ts` and `scripts/precision.test.ts` cover their exported pure parts (CSV building, precision@k maths); move logic out of the `main` body into exported functions if needed, behaviour unchanged |
+| R1.3 | `packages/core/src/index.test.ts` and `packages/db/src/index.test.ts` assert the public export surface this task added (`lowkeyComponents`, `lowkeyNormalisation`, the tuning functions) is exported and callable |
+| R1.4 | the root `pnpm test` runs the `scripts/*.test.ts` files (show them in the output) |
+
+Startup addition: call easy-memory `memory_search` first for this task's topics; the pasted memory slice is the fallback. Keep `pnpm lint`, `pnpm typecheck` and the guide's Verification Command green. Stay inside the guide's Files Must NOT Touch list, except the files this section names.

@@ -112,3 +112,19 @@ pnpm test && pnpm typecheck
 - [ ] Implementation done
 - [ ] Tests written AND pass — output in report
 - [ ] Supervisor notified: ready for Stage 4 review
+
+---
+
+## Rework R1 (2026-10-31): easy-verifier score fixes
+
+User decision 2026-10-31 (chat, verbatim): "approve all, MIT" — fix the score gaps and rescore. The Companion score row in `tasks/TASK_REVIEW_T011.md` reads ☑ fail: overall 52, reliability 0 (`outbound_calls_without_timeout_observed` 2 in `packages/connectors/src/github-api.ts`, `swallowed_errors_observed` 1 in `apps/worker/src/handlers.ts`), `new_code_without_test_share` 0.29 (unpaired `packages/core/src/index.ts`, `packages/db/src/index.ts`). The floor is overall ≥ 80 and no failing `change_risk` rule. The branch already carries T022 (LICENSE, lint, CI) by merge before this rework starts.
+
+Rule `new_code_without_test_share` must be ≤ 0.2: it counts source files changed on this branch (`b0dfcf3...HEAD`) with no paired `*.test.ts` changed beside them. Pair a file by adding or extending its sibling test with real assertions on its behaviour. Never add an empty or trivially true test just to pair a file.
+
+| # | Criterion (testable) |
+|---|----------------------|
+| R1.1 | Every outbound request in `packages/connectors/src/github-api.ts` (REST and GraphQL, the default `fetchImpl` included) carries a timeout: `AbortSignal.timeout(githubApiConfig-or-local const ms)`, default 30 s, combined with any caller signal; a test with a `fetchImpl` that never resolves rejects within the timeout and the error message names the endpoint, never the token |
+| R1.2 | The `catch` in `apps/worker/src/handlers.ts` that the verifier flags as swallowed (around line 94: `ROLLBACK` failure) logs the rollback error at warn level before rethrowing the original; a worker test asserts the warn log |
+| R1.3 | `packages/core/src/index.test.ts` and `packages/db/src/index.test.ts` assert this task's exports (`isLowActivity`, `suspiciousShare`, `fakeStarConfig`, `applyFakeStarFlags`) are exported and callable |
+
+Startup addition: call easy-memory `memory_search` first for this task's topics; the pasted memory slice is the fallback. Keep `pnpm lint`, `pnpm typecheck` and the guide's Verification Command green. Stay inside the guide's Files Must NOT Touch list, except the files this section names.

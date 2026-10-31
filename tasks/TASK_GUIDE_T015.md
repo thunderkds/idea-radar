@@ -113,3 +113,20 @@ pnpm test && pnpm typecheck
 - [ ] Implementation done
 - [ ] Tests written AND pass — output in report
 - [ ] Supervisor notified: ready for Stage 4 review
+
+---
+
+## Rework R1 (2026-10-31): easy-verifier score fixes
+
+User decision 2026-10-31 (chat, verbatim): "approve all, MIT" — fix the score gaps and rescore. The Companion score row in `tasks/TASK_REVIEW_T015.md` reads ☑ fail: overall 67, data 62 (`migrations_without_rollback_share` 1: migration 005 has rollback SQL only in a header comment), `new_code_without_test_share` 0.5 (unpaired `packages/core/src/scoring.ts`, `packages/db/src/api.ts`, `packages/db/src/index.ts`). The floor is overall ≥ 80 and no failing `change_risk` rule. The branch already carries T022 (LICENSE, lint, CI) by merge before this rework starts.
+
+Rule `new_code_without_test_share` must be ≤ 0.2: it counts source files changed on this branch (`b0dfcf3...HEAD`) with no paired `*.test.ts` changed beside them. Pair a file by adding or extending its sibling test with real assertions on its behaviour. Never add an empty or trivially true test just to pair a file.
+
+| # | Criterion (testable) |
+|---|----------------------|
+| R1.1 | New file `packages/db/migrations/005_source_first_seen.down.sql` (the verifier counts a `*.down.*` sibling as a rollback) with `DROP VIEW IF EXISTS repo_source_first_seen;`. Migration 005 itself stays byte-identical (it is applied) |
+| R1.2 | `packages/db/src/migrations.ts` `applyMigrations` skips `*.down.sql` files; new exported `rollbackMigration(client, name)` runs the sibling down file and deletes the `schema_migrations` row in one transaction, under the same advisory lock; `packages/db/src/migrations.test.ts` (temp schema, skips without `TEST_DATABASE_URL`) proves up → down → up for 005 and that a down file is never applied as an up |
+| R1.3 | `packages/core/src/scoring.test.ts` covers `consensusConfig` (the boost factor formula at counts 0, 1, 2, 5); `packages/db/src/api.test.ts` covers the new query functions directly (tier items `consensusCount`/`fakeStarFlag`, `timeline`, `/consensus` paging) against a temp schema; `packages/db/src/index.test.ts` asserts `applyConsensus` and the new query functions are exported |
+| R1.4 | Run `Skill({ skill: "migration-safety" })` for the down file and the runner change |
+
+Startup addition: call easy-memory `memory_search` first for this task's topics; the pasted memory slice is the fallback. Keep `pnpm lint`, `pnpm typecheck` and the guide's Verification Command green. Stay inside the guide's Files Must NOT Touch list, except the files this section names.

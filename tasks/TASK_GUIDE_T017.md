@@ -124,3 +124,20 @@ Run the API and dashboard on free ports (e.g. API `API_PORT=4417`, dashboard `ne
 - [ ] Tests written AND pass — output in report
 - [ ] UI evidence recorded (three rows)
 - [ ] Supervisor notified: ready for Stage 4 review
+
+---
+
+## Rework R1 (2026-10-31): easy-verifier score fixes
+
+User decision 2026-10-31 (chat, verbatim): "approve all, MIT" — fix the score gaps and rescore. The Companion score row in `tasks/TASK_REVIEW_T017.md` reads ☑ fail: overall 75, `new_code_without_test_share` 0.46 (unpaired: nine page components, `scripts/gen-tokens.ts`, `scripts/seed-demo.ts`); auto verify fail: the branch lacked T015's API fields, so the timeline always read "no data" and no badge or warning showed. The floor is overall ≥ 80 and no failing `change_risk` rule. The branch already carries T022 (LICENSE, lint, CI) by merge before this rework starts.
+
+Rule `new_code_without_test_share` must be ≤ 0.2: it counts source files changed on this branch (`b0dfcf3...HEAD`) with no paired `*.test.ts` changed beside them. Pair a file by adding or extending its sibling test with real assertions on its behaviour. Never add an empty or trivially true test just to pair a file.
+
+| # | Criterion (testable) |
+|---|----------------------|
+| R1.1 | The Supervisor merges `hun-155-consensus` into this branch before the rework starts; the list then shows the consensus badge and fake-star warning, and `/repos/:id` shows the timeline, against the seeded demo database; re-record the easy-ui sessions and assert the badge, the warning and at least one timeline row |
+| R1.2 | Unit tests (node:test + tsx, `react-dom/server` `renderToStaticMarkup` or the existing test approach) for each page component the verifier lists as unpaired: rendered output for a normal item, a missing value ("no data", never 0) and the empty state |
+| R1.3 | `scripts/gen-tokens.test.ts` (output of the generator for a small token object, and the checked-in `tokens.css` equals a fresh run) and `scripts/seed-demo.test.ts` (seed into a temp database, skips without `TEST_DATABASE_URL`; tier rows, a hidden `trendshift` source, 90 days of `repo_daily`) |
+| R1.4 | The two paths the verify run could not confirm: an API 5xx shows a visible error state, not a crash; an API 400 shows the API's own message. Cover both with unit tests and one easy-ui session each |
+
+Startup addition: call easy-memory `memory_search` first for this task's topics; the pasted memory slice is the fallback. Keep `pnpm lint`, `pnpm typecheck` and the guide's Verification Command green. Stay inside the guide's Files Must NOT Touch list, except the files this section names.
