@@ -30,3 +30,9 @@ On 2026-10-31 every `api.ossinsight.io/v1/collections/*` path (list, `{id}`, `{i
 - Run the trace test run *before* `stop_auto_verify.py --start`; a pass with no traced test leaves the row in Ready for Review, and a rerun needs the verify row reset and the old log moved away.
 - A Supervisor active-task state file left set makes the step-limit hook count the Supervisor's own calls against that task (T001 hit 90 and blocked a spawn). Clear it after the task's commands.
 **Files**: `.claude/hooks/stop_auto_mode_check.py`, `.claude/hooks/pre_bash_block_unsafe_merge.py`, `.claude/hooks/stop_auto_verify.py`, `.claude/hooks/pre_agent_step_limit.py`
+
+### 2026-10-31 — easy-verifier masks pinned action SHAs; pnpm -r skips the root (T022)
+- easy-verifier's `high_entropy_hex` redaction replaces 40-hex commit SHAs in `.github/workflows/ci.yml` before the supply-chain pin rule reads the file, so `ci_actions_unpinned_share` stays 1 for actions pinned to full SHAs, and each SHA adds to `redaction_hits_observed` (security). Pinning lowers the score until the verifier is fixed; cite this rather than unpinning.
+- The merge gate blocks every `git merge`, branch-to-branch included, while any board row is In Progress. Order work so branch merges happen when nothing is In Progress.
+- `pnpm -r <script>` skips the workspace root project, and `pnpm -r lint` exits 0 when no package has a `lint` script. Root-level tests (`scripts/*.test.ts`) need their own command in the root `test` script.
+**Files**: `.github/workflows/ci.yml`, `package.json`, `.claude/hooks/pre_bash_block_unsafe_merge.py`
