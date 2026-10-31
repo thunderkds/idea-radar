@@ -1,0 +1,94 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T017 R1 robustness: API 400 shows the API's own message"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Tier list: window=90d, the API answers 400"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3448/tiers/lowkey?window=90d"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"The API rejected these filters\")"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"window: must be 7d or 30d\")"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes('API answered')===false"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!!document.querySelector('.tabs') && !!document.querySelector('.sidebar') && !document.querySelector('.repo-row')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('#filter-window').value==='90d'"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Repo detail: id is not numeric, the API answers 400"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3448/repos/abc"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"id: must be a numeric repo id\")"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

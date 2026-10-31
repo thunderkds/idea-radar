@@ -2,7 +2,7 @@
  {
   "tool": "ui_start_session",
   "args": {
-   "target": "T017 visual regression: tier lists and repo detail (T015 API dd94de1, seeded dash_t017)"
+   "target": "T017 visual regression: tier lists and repo detail (R1: T015 API merged, seeded dash_t017)"
   }
  },
  {
@@ -14,7 +14,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/"
+   "url": "http://localhost:3448/"
   }
  },
  {
@@ -97,7 +97,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/tiers/trending"
+   "url": "http://localhost:3448/tiers/trending"
   }
  },
  {
@@ -138,7 +138,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/repos/1001"
+   "url": "http://localhost:3448/repos/1001"
   }
  },
  {
@@ -209,7 +209,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/repos/1002"
+   "url": "http://localhost:3448/repos/1002"
   }
  },
  {
@@ -232,7 +232,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/repos/1003"
+   "url": "http://localhost:3448/repos/1003"
   }
  },
  {

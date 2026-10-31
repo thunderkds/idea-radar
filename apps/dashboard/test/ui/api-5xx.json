@@ -1,0 +1,100 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T017 R1 robustness: API 5xx shows a visible error state, not a crash"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Tier list: the API answers 500"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3450/"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"The API returned an error\")"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"database is down\")"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('h1').textContent==='Lowkey repos'"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!!document.querySelector('.tabs') && !!document.querySelector('.sidebar') && !document.querySelector('.repo-row')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Repo detail: the API answers 500"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3450/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('[role=alert]')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"The API returned an error\")"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('[role=alert]').textContent.includes(\"database is down\")"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "!!document.querySelector('.sidebar') && !document.querySelector('.chart')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]

@@ -14,7 +14,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/"
+   "url": "http://localhost:3448/"
   }
  },
  {
@@ -89,7 +89,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/tiers/lowkey?topic=terminal"
+   "url": "http://localhost:3448/tiers/lowkey?topic=terminal"
   }
  },
  {
@@ -108,7 +108,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/tiers/medium?collection=Web%20Framework"
+   "url": "http://localhost:3448/tiers/medium?collection=Web%20Framework"
   }
  },
  {
@@ -133,7 +133,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/"
+   "url": "http://localhost:3448/"
   }
  },
  {
@@ -188,7 +188,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/?window=90d"
+   "url": "http://localhost:3448/?window=90d"
   }
  },
  {
@@ -217,7 +217,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/tiers/nope"
+   "url": "http://localhost:3448/tiers/nope"
   }
  },
  {
@@ -236,7 +236,7 @@
  {
   "tool": "ui_navigate",
   "args": {
-   "url": "http://localhost:3417/repos/999999"
+   "url": "http://localhost:3448/repos/999999"
   }
  },
  {
