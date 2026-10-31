@@ -770,7 +770,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
         ["normal", "rag+vector-database|"], ["leader", "rag+vector-database|"], ["normal", "rag+vector-database|"], ["normal", "rag+vector-database|"],
       ]);
       assert.equal((await job(REGROUP_JOB)).status, "ok");
-      assert.equal((await job(REGROUP_JOB)).data_key, "2026-10-26", "keyed by the Monday of the week of NOW (Sat 2026-10-31)");
+      assert.equal((await job(REGROUP_JOB)).data_key, "W2026-10-26", "keyed `W` + the Monday of the week of NOW (Sat 2026-10-31)");
       assert.deepEqual(JSON.parse(lines.at(-1)!), { job: "regroup", date: "2026-10-31", tracked: 4, groups: 1, leaders: 1, normal: 3, parked: 0, promoted: 1 });
     });
 

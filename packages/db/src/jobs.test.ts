@@ -68,18 +68,26 @@ describe("jobs queue (needs TEST_DATABASE_URL)", { skip }, () => {
   describe("enqueueDue weekly jobs (T026 AC 3)", () => {
     const weekly = { hourly: [], daily: [], weekly: ["regroup"] };
 
-    it("creates one job per UTC week, keyed by that week's Monday, and a second call adds nothing", async () => {
+    it("creates one job per UTC week, keyed `W` + that week's Monday, and a second call adds nothing", async () => {
       const monday = new Date("2026-11-02T00:00:05Z");
       assert.equal(await enqueueDue(pool, monday, weekly), 1);
       assert.equal(await enqueueDue(pool, monday, weekly), 0);
       assert.equal(await enqueueDue(pool, new Date("2026-11-08T23:59:00Z"), weekly), 0, "Sunday of the same week");
-      assert.deepEqual((await rows()).map((r) => [r.name, r.data_key]), [["regroup", "2026-11-02"]]);
+      assert.deepEqual((await rows()).map((r) => [r.name, r.data_key]), [["regroup", "W2026-11-02"]]);
       assert.equal(await enqueueDue(pool, new Date("2026-11-09T00:00:00Z"), weekly), 1, "next Monday");
     });
 
     it("a worker that was down on Monday still gets the week's job, keyed by that Monday", async () => {
       assert.equal(await enqueueDue(pool, new Date("2026-11-05T10:00:00Z"), weekly), 1);
-      assert.deepEqual((await rows()).map((r) => r.data_key), ["2026-11-02"]);
+      assert.deepEqual((await rows()).map((r) => r.data_key), ["W2026-11-02"]);
+    });
+
+    it("a failed weekly job does not block that Monday's score (R1.2): its key is not a date", async () => {
+      const monday = new Date("2026-11-02T03:00:00Z");
+      const both = { hourly: [], daily: ["score"], weekly: ["regroup"] };
+      await enqueueDue(pool, monday, both);
+      await pool.query("UPDATE jobs SET status = 'failed', attempts = $1 WHERE name = 'regroup'", [MAX_JOB_ATTEMPTS]);
+      assert.equal((await claimNext(pool, { defaultPerName: 5 }, monday))?.name, "score");
     });
 
     it("a schedule without weekly names adds none", async () => {
