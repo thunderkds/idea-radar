@@ -166,3 +166,37 @@ $ pnpm typecheck
 **DELTA**: After each daily scoring run the score job samples the newest 100 stargazers of every repo with a 50+ stars-an-hour burst, sets `repo_scores.fake_star_flag` when at least half are new or inactive accounts, and multiplies that repo's trending or lowkey score by the genuine share, without removing it from the list.
 
 **WITNESS**: Supervisor session, 2026-10-31T08:36:59Z: reran `TEST_DATABASE_URL=… pnpm test` under T011 (exit 0, recorded in `memory/event-trace/T011.jsonl`) and read `packages/db/src/fake-stars.ts` and `packages/core/src/fake-stars.ts`.
+
+### Rework R1
+
+**BEFORE** (captured before any R1 implementation commit; the test is the R1.1 test, written red, in the working tree):
+
+```
+2026-10-31T10:53:35Z
+$ (cd packages/connectors && timeout 20s tsx --conditions=source --test src/github-api.test.ts)  # never-resolving fetchImpl
+  ✖ rejects within the timeout when fetch never resolves, naming the endpoint and not the token (2999.085162ms)
+  ✖ passes an abort signal to fetch on every request (3.723437ms)
+✖ GithubApiConnector request timeout (3002.990685ms)
+✖ src/github-api.test.ts (19752.668575ms)
+ℹ tests 37
+ℹ pass 34
+ℹ fail 1
+ℹ cancelled 2
+✖ failing tests:
+✖ rejects within the timeout when fetch never resolves, naming the endpoint and not the token (2999.085162ms)
+  'test timed out after 3000ms'
+✖ passes an abort signal to fetch on every request (3.723437ms)
+✖ src/github-api.test.ts (19752.668575ms)
+  'Promise resolution is still pending but the event loop has already resolved'
+exit=124
+$ grep -n "fetch(\|catch" packages/connectors/src/github-api.ts apps/worker/src/handlers.ts
+packages/connectors/src/github-api.ts:200: * `fetch(since)` yields nothing. The worker calls `fetchByIds` / `resolveNames` directly.
+packages/connectors/src/github-api.ts:226:    this.fetchImpl = options.fetchImpl ?? ((...args) => fetch(...args));
+packages/connectors/src/github-api.ts:233:  async *fetch(_since: Date): AsyncIterable<GithubRepoNode> {
+packages/connectors/src/github-api.ts:395:    } catch (err) {
+apps/worker/src/handlers.ts:84:        for await (const item of c.fetch(new Date(now.getTime() - DAY_MS))) {
+apps/worker/src/handlers.ts:94:      } catch (err) {
+apps/worker/src/handlers.ts:95:        await client.query("ROLLBACK").catch(() => {});
+```
+
+Reading: with a `fetchImpl` that never resolves, `sampleStargazers` never settles. The test times out at 3000 ms and the run is killed by `timeout 20s` (exit 124). The grep shows the default `fetchImpl` (line 226) and `post` (line 395 catch) carry no timeout, and the `ROLLBACK` failure at `handlers.ts:95` is swallowed by `.catch(() => {})`.
