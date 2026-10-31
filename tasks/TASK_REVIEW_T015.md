@@ -52,7 +52,7 @@ Mode: auto
 5. Timeline and `/consensus` first-seen dates are all-time per source, from the view — RULE: `docs/ISSUES.md` § HUN-155 ("Store first-seen date per source … for the 'who caught it first' timeline")
 Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — core 18/18, connectors 80/81 (1 pre-existing skip), db 78/78, api 23/23, worker 24/24, exit 0; reviews migration-safety — GO (one additive `CREATE OR REPLACE VIEW`, no table touched, rollback SQL in header; up → down → up on a scratch database applied cleanly; a view holds no data, so no backfill or lock risk), code-review — P0 0, P1 0, P2 1 (the agent wrote tests alongside code, not strictly test-first); first auto verify — fail: stored and shown consensus windows differed by one day, fixed in `9d9eabd` with a red-first test, P3 0; real run: API on a temp schema printed `/consensus` with 2 rows and trending score 100 → 120 (agent run, in AFTER) (auto-checked, not /verify); easy-verifier score — overall 67, floor 80 missed (Companion score row)
 Memory: memory/learnings.md — kit gotchas from wave 4 (report helper, verify close-out)
-Not done: merge (yours); auto verify: ☑ pass (session eaeabf84-80ce-43f3-bd3e-dab66733371e, commit 6ee33e02a5dcbdd42531c609b51c9e824703aba3, log .claude/verify-runs/T015-6ee33e02a5dc.log)
+Not done: merge (yours); auto verify: running (T182)
 
 ## Evidence
 
