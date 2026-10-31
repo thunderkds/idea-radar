@@ -21,7 +21,9 @@ On 2026-10-31 every `api.ossinsight.io/v1/collections/*` path (list, `{id}`, `{i
 - The merge gate blocks `git rebase` while a task is In Progress; re-apply a task branch with `git format-patch` + `git apply --3way` instead (keep the original on a `backup/` branch).
 - Gate 5 trace check (`TEST_INVOCATION_PATTERN` in `.claude/hooks/pre_bash_block_unsafe_merge.py`) only counts a literal `pnpm test` / `pnpm run test` (or pytest, jest, go test …) at a command boundary. `pnpm --filter <pkg> test` and `pnpm --dir … test` do NOT match. `cd` into the worktree in one call, run plain `pnpm test` in the next, with the active-task state file set.
 - The auto-mode check only counts a `Skill` call named exactly `code-review` / `security-review`; the directory-scoped variants (`.claude/worktrees/Txxx:code-review`) do not count.
-- Auto close-out treats any `<word>` in the report as an unfilled placeholder (`report incomplete`). Avoid angle brackets in report prose.
+- Auto close-out treats any `<word>` in the report as an unfilled placeholder (`report incomplete`). Avoid angle brackets in report prose. This includes code spans such as `` `<source>_` ``.
+- The spawn hook (`pre_agent_validate_guide.py`) looks for `tasks/TASK_GUIDE_Txxx.md` in the main checkout's current branch. Keep the main checkout on the branch that carries the new guides (e.g. `wave3-guides`) while spawning.
+- At Risk Medium, a `FACT:` citation must be written bare and singular: `FACT: path:line "quoted text"`. A backticked path, or two citations joined by "and", fails the stop check.
 - Run the trace test run *before* `stop_auto_verify.py --start`; a pass with no traced test leaves the row in Ready for Review, and a rerun needs the verify row reset and the old log moved away.
 - A Supervisor active-task state file left set makes the step-limit hook count the Supervisor's own calls against that task (T001 hit 90 and blocked a spawn). Clear it after the task's commands.
 **Files**: `.claude/hooks/stop_auto_mode_check.py`, `.claude/hooks/pre_bash_block_unsafe_merge.py`, `.claude/hooks/stop_auto_verify.py`, `.claude/hooks/pre_agent_step_limit.py`
