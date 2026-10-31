@@ -11,15 +11,11 @@
 > Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
 
 ### Todo
-- [ ] **T008** — HUN-148 Shortlist enrichment (README, manifests, file tree, stack tags) | backend-developer | C2 | Risk: Low | P2
-- [ ] **T009** — HUN-149 Tier classification job | backend-developer | C2 | Risk: Low | P1
 - [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1
 - [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2
-- [ ] **T012** — HUN-152 OSS Insight connector | backend-developer | C1 | Risk: Low | P2
 - [ ] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2
 - [ ] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2
 - [ ] **T015** — HUN-155 Source consensus score | backend-developer | C1 | Risk: Low | P2
-- [ ] **T016** — HUN-156 Read-only API | backend-developer | C2 | Risk: Med | P1
 - [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
 - [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
@@ -30,6 +26,10 @@
 ### Ready for Review
 
 ### Done
+- [x] **T016** — HUN-156 Read-only API | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-156-api` | Started 2026-10-31: branch `hun-156-api` | Done 2026-10-31: auto verify pass (session df322962-d4a5-4761-a9bd-b67430d6de4c, commit 09ca46e52e1d59a3aecfc0bda3e486a02506bf52)
+- [x] **T008** — HUN-148 Shortlist job: candidates, metadata, README/manifests, stack tags | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-148-shortlist` | Started 2026-10-31: branch `hun-148-shortlist` | Done 2026-10-31: auto verify pass (session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e)
+- [x] **T009** — HUN-149 Tier classification job | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-149-tier-classification` | Started 2026-10-31: branch `hun-149-tier-classification` | Done 2026-10-31: auto verify pass (session 5874b2fb-0170-426f-a8b1-3cbd48e2626d, commit 5988ece9c32fedbdc7e2e7937322068a4f26dbe0)
+- [x] **T012** — HUN-152 OSS Insight connector | backend-developer | C1 | Risk: Low | P2 | PR/branch: `hun-152-ossinsight` | Started 2026-10-31: branch `hun-152-ossinsight` | Done 2026-10-31: auto verify pass (session 7ec0579b-cda9-4c2b-8293-e1cb05b85a14, commit 5bdded0a5401465c4f5696086facda6152c3fbb4)
 - [x] **T007** — HUN-144 Postgres-backed scheduler and job runner | backend-developer | C2 | PR/branch: `hun-144-scheduler` | Started 2026-10-31: branch `hun-144-scheduler` | Done 2026-10-31: auto verify pass (session 966b9be9-cb45-488a-b429-4f85d3464e3d, commit 489c3c20b95eba697a8533fed8bc242778df8ec1)
 - [x] **T021** — Candidate selection over repo_daily + signals | backend-developer | C2 | PR/branch: `t021-candidate-selection` | Started 2026-10-31: branch `t021-candidate-selection` | Done 2026-10-31: auto verify pass (session a873b5cd-63d4-449e-88cb-512f79b59c46, commit 9bff5d94ed523f10aff2cf3485ce749f2f8a2b81)
 - [x] **T006** — HUN-143 Registry sync into `sources` + env-flag tests | backend-developer | C1 | PR/branch: `hun-143-registry-sync` | Started 2026-10-31: branch `hun-143-registry-sync` | Done 2026-10-31: auto verify pass (session 49d3b7a8-ddbc-4244-907c-ec45952b0186, commit fa2cfa0aa405be1e32b0c9f4066e8b2770e5c8a5)
@@ -57,6 +57,6 @@
 | 1 Environment Setup | 🔄 In Progress (T001) |
 | 1.5 Sub-Agent Architecture | ✅ Done (base team) |
 | 2 Planning (/plan) | 🔄 In Progress (wave 1 guides written) |
-| 3 Execution | 🔄 In Progress (waves 1–2 merged to main: T001–T007, T021; next: T008, T009, T012, T016) |
+| 3 Execution | 🔄 In Progress (waves 1–2 merged to main: T001–T007, T021; wave 3 in progress: T008, T009, T012, T016) |
 | 4 Review | ✅ Done for waves 1–2 |
 | 5 Integration & Verify | ⬜ Not Started |
