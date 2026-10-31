@@ -24,6 +24,8 @@ export interface GithubApiOptions {
   /** Injected in tests; defaults to a `setTimeout` promise. */
   sleep?: (ms: number) => Promise<void>;
   endpoint?: string;
+  /** Per-request timeout in ms (default 30 s). Injected in tests. */
+  timeoutMs?: number;
 }
 
 export interface FetchByIdsResult {
@@ -95,6 +97,8 @@ const TREE_MAX_ENTRIES = 200;
 const README_FILES = ["README.md", "readme.md", "README.markdown", "README.rst", "README.txt", "README"];
 const LOW_BUDGET_FRACTION = 0.1;
 const ENDPOINT = "https://api.github.com/graphql";
+/** Every outbound request is cut off after this long, so one hung socket cannot stall a job slot. */
+const REQUEST_TIMEOUT_MS = 30_000;
 const NAME_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 
 const REPO_FIELDS = `
@@ -211,6 +215,7 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly endpoint: string;
+  private readonly timeoutMs: number;
 
   // Request-throttling state only; no candidate ids are held here.
   private lastRateLimit: RateLimitInfo | null = null;
@@ -223,10 +228,17 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
     readonly enabled = Boolean(token),
     options: GithubApiOptions = {},
   ) {
-    this.fetchImpl = options.fetchImpl ?? ((...args) => fetch(...args));
+    this.fetchImpl =
+      options.fetchImpl ??
+      ((input, init) =>
+        fetch(input, {
+          ...init,
+          signal: AbortSignal.any([AbortSignal.timeout(REQUEST_TIMEOUT_MS), ...(init?.signal ? [init.signal] : [])]),
+        }));
     this.now = options.now ?? Date.now;
     this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.endpoint = options.endpoint ?? ENDPOINT;
+    this.timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
   }
 
   /** GitHub API work is pulled by id/name (`fetchByIds`, `resolveNames`), not by time. */
@@ -381,19 +393,29 @@ export class GithubApiConnector implements SourceConnector<GithubRepoNode> {
   }
 
   private async post<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    // The signal bounds a real fetch; the race also bounds a `fetchImpl` that ignores it.
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    const timedOut = new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(new Error(`timed out after ${this.timeoutMs}ms`)), { once: true });
+    });
     let res: Response;
     try {
-      res = await this.fetchImpl(this.endpoint, {
-        method: "POST",
-        headers: {
-          authorization: `bearer ${this.token}`,
-          "content-type": "application/json",
-          "user-agent": "idea-radar",
-        },
-        body: JSON.stringify({ query, variables }),
-      });
+      res = await Promise.race([
+        this.fetchImpl(this.endpoint, {
+          method: "POST",
+          headers: {
+            authorization: `bearer ${this.token}`,
+            "content-type": "application/json",
+            "user-agent": "idea-radar",
+          },
+          body: JSON.stringify({ query, variables }),
+          signal,
+        }),
+        timedOut,
+      ]);
     } catch (err) {
-      throw new Error(`GitHub API request failed: ${this.redact(String(err))}`);
+      const reason = signal.aborted ? `timed out after ${this.timeoutMs}ms` : String(err);
+      throw new Error(`GitHub API request to ${this.endpoint} failed: ${this.redact(reason)}`);
     }
     if (!res.ok) throw new Error(`GitHub API HTTP ${res.status}`);
 

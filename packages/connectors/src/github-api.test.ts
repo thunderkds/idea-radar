@@ -504,6 +504,40 @@ describe("GithubApiConnector.sampleStargazers", () => {
   });
 });
 
+describe("GithubApiConnector request timeout", () => {
+  it("rejects within the timeout when fetch never resolves, naming the endpoint and not the token", { timeout: 3000 }, async () => {
+    const endpoint = "https://ghe.example.test/graphql";
+    const keepAlive = setInterval(() => {}, 1000); // a real hung socket keeps the event loop alive
+    try {
+      const c = new GithubApiConnector(TOKEN, true, {
+        fetchImpl: (() => new Promise<Response>(() => {})) as typeof fetch,
+        endpoint,
+        timeoutMs: 50,
+      });
+      const started = Date.now();
+      await assert.rejects(c.sampleStargazers(1, 10), (err: Error) => {
+        assert.match(err.message, /timed out after 50ms/);
+        assert.ok(err.message.includes(endpoint));
+        assert.ok(!err.message.includes(TOKEN));
+        return true;
+      });
+      assert.ok(Date.now() - started < 2000);
+    } finally {
+      clearInterval(keepAlive);
+    }
+  });
+
+  it("passes an abort signal to fetch on every request", async () => {
+    const signals: (AbortSignal | null | undefined)[] = [];
+    const fetchImpl = (async (_url: unknown, init: RequestInit) => {
+      signals.push(init.signal);
+      return new Response(JSON.stringify({ data: { nodes: [null], rateLimit: rl() } }));
+    }) as typeof fetch;
+    await make(fetchImpl).sampleStargazers(1, 10);
+    assert.ok(signals[0] instanceof AbortSignal);
+  });
+});
+
 describe("integration (real GitHub)", { skip: !process.env.GITHUB_TOKEN }, () => {
   it("resolves nodejs/node and fetches it back by id", async () => {
     const c = new GithubApiConnector(process.env.GITHUB_TOKEN);
