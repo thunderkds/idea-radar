@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyTier, lowkeyScore, type TierInput } from "./scoring.js";
+import { classifyTier, consensusBoostFactor, consensusConfig, lowkeyScore, type TierInput } from "./scoring.js";
 
 const base: TierInput = {
   stars: 50,
@@ -115,5 +115,28 @@ describe("classifyTier", () => {
     it("positive weeks alone do not make a small repo medium: it falls through to lowkey", () => {
       assert.equal(tier({ stars: 199, positiveWeeks: 6 }), "lowkey");
     });
+  });
+});
+
+describe("consensusConfig and consensusBoostFactor", () => {
+  const near = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
+
+  it("is configured as a 7-day window and 0.1 per source beyond the first", () => {
+    assert.equal(consensusConfig.windowDays, 7);
+    assert.equal(consensusConfig.trendingBoostPerSource, 0.1);
+  });
+
+  it("is 1 for no source and for one source: a single source is no consensus", () => {
+    assert.equal(consensusBoostFactor(0), 1);
+    assert.equal(consensusBoostFactor(1), 1);
+  });
+
+  it("adds trendingBoostPerSource for each source beyond the first", () => {
+    near(consensusBoostFactor(2), 1.1);
+    near(consensusBoostFactor(5), 1.4);
+  });
+
+  it("never goes below 1, even for a negative count", () => {
+    assert.equal(consensusBoostFactor(-3), 1);
   });
 });

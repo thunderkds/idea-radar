@@ -2,6 +2,7 @@ import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
+import { consensusBoostFactor } from "@idea-radar/core";
 import { applyConsensus, applyMigrations, scoreDay } from "./index.js";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -152,6 +153,21 @@ describe("applyConsensus and repo_source_first_seen (needs TEST_DATABASE_URL)", 
         assert.equal(r.get(id)!.score, 100);
         assert.equal(r.get(id)!.consensus_count, 3);
         assert.ok(!("consensusBoost" in r.get(id)!.components), "boost is trending only");
+      }
+    });
+
+    it("the SQL factor equals consensusBoostFactor for 0, 1, 2 and 5 sources", async () => {
+      const counts = [0, 1, 2, 5];
+      for (const [i, n] of counts.entries()) {
+        await score(i + 1, "trending", 100);
+        for (let k = 0; k < n; k++) await signal(i + 1, `s${k}`, `${E}T10:00:00Z`);
+      }
+      await applyConsensus(pool, DATE);
+      const r = await rows();
+      for (const [i, n] of counts.entries()) {
+        const row = r.get(i + 1)!;
+        assert.equal(row.components.consensusBoost, consensusBoostFactor(n), `factor at ${n} sources`);
+        assert.equal(row.score, Number((100 * consensusBoostFactor(n)).toFixed(6)), `score at ${n} sources`);
       }
     });
 

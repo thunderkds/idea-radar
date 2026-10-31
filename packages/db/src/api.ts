@@ -95,7 +95,8 @@ export function stripHiddenComponents<T>(components: Record<string, T>, hiddenId
  * the factor (1 + boost × (count - 1)) would give away the count including a non-displayable source.
  */
 function publicComponents(components: Record<string, number>, hiddenIds: string[]): Record<string, number> {
-  const { consensusBoost: _consensusBoost, ...rest } = stripHiddenComponents(components, hiddenIds);
+  const rest = stripHiddenComponents(components, hiddenIds);
+  delete rest.consensusBoost;
   return rest;
 }
 

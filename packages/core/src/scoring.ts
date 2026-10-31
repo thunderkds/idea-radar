@@ -119,3 +119,11 @@ export const consensusConfig = {
   /** Trending score is multiplied by 1 + this × (consensus_count - 1), never below 1. */
   trendingBoostPerSource: 0.1,
 } as const;
+
+/**
+ * The Trending score factor for `consensusCount` sources: 1 + `trendingBoostPerSource` × (count - 1), never below 1.
+ * `applyConsensus` computes the same factor in SQL; `consensus.test.ts` checks the two agree.
+ */
+export function consensusBoostFactor(consensusCount: number): number {
+  return 1 + consensusConfig.trendingBoostPerSource * Math.max(consensusCount - 1, 0);
+}
