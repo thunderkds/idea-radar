@@ -191,3 +191,30 @@ export const trackingConfig = {
   /** Window of default-branch commits stored as `commits_30d`. */
   commitWindowDays: 30,
 };
+
+/**
+ * GitHub Search discovery (T025, `docs/SPEC.md` § Tracking strategy). The `discover` job runs, for every language,
+ * one query for repos created within `createdWithinDays` and one for repos pushed within `pushedWithinDays`,
+ * both with a star count in `stars`. Search returns at most 1,000 results per query (10 pages of 100) and allows 30 requests a minute.
+ */
+export const discoveryConfig = {
+  languages: ["TypeScript", "JavaScript", "Python", "Go", "Rust", "Java"],
+  createdWithinDays: 30,
+  pushedWithinDays: 7,
+  /** Star range of the lowkey tier, inclusive. */
+  stars: { min: 5, max: 200 },
+  /** Pages of 100 fetched per query (at most 10: the Search cap). */
+  pagesPerQuery: 5,
+  /** Most Search requests one `discover` run makes. */
+  dailyRequestCap: 120,
+};
+
+/** The Search queries of one `discover` run at `now`: per language a created query, then a pushed query. Windows count back from the UTC day of `now`. */
+export function discoveryQueries(now: Date): string[] {
+  const since = (days: number) => new Date(now.getTime() - days * 24 * 3_600_000).toISOString().slice(0, 10);
+  const stars = `stars:${discoveryConfig.stars.min}..${discoveryConfig.stars.max}`;
+  return discoveryConfig.languages.flatMap((language) => [
+    `language:${language} created:>=${since(discoveryConfig.createdWithinDays)} ${stars}`,
+    `language:${language} pushed:>=${since(discoveryConfig.pushedWithinDays)} ${stars}`,
+  ]);
+}
