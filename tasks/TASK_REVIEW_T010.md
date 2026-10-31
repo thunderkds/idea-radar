@@ -130,3 +130,40 @@ labelled 3 of the 3 top-scored lowkey rows of 2026-10-31
 **DELTA**: lowkey rows now carry the SPEC's weighted score with its five 0..1 components stored, and the owner can run `pnpm label` to export a sheet to label and `pnpm precision` to get precision@50 of the ranking.
 
 **WITNESS**: Supervisor session, 2026-10-31T08:38:05Z: reran `TEST_DATABASE_URL=… pnpm test` under T010 (exit 0, recorded in `memory/event-trace/T010.jsonl`) and read `packages/core/src/lowkey.ts`.
+
+### Rework R1
+
+**BEFORE**: captured 2026-10-31T10:52:47Z, before any R1 implementation commit (HEAD 6ae4919).
+
+```
+$ ls scripts/*.test.ts packages/core/src/index.test.ts packages/db/src/index.test.ts
+ls: cannot access 'packages/core/src/index.test.ts': No such file or directory
+ls: cannot access 'packages/db/src/index.test.ts': No such file or directory
+scripts/repo-hygiene.test.ts
+$ grep '"test"' package.json
+    "test": "pnpm -r test && tsx --test scripts/repo-hygiene.test.ts",
+```
+
+**AFTER**: captured 2026-10-31T10:54:45Z on the R1 change.
+
+```
+$ ls scripts/*.test.ts packages/core/src/index.test.ts packages/db/src/index.test.ts
+packages/core/src/index.test.ts
+packages/db/src/index.test.ts
+scripts/cli-args.test.ts
+scripts/label.test.ts
+scripts/precision.test.ts
+scripts/repo-hygiene.test.ts
+$ grep '"test"' package.json
+    "test": "pnpm -r test && tsx --conditions=source --test \"scripts/**/*.test.ts\"",
+$ TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test
+packages/core test: tests 38 / pass 38 / fail 0
+packages/connectors test: tests 81 / pass 80 / fail 0 / skipped 1
+packages/db test: tests 80 / pass 80 / fail 0
+apps/api test: tests 15 / pass 15 / fail 0
+apps/worker test: tests 24 / pass 24 / fail 0
+scripts (root run): tests 21 / pass 21 / fail 0   (cli-args 6, label 4, precision 6, repo-hygiene 5)
+```
+
+**DELTA**: the five files the easy-verifier listed as unpaired now each have a sibling test, and the root `pnpm test` runs every `scripts/*.test.ts` file (21 tests, was 5).
+

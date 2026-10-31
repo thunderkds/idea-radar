@@ -11,7 +11,7 @@
     "typecheck": "pnpm --filter \"./packages/**\" build && pnpm -r typecheck",
     "lint": "pnpm -r lint && eslint scripts eslint.config.js",
     "format:check": "prettier --check packages apps scripts eslint.config.js",
-    "test": "pnpm -r test && tsx --test scripts/repo-hygiene.test.ts",
+    "test": "pnpm -r test && tsx --conditions=source --test \"scripts/**/*.test.ts\"",
     "db:migrate": "pnpm --filter @idea-radar/db migrate",
     "worker": "pnpm --filter @idea-radar/worker dev",
     "api": "pnpm --filter @idea-radar/api dev",
