@@ -98,7 +98,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
     await pool.query(
-      "TRUNCATE jobs, repos, repo_daily, signals, sources, pending_signals, ingest_cursors",
+      "TRUNCATE jobs, repos, repo_daily, signals, sources, pending_signals, ingest_cursors, repo_scores",
     );
   });
 
@@ -336,10 +336,16 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal((await source("gh_archive"))!.last_status, "error");
     });
 
-    it("score is a placeholder with no source row", async () => {
+    it("score runs scoreDay for the job's date, with no source row", async () => {
+      await pool.query("INSERT INTO repos (repo_id, full_name, stars) VALUES (5, 'o/listed', 800)");
+      await pool.query(
+        "INSERT INTO signals (repo_id, source, signal_type, observed_at) VALUES (5, 'github_trending', 'x', '2026-10-30T10:00:00Z')",
+      );
       await once(ctx([]));
       assert.equal((await job("score")).status, "ok");
       assert.equal(await count("sources"), 0);
+      const rows = (await pool.query("SELECT repo_id, date::text AS date, tier FROM repo_scores")).rows;
+      assert.deepEqual(rows, [{ repo_id: 5, date: "2026-10-31", tier: "trending" }]);
     });
   });
 

@@ -13,12 +13,16 @@ export const tierConfig = {
     minStars: 500,
     /** Consecutive weeks of positive 30-day velocity. */
     minPositiveWeeks: 4,
+    /** A week is positive when the 30 days ending at its checkpoint gained at least this many stars. */
+    min30dStars: 1,
   },
   lowkey: {
     maxStars: 200,
     maxDaysSincePush: 30,
     minContributors: 2,
     requireReadme: true,
+    /** 7-day daily star rate must be above the repo's own prior-83-day rate (no prior history counts as above). */
+    requireVelocityAboveBaseline: true,
   },
 } as const;
 
@@ -51,6 +55,8 @@ export interface TierInput {
   contributors: number;
   hasReadme: boolean;
   listedByTrendingSource: boolean;
+  /** 7-day daily star rate is above the repo's own prior-83-day daily rate; no prior history counts as above. */
+  velocityAboveBaseline: boolean;
 }
 
 export function classifyTier(input: TierInput): Tier | null {
@@ -71,7 +77,8 @@ export function classifyTier(input: TierInput): Tier | null {
     input.stars < lk.maxStars &&
     input.daysSincePush <= lk.maxDaysSincePush &&
     input.contributors >= lk.minContributors &&
-    (!lk.requireReadme || input.hasReadme)
+    (!lk.requireReadme || input.hasReadme) &&
+    (!lk.requireVelocityAboveBaseline || input.velocityAboveBaseline)
   ) {
     return "lowkey";
   }

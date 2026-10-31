@@ -11,6 +11,7 @@ const base: TierInput = {
   contributors: 3,
   hasReadme: true,
   listedByTrendingSource: false,
+  velocityAboveBaseline: true,
 };
 
 describe("lowkeyScore", () => {
@@ -28,19 +29,91 @@ describe("lowkeyScore", () => {
 });
 
 describe("classifyTier", () => {
+  const tier = (over: Partial<TierInput>) => classifyTier({ ...base, ...over });
+
   it("classifies a small active multi-contributor repo as lowkey", () => {
     assert.equal(classifyTier(base), "lowkey");
   });
 
   it("classifies a top-velocity repo as trending", () => {
-    assert.equal(classifyTier({ ...base, velocityPercentile: 0.995 }), "trending");
+    assert.equal(tier({ velocityPercentile: 0.995 }), "trending");
   });
 
   it("classifies a large repo with steady growth as medium", () => {
-    assert.equal(classifyTier({ ...base, stars: 800, positiveWeeks: 6 }), "medium");
+    assert.equal(tier({ stars: 800, positiveWeeks: 6 }), "medium");
   });
 
   it("returns null when no tier matches", () => {
-    assert.equal(classifyTier({ ...base, hasReadme: false }), null);
+    assert.equal(tier({ hasReadme: false }), null);
+  });
+
+  describe("trending boundary", () => {
+    it("needs the 99th percentile of 7-day velocity: 0.99 in, just below out", () => {
+      assert.equal(tier({ stars: 800, velocityPercentile: 0.99 }), "trending");
+      assert.equal(tier({ stars: 800, velocityPercentile: 0.9899 }), null);
+    });
+
+    it("a listing by a trending source is enough on its own", () => {
+      assert.equal(tier({ stars: 800, listedByTrendingSource: true }), "trending");
+      assert.equal(tier({ stars: 800, listedByTrendingSource: false }), null);
+    });
+  });
+
+  describe("medium boundary", () => {
+    it("needs 500 stars: 499 out, 500 in", () => {
+      assert.equal(tier({ stars: 499, positiveWeeks: 4, hasReadme: false }), null);
+      assert.equal(tier({ stars: 500, positiveWeeks: 4, hasReadme: false }), "medium");
+    });
+
+    it("needs 4 positive weeks: 3 out, 4 in", () => {
+      assert.equal(tier({ stars: 500, positiveWeeks: 3 }), null);
+      assert.equal(tier({ stars: 500, positiveWeeks: 4 }), "medium");
+    });
+
+    it("ignores the lowkey-only inputs", () => {
+      assert.equal(
+        tier({ stars: 500, positiveWeeks: 4, daysSincePush: 400, contributors: 0, hasReadme: false, velocityAboveBaseline: false }),
+        "medium",
+      );
+    });
+  });
+
+  describe("lowkey boundary", () => {
+    it("needs under 200 stars: 199 in, 200 out", () => {
+      assert.equal(tier({ stars: 199 }), "lowkey");
+      assert.equal(tier({ stars: 200 }), null);
+    });
+
+    it("needs a push within 30 days: 30 in, 31 out", () => {
+      assert.equal(tier({ daysSincePush: 30 }), "lowkey");
+      assert.equal(tier({ daysSincePush: 31 }), null);
+      assert.equal(tier({ daysSincePush: Number.POSITIVE_INFINITY }), null);
+    });
+
+    it("needs 2 contributors: 1 out, 2 in", () => {
+      assert.equal(tier({ contributors: 1 }), null);
+      assert.equal(tier({ contributors: 2 }), "lowkey");
+    });
+
+    it("needs a README", () => {
+      assert.equal(tier({ hasReadme: false }), null);
+      assert.equal(tier({ hasReadme: true }), "lowkey");
+    });
+
+    it("needs velocity above the baseline: equal (false) out, above in", () => {
+      assert.equal(tier({ velocityAboveBaseline: false }), null);
+      assert.equal(tier({ velocityAboveBaseline: true }), "lowkey");
+    });
+  });
+
+  describe("tier order", () => {
+    it("trending beats medium and lowkey", () => {
+      assert.equal(tier({ stars: 800, positiveWeeks: 6, velocityPercentile: 1 }), "trending");
+      assert.equal(tier({ listedByTrendingSource: true }), "trending");
+    });
+
+    it("positive weeks alone do not make a small repo medium: it falls through to lowkey", () => {
+      assert.equal(tier({ stars: 199, positiveWeeks: 6 }), "lowkey");
+    });
   });
 });

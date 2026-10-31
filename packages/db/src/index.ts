@@ -21,3 +21,4 @@ export * from "./sources.js";
 export * from "./candidates.js";
 export * from "./jobs.js";
 export * from "./api.js";
+export * from "./scores.js";

@@ -9,6 +9,7 @@ import {
   markNotFound,
   resolvePending,
   SCORE_JOB,
+  scoreDay,
   setCursor,
   upsertRepo,
   upsertRepoDaily,
@@ -118,8 +119,14 @@ export function buildHandlers(deps: HandlerDeps): Record<string, JobHandler> {
       },
     };
   }
-  // T009 fills this in: it only records the run for now.
-  handlers[SCORE_JOB] = { sourceId: null, run: async () => {} };
+  // Windows end at the last ingested GH Archive day when it lags behind the last complete UTC day.
+  handlers[SCORE_JOB] = {
+    sourceId: null,
+    async run({ db, job }) {
+      const cursor = await getCursor(db, GH_ARCHIVE_ID);
+      await scoreDay(db, job.dataKey, cursor ? { windowEnd: cursor } : {});
+    },
+  };
   return handlers;
 }
 
