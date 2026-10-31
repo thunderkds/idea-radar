@@ -1,6 +1,7 @@
 {
   "name": "idea-radar",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
   "description": "Discover public GitHub repos in trending, medium and lowkey tiers.",
   "packageManager": "pnpm@9.12.0",
@@ -12,7 +13,9 @@
     "db:migrate": "pnpm --filter @idea-radar/db migrate",
     "worker": "pnpm --filter @idea-radar/worker dev",
     "api": "pnpm --filter @idea-radar/api dev",
-    "dashboard": "pnpm --filter @idea-radar/dashboard dev"
+    "dashboard": "pnpm --filter @idea-radar/dashboard dev",
+    "label": "tsx --conditions=source scripts/label.ts",
+    "precision": "tsx --conditions=source scripts/precision.ts"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",

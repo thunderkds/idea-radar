@@ -1,4 +1,12 @@
-import { classifyTier, tierConfig, type RepoScore, type Tier, type TierInput } from "@idea-radar/core";
+import {
+  classifyTier,
+  lowkeyComponents,
+  lowkeyScore,
+  tierConfig,
+  type RepoScore,
+  type Tier,
+  type TierInput,
+} from "@idea-radar/core";
 import type { Queryable } from "./index.js";
 import { upsertRepoScores } from "./repository.js";
 
@@ -24,6 +32,9 @@ interface InputRow {
   percentile: number;
   positive_weeks: number;
   contributors: number;
+  pushes30d: number;
+  prs30d: number;
+  issues30d: number;
   days_since_push: number | null;
   has_readme: boolean;
   listed: boolean;
@@ -37,9 +48,13 @@ interface InputRow {
  * The date's rows are deleted and rewritten in one transaction, so a rerun gives the same rows.
  * `components` holds every `TierInput` field (booleans as 0/1) plus `stars7d` and `stars30d`;
  * `daysSincePush` is left out when `repos.pushed_at` is null. `insufficient_history` is 1 when the repo has
- * no `repo_daily` row in the baseline window, so its baseline rate is unknown (gap A3). Lowkey scores are
- * interim until T010 (`components.interim = 1`). `consensus_count` and `fake_star_flag` are 0 / false until
- * T015 and T011. `db` may be a pool, or a client that is not inside a transaction.
+ * no `repo_daily` row in the baseline window, so its baseline rate is unknown (gap A3). A lowkey row's score is
+ * `lowkeyScore` of five 0..1 components, which `components` also holds: `velocityLift`, `activity`,
+ * `contributorsScore` (`contributors` stays the raw count), `readmeQuality`, `issueResponsiveness`; plus
+ * `pushes30d`, `prsOpened30d`, `issuesOpened30d` and `issueResponsivenessKnown` (0: no reply data yet, so
+ * `issueResponsiveness` is 0). README text is read only for lowkey repos.
+ * `consensus_count` and `fake_star_flag` are 0 / false until T015 and T011. `db` may be a pool, or a client
+ * that is not inside a transaction.
  * `windowEnd` (e.g. the GH Archive cursor, the last ingested day) moves the windows earlier when the
  * last complete day is not ingested yet; a value after `date` - 1 is ignored.
  */
@@ -59,11 +74,19 @@ export async function scoreDay(db: Queryable, date: string, opts: { windowEnd?: 
       ]);
       const skipped = await client.query<{ n: number }>(SKIPPED_SQL, [windowEnd]);
 
+      const staged: Staged[] = [];
+      for (const row of res.rows) {
+        if (row.archived) continue;
+        const input = tierInput(row);
+        const tier = classifyTier(input);
+        if (tier) staged.push({ row, input, tier });
+      }
+      const readmes = await readmesFor(client, staged.filter((s) => s.tier === "lowkey").map((s) => s.row.repo_id));
+
       const byTier: Record<string, number> = {};
       const scores: RepoScore[] = [];
-      for (const row of res.rows) {
-        const result = scoreRow(row, date);
-        if (!result) continue;
+      for (const s of staged) {
+        const result = scoreRow(s, date, readmes.get(s.row.repo_id));
         scores.push(result);
         byTier[result.tier] = (byTier[result.tier] ?? 0) + 1;
       }
@@ -85,9 +108,14 @@ export async function scoreDay(db: Queryable, date: string, opts: { windowEnd?: 
 
 const round = (n: number) => Number(n.toFixed(6));
 
-function scoreRow(row: InputRow, date: string): RepoScore | null {
-  if (row.archived) return null;
-  const input: TierInput = {
+interface Staged {
+  row: InputRow;
+  input: TierInput;
+  tier: Tier;
+}
+
+function tierInput(row: InputRow): TierInput {
+  return {
     stars: row.stars,
     starsLast7d: row.stars7d,
     velocityPercentile: row.percentile,
@@ -98,9 +126,21 @@ function scoreRow(row: InputRow, date: string): RepoScore | null {
     listedByTrendingSource: row.listed,
     velocityAboveBaseline: row.above_baseline,
   };
-  const tier = classifyTier(input);
-  if (!tier) return null;
+}
 
+/** README text of the given repos, one query; a repo without a `repo_content` row is absent from the map. */
+async function readmesFor(db: Queryable, repoIds: number[]): Promise<Map<number, string>> {
+  const out = new Map<number, string>();
+  if (repoIds.length === 0) return out;
+  const { rows } = await db.query<{ repo_id: number; readme_md: string | null }>(
+    "SELECT repo_id, readme_md FROM repo_content WHERE repo_id = ANY($1::bigint[])",
+    [repoIds],
+  );
+  for (const r of rows) if (r.readme_md) out.set(r.repo_id, r.readme_md);
+  return out;
+}
+
+function scoreRow({ row, input, tier }: Staged, date: string, readme: string | undefined): RepoScore {
   const components: Record<string, number> = {
     stars: input.stars,
     starsLast7d: input.starsLast7d,
@@ -115,24 +155,50 @@ function scoreRow(row: InputRow, date: string): RepoScore | null {
     insufficient_history: Number(row.prior_rows === 0),
   };
   if (row.days_since_push !== null) components.daysSincePush = row.days_since_push;
-  if (tier === "lowkey") components.interim = 1;
+  let score: number;
+  if (tier === "lowkey") {
+    const lk = lowkeyComponents({
+      starsLast7d: row.stars7d,
+      priorStars: row.prior_stars,
+      hasPriorHistory: row.prior_rows > 0,
+      pushes30d: row.pushes30d,
+      prsOpened30d: row.prs30d,
+      issuesOpened30d: row.issues30d,
+      contributors: row.contributors,
+      readme,
+    });
+    for (const [key, value] of Object.entries(lk)) lk[key as keyof typeof lk] = round(value);
+    Object.assign(components, {
+      velocityLift: lk.velocityLift,
+      activity: lk.activity,
+      contributorsScore: lk.contributors,
+      readmeQuality: lk.readmeQuality,
+      issueResponsiveness: lk.issueResponsiveness,
+      pushes30d: row.pushes30d,
+      prsOpened30d: row.prs30d,
+      issuesOpened30d: row.issues30d,
+      issueResponsivenessKnown: 0,
+    });
+    score = lowkeyScore(lk);
+  } else {
+    score = tierScore(tier, row);
+  }
 
   return {
     repoId: row.repo_id,
     date,
     tier,
-    score: round(tierScore(tier, row)),
+    score: round(score),
     components,
     consensusCount: 0,
     fakeStarFlag: false,
   };
 }
 
-/** Ranking value per tier (see the TASK_GUIDE_T009 AC 6); lowkey is the interim formula until T010. */
-function tierScore(tier: Tier, row: InputRow): number {
+/** Ranking value for trending and medium (see the TASK_GUIDE_T009 AC 6); lowkey uses `lowkeyScore` in `scoreRow`. */
+function tierScore(tier: "trending" | "medium", row: InputRow): number {
   if (tier === "trending") return row.stars7d;
-  if (tier === "medium") return row.stars30d / Math.max(row.stars - row.stars30d, 1);
-  return row.stars7d / ((row.prior_stars / 83) * 7 + 1);
+  return row.stars30d / Math.max(row.stars - row.stars30d, 1);
 }
 
 // $1 = E, the last complete UTC day; $2 = min 30-day stars for a positive week; $3 = checkpoints to check.
@@ -161,7 +227,10 @@ WITH vel7 AS (
          coalesce(sum(d.stars_new) FILTER (WHERE d.date > $1::date - 30), 0) AS s30,
          coalesce(sum(d.stars_new) FILTER (WHERE d.date <= $1::date - 7), 0) AS prior,
          count(*) FILTER (WHERE d.date <= $1::date - 7) AS prior_rows,
-         coalesce(max(d.contributors) FILTER (WHERE d.date > $1::date - 30), 0) AS contributors
+         coalesce(max(d.contributors) FILTER (WHERE d.date > $1::date - 30), 0) AS contributors,
+         coalesce(sum(d.pushes) FILTER (WHERE d.date > $1::date - 30), 0) AS pushes30d,
+         coalesce(sum(d.prs_opened) FILTER (WHERE d.date > $1::date - 30), 0) AS prs30d,
+         coalesce(sum(d.issues_opened) FILTER (WHERE d.date > $1::date - 30), 0) AS issues30d
   FROM repo_daily d JOIN scope USING (repo_id)
   WHERE d.date > $1::date - 90 AND d.date <= $1::date
   GROUP BY d.repo_id
@@ -184,6 +253,9 @@ SELECT s.repo_id, s.stars, s.archived,
        coalesce(p.pr, 0) AS percentile,
        coalesce(w.positive_weeks, 0) AS positive_weeks,
        coalesce(a.contributors, 0) AS contributors,
+       coalesce(a.pushes30d, 0) AS pushes30d,
+       coalesce(a.prs30d, 0) AS prs30d,
+       coalesce(a.issues30d, 0) AS issues30d,
        CASE WHEN s.pushed_at IS NULL THEN NULL
             ELSE greatest(0, floor(extract(epoch FROM (($1::date + 1)::timestamp AT TIME ZONE 'UTC') - s.pushed_at) / 86400))
        END AS days_since_push,

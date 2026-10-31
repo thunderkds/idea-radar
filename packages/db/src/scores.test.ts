@@ -2,6 +2,7 @@ import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
+import { lowkeyNormalisation, lowkeyWeights } from "@idea-radar/core";
 import { applyMigrations, scoreDay } from "./index.js";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -22,6 +23,9 @@ async function skipReason(): Promise<string | undefined> {
 }
 
 const skip = await skipReason();
+
+const round6 = (n: number) => Number(n.toFixed(6));
+const GOOD_README = ["# Project", "x".repeat(1600), "## Installation", "## Usage", "## API", "## Contributing", "## License"].join("\n");
 
 // Scoring 2026-10-31 uses the last complete day E = 2026-10-30.
 // 7-day window (2026-10-23, E]; 30-day (2026-10-01, E]; 90-day (2026-08-01, E]; baseline (2026-08-01, 2026-10-23].
@@ -53,6 +57,11 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
     ]);
   const readme = (repoId: number, text = "# readme") =>
     pool.query("INSERT INTO repo_content (repo_id, readme_md) VALUES ($1, $2)", [repoId, text]);
+  const readmeUpdate = (repoId: number, text: string) =>
+    pool.query(
+      "INSERT INTO repo_content (repo_id, readme_md) VALUES ($1, $2) ON CONFLICT (repo_id) DO UPDATE SET readme_md = $2",
+      [repoId, text],
+    );
   const day = (repoId: number, date: string, starsNew: number, contributors = 0) =>
     pool.query("INSERT INTO repo_daily (repo_id, date, stars_new, contributors) VALUES ($1, $2, $3, $4)", [
       repoId, date, starsNew, contributors,
@@ -148,18 +157,67 @@ describe("scoreDay (needs TEST_DATABASE_URL)", { skip }, () => {
       assert.equal(row.components.stars30d, 1);
     });
 
-    it("lowkey: interim score = 7-day stars / (prior daily rate * 7 + 1), flagged interim (AC 4, 6)", async () => {
+    it("lowkey: score is the weighted sum of five 0..1 components, all stored; interim is gone (T010 AC 2, 4, 7)", async () => {
       await lowkeyRepo(20);
       const res = await scoreDay(pool, DATE);
       assert.deepEqual(res, { scored: 1, byTier: { lowkey: 1 }, skippedNoMetadata: 0 });
       const row = (await byId()).get(20)!;
       assert.equal(row.tier, "lowkey");
-      assert.equal(row.score, 1.75); // 14 / (83 / 83 * 7 + 1)
+      // velocity: 14 stars / 7 days = 2 a day vs 1 a day prior = lift 2 -> (2 - 1) / 4; contributors 3 / 5;
+      // readme "# readme": 8 chars and 1 heading, no install or usage section; no activity events; no reply data.
       assert.deepEqual(row.components, {
         stars: 50, starsLast7d: 14, velocityPercentile: 0, positiveWeeks: 4, contributors: 3, hasReadme: 1,
         listedByTrendingSource: 0, velocityAboveBaseline: 1, stars7d: 14, stars30d: 14, insufficient_history: 0,
-        daysSincePush: 0, interim: 1,
+        daysSincePush: 0,
+        velocityLift: 0.25, activity: 0, contributorsScore: 0.6, readmeQuality: 0.062133, issueResponsiveness: 0,
+        pushes30d: 0, prsOpened30d: 0, issuesOpened30d: 0, issueResponsivenessKnown: 0,
       });
+      assert.equal(row.score, 0.1868);
+    });
+
+    it("lowkey: score equals the sum of lowkeyWeights times the stored components", async () => {
+      await lowkeyRepo(21);
+      await lowkeyRepo(22, { contributors: 5 });
+      await readmeUpdate(22, GOOD_README);
+      await pool.query("UPDATE repo_daily SET pushes = 10, prs_opened = 5, issues_opened = 5 WHERE repo_id = 22 AND date = $1", [dayBefore(2)]);
+      await scoreDay(pool, DATE);
+      const rows = await byId();
+      for (const id of [21, 22]) {
+        const row = rows.get(id)!;
+        const c = row.components;
+        const sum =
+          lowkeyWeights.velocityLift * c.velocityLift! +
+          lowkeyWeights.activity * c.activity! +
+          lowkeyWeights.contributors * c.contributorsScore! +
+          lowkeyWeights.readmeQuality * c.readmeQuality! +
+          lowkeyWeights.issueResponsiveness * c.issueResponsiveness!;
+        assert.ok(Math.abs(row.score - sum) < 1e-4, `repo ${id}: ${row.score} vs ${sum}`);
+        for (const k of ["velocityLift", "activity", "contributorsScore", "readmeQuality", "issueResponsiveness"]) {
+          assert.ok(c[k]! >= 0 && c[k]! <= 1, `${k}=${c[k]}`);
+        }
+      }
+      const c22 = rows.get(22)!.components;
+      assert.equal(c22.activity, round6(20 / 30));
+      assert.equal(c22.contributorsScore, 1);
+      assert.equal(c22.readmeQuality, 1);
+      assert.equal(c22.pushes30d, 10);
+      assert.ok(rows.get(22)!.score > rows.get(21)!.score);
+    });
+
+    it("lowkey: no baseline history gives the configured velocity value, not 1; a NULL README is no lowkey candidate", async () => {
+      await repo(23);
+      await pool.query("INSERT INTO repo_content (repo_id, readme_md) VALUES (23, NULL)");
+      await day(23, dayBefore(2), 3, 3);
+      await scoreDay(pool, DATE);
+      const row = (await byId()).get(23);
+      // has_readme requires non-blank text, so a NULL README is not a lowkey candidate at all.
+      assert.equal(row, undefined);
+      await readmeUpdate(23, "# Hi");
+      await scoreDay(pool, DATE);
+      const c = (await byId()).get(23)!.components;
+      assert.equal(c.insufficient_history, 1);
+      assert.equal(c.velocityLift, lowkeyNormalisation.velocityLift.noHistory);
+      assert.equal(c.issueResponsivenessKnown, 0);
     });
   });
 

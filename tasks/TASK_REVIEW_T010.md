@@ -91,9 +91,32 @@ ls: cannot access 'scripts/label.ts': No such file or directory
 $ grep -n '"label"\|"precision"' package.json    (no output)
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: captured 2026-10-31T08:35:54Z..08:36:01Z on the implementation.
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test
+packages/core test: tests 37 / pass 37 / fail 0
+packages/connectors test: tests 81 / pass 80 / fail 0 / skipped 1
+packages/db test: tests 79 / pass 79 / fail 0
+apps/api test: tests 15 / pass 15 / fail 0
+apps/worker test: tests 24 / pass 24 / fail 0
+$ pnpm typecheck    -> all packages "Done", no errors
+
+# temp schema with 6 demo repos, scoreDay for 2026-10-31 (lowkey row, repo 5):
+score 0.6906, components: velocityLift 1, activity 0.566667, contributorsScore 0.6, readmeQuality 0.7264,
+  issueResponsiveness 0, issueResponsivenessKnown 0, pushes30d 15, prsOpened30d 1, issuesOpened30d 1   (no "interim")
+
+$ pnpm label -- --date 2026-10-31 --out labels.csv --limit 4 --top 2
+wrote 4 lowkey rows of 2026-10-31 to labels.csv
+repo_id,full_name,score,url,label
+5,demo/repo5,0.6906,https://github.com/demo/repo5,
+...
+$ pnpm precision -- --date 2026-10-31 --labels labels.csv --k 3     (3 of 4 rows hand-filled)
+precision@3 = 0.667 (2 good of 3 labelled)
+labelled 3 of the 3 top-scored lowkey rows of 2026-10-31
+```
+
+**DELTA**: lowkey rows now carry the SPEC's weighted score with its five 0..1 components stored, and the owner can run `pnpm label` to export a sheet to label and `pnpm precision` to get precision@50 of the ranking.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
