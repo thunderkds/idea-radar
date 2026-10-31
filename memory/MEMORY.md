@@ -24,3 +24,4 @@
 - [GH Archive day-at-a-time](decisions.md#2026-10-31--gh-archive-ingests-whole-utc-days-not-hours) — T004 writes repo_daily once per completed UTC day (exact distinct_actors)
 - [Requirements + merged AGENTS.md](decisions.md#2026-10-31--requirements-live-in-docsspecmd--docsissuesmd-agentsmd-is-merged) — docs/SPEC.md + docs/ISSUES.md are the PRD; Txxx↔HUN map on the board
 - [Codebase Map](codebase-map.md) — structural snapshot: directory tree, entry points, blast-radius hotspots. Refresh via /map-codebase.
+- [Kit gotchas, parallel wave](learnings.md#2026-10-31--kit-gotchas-found-running-wave-1-in-parallel) — own worktrees from a base branch; bare test cmd for Gate 5; unscoped review skill names; no `<x>` in reports
