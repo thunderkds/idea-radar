@@ -12,6 +12,10 @@
 `api.ossinsight.io/v1` trending answers `rows: []` with `data_quality.status: "unavailable"` (unavailable since 2026-03-01, seen by T007's real worker run). The `ossinsight` connector therefore reports `ok` with 0 signals — the silent-success failure HUN-147 guards against for Trending. Treat 0 rows / `unavailable` as an error before relying on OSS Insight for the trending tier (T012).
 **Files**: `packages/connectors/src/ossinsight.ts`
 
+### 2026-10-31 — OSS Insight collections endpoints return HTTP 500
+On 2026-10-31 every `api.ossinsight.io/v1/collections/*` path (list, `{id}`, `{id}/repos/`, `openapi.json`) answered HTTP 500 `{"message":"Request failed with status code 401"}`, and `collections/{id}/ranking_by_stars` answered the same `unavailable` shape as trends. T012's collection parser runs on hand-written fixtures only; check the real paths and row fields once the API recovers. Until then the daily `ossinsight` job fails every run (by design) — set `OSSINSIGHT_ENABLED=false` to silence it.
+**Files**: `packages/connectors/src/ossinsight.ts`, `packages/connectors/src/fixtures/ossinsight/`
+
 ### 2026-10-31 — Kit gotchas found running wave 1 in parallel
 - `Agent(isolation: "worktree")` bases the worktree on `main`, not the current branch, so the agent has no `tasks/`, `agents/` or guides. Create worktrees yourself from a base branch that carries them (`git worktree add -b <branch> .claude/worktrees/Txxx <base>`) and pass the absolute path in the spawn prompt.
 - The merge gate blocks `git rebase` while a task is In Progress; re-apply a task branch with `git format-patch` + `git apply --3way` instead (keep the original on a `backup/` branch).
