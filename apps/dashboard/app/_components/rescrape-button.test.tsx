@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { RescrapeButton, rescrapeStatus } from "./rescrape-button";
+import { RescrapeButton, rescrapeStatus, runRescrape } from "./rescrape-button";
 
 describe("RescrapeButton", () => {
   it("is a secondary button with its label, enabled, and an empty polite status region", () => {
@@ -20,5 +20,18 @@ describe("rescrapeStatus", () => {
   });
   it("shows the error text", () => {
     assert.deepEqual(rescrapeStatus({ ok: false, message: "unauthorized" }), { text: "Refresh failed: unauthorized", error: true });
+  });
+});
+
+describe("runRescrape", () => {
+  it("passes the action's result through", async () => {
+    const ok = { ok: true as const, queued: 1, at: "2026-10-31T15:55:48.000Z" };
+    assert.deepEqual(await runRescrape(async () => ok, { repoId: 1 }), ok);
+  });
+  it("turns a thrown error (the dashboard server is down) into a failed result, so the page does not crash", async () => {
+    const res = await runRescrape(async () => {
+      throw new TypeError("fetch failed");
+    }, { repoId: 1 });
+    assert.deepEqual(res, { ok: false, message: "Could not reach the dashboard server" });
   });
 });
