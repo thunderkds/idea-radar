@@ -18,9 +18,9 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T022** — Repo hygiene for wave-4 scores: MIT LICENSE, lint + format config, CI hardening | common-infrastructure | C1 | Risk: Low | P1 | PR/branch: `hun-t022-repo-hygiene` | Started 2026-10-31: branch `hun-t022-repo-hygiene`
 
 ### Ready for Review
+- [ ] **T022** — Repo hygiene for wave-4 scores: MIT LICENSE, lint + format config, CI hardening | common-infrastructure | C1 | Risk: Low | P1 | PR/branch: `hun-t022-repo-hygiene` | Started 2026-10-31: branch `hun-t022-repo-hygiene`
 
 ### Done
 - [x] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus` | Done 2026-10-31: auto verify pass (session 2ae3f276-bc65-4c5d-b9d8-28abdd602e19, commit 39245bcad85167932d5d0b89760a75d0892586d8)
