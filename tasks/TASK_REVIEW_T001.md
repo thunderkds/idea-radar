@@ -58,7 +58,8 @@ Mode: auto
 10. MCP servers added to `.mcp.json`: easy-verifier over HTTP to the running container, easy-memory as the local stdio script (no memory container exists) — SAFER OPTION: `docker ps -a` lists no easy-memory container ⚠ decided for you — please review
 Checks: tests `pnpm install --frozen-lockfile && pnpm typecheck && pnpm test` — exit 0, 6/6 pass; reviews code-review — P0 0, P1 1 (process: agent could not read `agents/common-infrastructure.md`, absent in its worktree), P2 3 (CI still `pnpm install` without `--frozen-lockfile` and no `pnpm test` step; `TEST_DATABASE_URL` shares the dev `radar` DB — moved to T002 guide; `engines` `>=20` but `node --test` globs need Node 21+), P3 1 (compiled `*.test.js` land in `dist/`); real run `pnpm worker -- --once` — printed `"status":"ok"` lines (auto-checked, not /verify)
 Memory: decisions.md — "GH Archive ingests whole UTC days, not hours"; decisions.md — "Requirements live in docs/SPEC.md + docs/ISSUES.md; AGENTS.md is merged"
-Not done: merge (yours); auto verify: running (T182)
+Not done: merge (yours); auto verify: ☑ pass (session 602b7bbf-f688-42c1-9e5c-580c17f21a07, commit 422e1463c39880a38ca0665e9845fca7e6244f8e, log .claude/verify-runs/T001-422e1463c398.log)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session 602b7bbf-f688-42c1-9e5c-580c17f21a07, commit 422e1463c39880a38ca0665e9845fca7e6244f8e); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -67,7 +68,7 @@ Not done: merge (yours); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/core/src/scoring.test.ts` (6 tests: lowkeyScore bounds/clamp, classifyTier trending/medium/lowkey/null). Output: `packages/core test: ℹ tests 6 ℹ pass 6 ℹ fail 0` |
 | Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm typecheck && pnpm test` → exit=0 (see AFTER) |
 | Negative cases hold | ☑ pass | Agent: injected `assert.fail("deliberate")` → `neg_exit=1`, "ℹ fail 1", "ELIFECYCLE Test failed"; removed after |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 602b7bbf-f688-42c1-9e5c-580c17f21a07, commit 422e1463c39880a38ca0665e9845fca7e6244f8e, log .claude/verify-runs/T001-422e1463c398.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed the 13 files in `git diff 92fe8a4..HEAD` + `.github/workflows/ci.yml` (caller of the scripts). `lane_check`: `lane: C1, 12 files, 99 lines, EXCEEDS (files 12 > 6); unpredicted: .gitignore, docker-compose.yml` — mostly one-line package.json script edits; label kept at C1 |
 | Full smoke suite still green (no regression) | ☑ pass | `pnpm worker -- --once` exit 0, `pnpm api` /health ok (agent run 04:54 UTC) |
 | **Companion score (easy-verifier)** | ☑ N/A | not run for T001: config-only change; the score skill runs from T002 on |
