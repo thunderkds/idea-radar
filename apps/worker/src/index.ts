@@ -26,7 +26,7 @@ async function main(): Promise<void> {
 
     await runWorker({
       db: pool,
-      handlers: buildHandlers({ connectors }),
+      handlers: buildHandlers({ connectors, log: (line) => console.log(line) }),
       caps: buildCaps(connectors),
       once,
       signal: abort.signal,

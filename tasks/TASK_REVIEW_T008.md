@@ -82,9 +82,19 @@ packages/db/src/repository.ts:13:/** README + manifests for a shortlisted repo (
 
 No `shortlist` job, no `fetchContent`, no `deriveStackTags`, no `contentMaxAgeDays` exist: the only hit is a comment. `buildHandlers` registers only `resolve_pending`, the fetch connectors, `gh_archive` and the `score` placeholder.
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (2026-10-31T07:46:55Z, same command, after the change):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+packages/core:       tests 6   pass 6   fail 0 skipped 0
+packages/connectors: tests 67  pass 66  fail 0 skipped 1   (+17: fetchContent 8, deriveStackTags 9)
+packages/db:         tests 57  pass 57  fail 0 skipped 0   (+3: listCandidatesNeedingContent)
+apps/worker:         tests 24  pass 24  fail 0 skipped 0   (+6: shortlist job)
+pnpm typecheck: all 6 workspace projects Done
+```
+
+`buildHandlers` now registers `shortlist` (`SHORTLIST_JOB`); `GithubApiConnector.fetchContent` and `deriveStackTags` exist.
+
+**DELTA**: The daily job now selects the day's candidates, fetches their metadata and README, manifests and file tree, and stores stack tags, so every candidate has a `repos` row and `repo_content` row before scoring.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]

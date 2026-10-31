@@ -91,6 +91,8 @@ export interface CandidateConfig {
   cap: number;
   /** `listCandidates({ needsMetadata })`: a repos row older than this many days counts as stale. */
   metadataMaxAgeDays: number;
+  /** `listCandidatesNeedingContent`: a `repo_content` row fetched longer ago than this many days counts as stale. */
+  contentMaxAgeDays: number;
 }
 
 /** Candidate selection (T021): which repos get metadata and README fetched each day. */
@@ -100,4 +102,5 @@ export const candidateConfig: CandidateConfig = {
   minStars7d: 3,
   cap: 5000,
   metadataMaxAgeDays: 7,
+  contentMaxAgeDays: 7,
 };

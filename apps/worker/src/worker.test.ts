@@ -6,7 +6,7 @@ import pg from "pg";
 import type { Repo, Signal, SourceConnector } from "@idea-radar/core";
 import { GhArchiveConnector, GithubApiConnector } from "@idea-radar/connectors";
 import { applyMigrations, claimNext, enqueueDue, MAX_JOB_ATTEMPTS } from "@idea-radar/db";
-import { buildCaps, buildHandlers, buildSchedule, RESOLVE_PENDING_JOB } from "./handlers.js";
+import { buildCaps, buildHandlers, buildSchedule, RESOLVE_PENDING_JOB, SHORTLIST_JOB } from "./handlers.js";
 import type { JobHandler } from "./handlers.js";
 import { runWorker } from "./runner.js";
 
@@ -98,7 +98,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     const { rows } = await pool.query<{ s: string }>("SELECT current_schema() AS s");
     assert.equal(rows[0]!.s, schema, "refusing to truncate outside the throwaway schema");
     await pool.query(
-      "TRUNCATE jobs, repos, repo_daily, signals, sources, pending_signals, ingest_cursors",
+      "TRUNCATE jobs, repos, repo_daily, signals, sources, pending_signals, ingest_cursors, candidates, repo_content",
     );
   });
 
@@ -248,7 +248,7 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
 
     it("disabled connectors get no job", async () => {
       await once(ctx([new FakeConnector("off", ["x/y"], Infinity, undefined, false), new FakeConnector("on", [])]));
-      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "score"]);
+      assert.deepEqual((await jobs()).map((j) => j.name).sort(), ["on", "score", "shortlist"]);
     });
 
     it("resolve_pending: resolves names through the one shared GitHub connector, keeps observed_at, bumps not-found", async () => {
@@ -343,6 +343,158 @@ describe("worker (needs TEST_DATABASE_URL)", { skip }, () => {
     });
   });
 
+  describe("shortlist (HUN-148)", () => {
+    const DAY = "2026-10-30";
+    const setCursorTo = (day: string) =>
+      pool.query("INSERT INTO ingest_cursors (source_id, cursor) VALUES ('gh_archive', $1)", [day]);
+    const stars = (repoId: number, n: number) =>
+      pool.query("INSERT INTO repo_daily (repo_id, date, stars_new) VALUES ($1, $2, $3)", [repoId, DAY, n]);
+
+    /** Fake GitHub: repos 1 and 2 exist; 3 is gone. Records every id it is asked for. */
+    class FakeGithub extends GithubApiConnector {
+      byIds: number[][] = [];
+      content: number[][] = [];
+      contentError: Error | null = null;
+      override async fetchByIds(ids: number[]) {
+        this.byIds.push(ids);
+        return { repos: ids.filter((i) => i !== 3).map((i) => repo(i, `o/r${i}`)), missing: ids.filter((i) => i === 3) };
+      }
+      override async fetchContent(ids: number[]) {
+        this.content.push(ids);
+        if (this.contentError) throw this.contentError;
+        return {
+          contents: ids.filter((i) => i !== 3).map((i) => ({
+            repoId: i,
+            readmeMd: `# repo ${i}`,
+            manifests: { "package.json": "{}" },
+            fileTreeSummary: { entries: [{ name: "package.json", type: "blob" }], total: 1 },
+            stackTags: ["node"],
+          })),
+          missing: ids.filter((i) => i === 3),
+        };
+      }
+    }
+
+    const seed = async () => {
+      await setCursorTo(DAY);
+      await stars(1, 10);
+      await stars(2, 5);
+      await stars(3, 4);
+      await stars(4, 1); // under minStars7d: not a candidate
+    };
+    const lines: string[] = [];
+    const handlersFor = (github: GithubApiConnector) =>
+      buildHandlers({ connectors: [github], log: (l) => lines.push(l) });
+    const shortlist = (handlers: Record<string, JobHandler>) =>
+      once({ [SHORTLIST_JOB]: handlers[SHORTLIST_JOB]! });
+    const contentRows = async () =>
+      (await pool.query("SELECT repo_id, readme_md, stack_tags FROM repo_content ORDER BY repo_id")).rows;
+
+    beforeEach(() => void (lines.length = 0));
+
+    it("selects the GH Archive day's candidates, fetches metadata, then README/manifests/tags (AC 3, 6)", async () => {
+      await seed();
+      const gh = new FakeGithub("tok", true);
+      await shortlist(handlersFor(gh));
+      assert.deepEqual(
+        (await pool.query("SELECT repo_id FROM candidates WHERE date = $1 ORDER BY repo_id", [DAY])).rows.map((r) => r.repo_id),
+        [1, 2, 3],
+      );
+      assert.deepEqual(gh.byIds, [[1, 2, 3]], "metadata for every candidate, best first");
+      assert.deepEqual(
+        (await pool.query("SELECT repo_id FROM repos ORDER BY repo_id")).rows.map((r) => r.repo_id),
+        [1, 2],
+      );
+      assert.deepEqual(gh.content, [[1, 2]], "no content call for the repo GitHub could not return");
+      assert.deepEqual(await contentRows(), [
+        { repo_id: 1, readme_md: "# repo 1", stack_tags: ["node"] },
+        { repo_id: 2, readme_md: "# repo 2", stack_tags: ["node"] },
+      ]);
+      assert.equal((await job(SHORTLIST_JOB)).status, "ok");
+      const health = await source("github_api");
+      assert.equal(health!.last_status, "ok");
+      assert.deepEqual(JSON.parse(lines.at(-1)!), {
+        job: "shortlist", day: DAY, selected: 3, metadata: 2, metadataMissing: 1, content: 2, contentMissing: 0,
+      });
+    });
+
+    it("skips repos with fresh metadata and fresh content; refetches stale ones (AC 3, 4)", async () => {
+      await seed();
+      const gh = new FakeGithub("tok", true);
+      const handlers = handlersFor(gh);
+      await shortlist(handlers);
+      gh.byIds.length = 0;
+      gh.content.length = 0;
+
+      await pool.query("UPDATE jobs SET status = 'pending', run_after = now() - interval '1 day'");
+      await shortlist(handlers);
+      assert.deepEqual(gh.byIds, [[3]], "3 has no repos row, so it is retried; 1 and 2 are fresh");
+      assert.deepEqual(gh.content, []);
+
+      await pool.query("UPDATE repo_content SET fetched_at = now() - interval '8 days' WHERE repo_id = 2");
+      await pool.query("UPDATE repos SET updated_at = now() - interval '8 days' WHERE repo_id = 1");
+      gh.byIds.length = 0;
+      await pool.query("UPDATE jobs SET status = 'pending', run_after = now() - interval '1 day'");
+      await shortlist(handlers);
+      assert.deepEqual(gh.byIds, [[1, 3]]);
+      assert.deepEqual(gh.content, [[2]]);
+    });
+
+    it("a failure in the content step keeps the metadata, fails the job and marks github_api error (AC 6)", async () => {
+      await seed();
+      const gh = new FakeGithub("tok", true);
+      gh.contentError = new Error("GitHub API HTTP 502");
+      await shortlist(handlersFor(gh));
+      assert.equal(await count("repos"), 2);
+      assert.equal(await count("repo_content"), 0);
+      const j = await job(SHORTLIST_JOB);
+      assert.equal([j.status, j.last_error].join("|"), "pending|GitHub API HTTP 502");
+      const health = await source("github_api");
+      assert.equal([health!.last_status, health!.last_error].join("|"), "error|GitHub API HTTP 502");
+    });
+
+    it("without a GitHub token it selects candidates, makes no fetch, logs the skip, and records no github_api health (AC 3)", async () => {
+      await seed();
+      await shortlist(handlersFor(new GithubApiConnector(undefined)));
+      assert.equal(await count("candidates"), 3);
+      assert.equal(await count("repos"), 0);
+      assert.equal((await job(SHORTLIST_JOB)).status, "ok");
+      assert.equal(await source("github_api"), undefined);
+      assert.match(lines.join("\n"), /no token/);
+    });
+
+    it("with no GH Archive cursor it skips the run with a log line and selects nothing (AC 3)", async () => {
+      await stars(1, 10);
+      const gh = new FakeGithub("tok", true);
+      await shortlist(handlersFor(gh));
+      assert.equal(await count("candidates"), 0);
+      assert.deepEqual(gh.byIds, []);
+      assert.equal((await job(SHORTLIST_JOB)).status, "ok");
+      assert.match(lines.join("\n"), /no gh_archive cursor/);
+    });
+
+    it("score for a date waits for shortlist of that date (AC 5)", async () => {
+      await seed();
+      const gh = new FakeGithub("tok", true);
+      gh.contentError = new Error("boom");
+      const ran: string[] = [];
+      const handlers = {
+        ...handlersFor(gh),
+        score: { sourceId: null, run: async () => void ran.push("score") },
+      };
+      const at = () => new Date("2026-10-31T03:00:00Z");
+      await runWorker({ db: pool, handlers, caps: { defaultPerName: 5 }, once: true, now: at });
+      assert.deepEqual(ran, [], "shortlist failed, so score must not run");
+      assert.equal((await job(SHORTLIST_JOB)).status, "pending");
+
+      gh.contentError = null;
+      await pool.query("UPDATE jobs SET run_after = $1 WHERE name = 'shortlist'", [at()]);
+      await runWorker({ db: pool, handlers, caps: { defaultPerName: 5 }, once: true, now: at });
+      assert.equal((await job(SHORTLIST_JOB)).status, "ok");
+      assert.deepEqual(ran, ["score"]);
+    });
+  });
+
   describe("claim after runWorker leaves nothing stuck", () => {
     it("no job is left running after a pass", async () => {
       await once({ a: { sourceId: null, run: async () => {} } });
@@ -363,14 +515,15 @@ describe("worker plan (no database)", () => {
   it("gh_archive is hourly; everything else daily, with score and resolve_pending", () => {
     const schedule = buildSchedule(buildHandlers({ connectors: fakes }));
     assert.deepEqual(schedule.hourly, ["gh_archive"]);
-    assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score"]);
+    assert.deepEqual([...schedule.daily].sort(), ["github_trending", "ossinsight", "resolve_pending", "score", "shortlist"]);
   });
 
   it("per-name caps come from rateLimit.concurrency; gh_archive is 1; global defaults to 20 and reads WORKER_MAX_CONCURRENCY", () => {
     const caps = buildCaps(fakes, {});
     assert.equal(caps.global, 20);
-    assert.deepEqual(caps.perName, { gh_archive: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
+    assert.deepEqual(caps.perName, { gh_archive: 1, shortlist: 1, score: 1, ossinsight: 2, github_trending: 1, resolve_pending: 10 });
     assert.equal(caps.timeoutMs?.gh_archive, 6 * 3_600_000);
+    assert.equal(caps.timeoutMs?.shortlist, 6 * 3_600_000);
     assert.equal(buildCaps(fakes, { WORKER_MAX_CONCURRENCY: "7" }).global, 7);
     assert.equal(buildCaps(fakes, { WORKER_MAX_CONCURRENCY: "abc" }).global, 20);
   });
