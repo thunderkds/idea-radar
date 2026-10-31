@@ -42,6 +42,7 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
+Paused: auto-mode check failed — tasks/TASK_REVIEW_T011.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T011.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T011" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode)
 
 ## Evidence
 
@@ -67,8 +68,56 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-10-31T08:32:12Z, branch hun-151-fake-stars at its starting commit, before any implementation commit):
+
+```
+2026-10-31T08:32:12Z
+$ grep -rn "fake_star_flag|fakeStarFlag" packages apps (ts, sql; excluding node_modules, dist)
+packages/core/src/types.ts:64:  fakeStarFlag: boolean;
+packages/db/src/repository.ts:251:    `INSERT INTO repo_scores (repo_id, date, tier, score, components, consensus_count, fake_star_flag)
+packages/db/src/repository.ts:252:     SELECT t.repo_id, t.date, t.tier, t.score, t.components::jsonb, t.consensus_count, t.fake_star_flag
+packages/db/src/repository.ts:254:          AS t(repo_id, date, tier, score, components, consensus_count, fake_star_flag)
+packages/db/src/repository.ts:257:       consensus_count = EXCLUDED.consensus_count, fake_star_flag = EXCLUDED.fake_star_flag`,
+packages/db/src/repository.ts:265:      rows.map((r) => r.fakeStarFlag),
+packages/db/src/repository.test.ts:340:        fakeStarFlag: false,
+packages/db/src/repository.test.ts:343:      await upsertRepoScores(pool, [{ ...score, tier: "trending", score: 0.9, fakeStarFlag: true }]);
+packages/db/src/repository.test.ts:348:      assert.equal(rows[0].fake_star_flag, true);
+packages/db/src/scores.test.ts:38:  fake_star_flag: boolean;
+packages/db/src/scores.test.ts:120:      assert.equal(row.fake_star_flag, false);
+packages/db/src/api.ts:173:    fakeStarFlag: boolean;
+packages/db/src/api.ts:196:      `SELECT s.date::text AS date, s.tier, s.score, s.components, s.fake_star_flag,
+packages/db/src/api.ts:243:          fakeStarFlag: s.fake_star_flag,
+packages/db/src/scores.ts:41: * interim until T010 (`components.interim = 1`). `consensus_count` and `fake_star_flag` are 0 / false until
+packages/db/src/scores.ts:127:    fakeStarFlag: false,
+packages/db/migrations/001_init.sql:65:  fake_star_flag   BOOLEAN NOT NULL DEFAULT FALSE,
+apps/api/src/app.test.ts:95:      `INSERT INTO repo_scores (repo_id, date, tier, score, components, consensus_count, fake_star_flag) VALUES
+apps/api/src/app.test.ts:256:      assert.equal(body.score.fakeStarFlag, false);
+$ grep -rnE "sampleStargazers|applyFakeStarFlags|fakeStarConfig" packages apps | wc -l
+0
+$ TEST_DATABASE_URL=... pnpm test (counts)
+packages/core test: ℹ tests 18
+packages/core test: ℹ pass 18
+packages/core test: ℹ fail 0
+packages/core test: ℹ skipped 0
+packages/connectors test: ℹ tests 81
+packages/connectors test: ℹ pass 80
+packages/connectors test: ℹ fail 0
+packages/connectors test: ℹ skipped 1
+packages/db test: ℹ tests 70
+packages/db test: ℹ pass 70
+packages/db test: ℹ fail 0
+packages/db test: ℹ skipped 0
+apps/api test: ℹ tests 15
+apps/api test: ℹ pass 15
+apps/api test: ℹ fail 0
+apps/api test: ℹ skipped 0
+apps/worker test: ℹ tests 24
+apps/worker test: ℹ pass 24
+apps/worker test: ℹ fail 0
+apps/worker test: ℹ skipped 0
+```
+
+Reading: the only writers of `fake_star_flag` are `scoreDay` (hard-coded `false`, `scores.ts:127`) and the generic `upsertRepoScores`; no `sampleStargazers`, `applyFakeStarFlags` or `fakeStarConfig` exists (count 0). `pnpm typecheck` clean at the start.
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
