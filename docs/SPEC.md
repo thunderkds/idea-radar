@@ -98,6 +98,7 @@ One canonical repo table plus an append-only signal table; every source writes s
 | signals | repo_id, source, signal_type, value (jsonb), observed_at | Append-only; e.g. ossinsight/trending, github_trending/listed, trendshift/engagement_spike |
 | repo_content | repo_id, readme_md, manifests (jsonb), file_tree_summary, stack_tags, fetched_at | Shortlist only; feeds tags now and v2 embeddings later |
 | repo_scores | repo_id, date, tier, score, components (jsonb), consensus_count, fake_star_flag | Recomputed daily; components keep the score explainable |
+| wake_briefs | date, mode (`first_sight`/`tracked`), scored_date, items (jsonb), summary_md, summary_source (`claude`/`rules`), generated_at, emailed_at, email_error | One daily brief (Wake brief); migration `007_wake_briefs.sql` |
 | sources | id, name, enabled, displayable, license_note, last_run_at, last_status, last_error | Connector registry + health |
 
 Forward-compatible for v3: add `source_host` (github, gitlab) and `entity_type` (repo, article) on repos when new sources land; no other table changes.
@@ -138,9 +139,19 @@ Added 2026-10-31. **Why:** GH Archive's public event feed has shrunk about 55× 
   - **What it changes.** `tracked_repos.next_due_at = now()` for the named repos; `priority` is not changed, so a `parked` repo is snapshotted once and the snapshot job parks it again. Today's `snapshot` job (key = UTC date) is created, or re-opened (`pending`, due now) when it is `ok` or `failed`; a `running` or `pending` job is left alone, and a repo requested while the job runs is due on the next run.
   - **Dashboard.** The button calls a Next.js server action, which runs on the dashboard server and adds the header there. `ADMIN_TOKEN` must be set in the dashboard server's environment too (same value as the API's); it never reaches the browser. Anyone who can open the dashboard can press the button, so the dashboard must be reachable only by people trusted with it (there are no user accounts in v1).
 
+## Wake brief
+
+Added 2026-11-01 (HUN-180, T028). A short daily brief of what is new, built **only from the tables above** — no extra GitHub or third-party calls.
+
+- **Job.** Daily `wake` job, key = UTC date, claimable from `WAKE_HOUR_UTC` (default 0 = 07:00 Asia/Ho_Chi_Minh). It uses the latest scored date (normally D-1), never waits for `score`, and `score` never waits for it (`SCORE_DOES_NOT_WAIT_FOR`). One brief per date in `wake_briefs`; an existing brief is not rebuilt.
+- **Modes.** `first_sight` while `repo_scores` is empty: picks come from `repos` written by `discover` (new this week by stars; 50–500 stars and active; recently tracked small repos). `tracked` once scores exist: picks are repos new to their tier this week, ranked by score, with 7-day stars from snapshots (`repo_daily` fallback).
+- **Sections.** Tier picks, watch-out (fake-star flags), rising idea groups (`tracked_repos.group_key`), officially trending (`github_trending` signals), one pipeline-health line. The field-by-field mapping is in `tasks/TASK_GUIDE_T028.md` § DB mapping.
+- **Summary.** With `ANTHROPIC_API_KEY`, Claude (`WAKE_MODEL`) writes a ~200-word summary from the structured items; repo text is passed as untrusted data. Any failure, or no key, gives a rule-based summary. Data from `displayable: false` sources is never stored in the brief, shown, emailed or sent to Claude.
+- **Delivery.** `GET /wake` (latest) and `GET /wake/:date`; the dashboard `/wake` page; one email per brief when `SMTP_URL`, `WAKE_EMAIL_TO` and `WAKE_EMAIL_FROM` are set.
+
 ## Dashboard views
 
-Five views ship in v1; the lowkey tab is the default landing view.
+Six views ship in v1; the lowkey tab is the default landing view.
 
 | View | What it shows |
 | --- | --- |
@@ -148,6 +159,7 @@ Five views ship in v1; the lowkey tab is the default landing view.
 | Repo detail | Star history (own data; Star History embed optional), score breakdown, source-consensus timeline, README excerpt, detected stack; tracking priority, last and next refresh, the idea group's other repos, and the "Refresh now" / "Refresh group now" buttons (shown only when the dashboard server has `ADMIN_TOKEN`) |
 | Rising topics | Topics and dependencies with the fastest growth in new repos over 7/30 days |
 | Source consensus | Repos flagged by 2+ sources, with who flagged them first |
+| Wake | The daily brief: summary, new picks per tier, watch-out, rising groups, officially trending, pipeline line; previous/next day |
 | Ops | Connector health, last run, rate-limit usage, ingest lag |
 
 ## Milestones

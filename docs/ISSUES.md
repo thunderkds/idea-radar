@@ -107,5 +107,10 @@ Monorepo with core, connectors, db, worker, api, dashboard; CI; docker-compose.
 ### HUN-174 — Re-scrape on request (High) — T027
 - `POST /rescrape` (`{repoId}` or `{groupKey}`), `Authorization: Bearer <ADMIN_TOKEN>`; "Refresh now" / "Refresh group now" on the repo page via a server action. Unset token → 404 and no buttons. Anyone who can open the dashboard can press the button: keep it private until login or a rate limit (HUN-159).
 
+### HUN-180 — Wake brief (High) — T028
+- Daily `wake` job (key = UTC date, from `WAKE_HOUR_UTC`; in `SCORE_DOES_NOT_WAIT_FOR`) writes one `wake_briefs` row from existing tables only: `first_sight` mode before scores exist, `tracked` after. Mapping: `tasks/TASK_GUIDE_T028.md` § DB mapping.
+- Claude summary (`ANTHROPIC_API_KEY`, `WAKE_MODEL`) with rule-based fallback; no non-displayable data anywhere, including the prompt.
+- `GET /wake`, `GET /wake/:date`; dashboard `/wake`; one email per brief via SMTP when configured.
+
 ### HUN-159 — Deploy v1 (Medium)
 - Hosting, secrets, monitoring. Decide public vs private-first.

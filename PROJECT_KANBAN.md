@@ -1,5 +1,5 @@
 # PROJECT_KANBAN.md
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 > Compact task board. Full context lives in `PROJECT_SPEC.md`, `docs/SPEC.md` and `docs/ISSUES.md`. Linear (project "Idea Radar v1") stays the status source for the team; `Txxx` ↔ `HUN-1xx` mapping is in each row.
 
@@ -18,6 +18,7 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
+- [ ] **T028** — HUN-180 Wake brief: daily digest from the DB (`/wake` page + morning email, Claude summary with rules fallback) | backend-developer → frontend-developer | C3 | Risk: Medium | P1 | PR/branch: `hun-180-wake-brief` | Started 2026-11-01: branch `hun-180-wake-brief`
 
 ### Ready for Review
 
