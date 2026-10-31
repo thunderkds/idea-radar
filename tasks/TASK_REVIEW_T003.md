@@ -53,7 +53,8 @@ Mode: auto
 4. Approved the agent's tdd plan as matching the guide — RULE: `docs/claude-md/tracks.md` `### Every user stop and its auto rule` (row 15: "The Supervisor approves a `tdd` plan that matches the guide")
 Checks: tests `pnpm --filter @idea-radar/connectors test` — 21/21 pass, integration test skipped (no `GITHUB_TOKEN`); reviews code-review — P0 0, P1 0, P2 3 (legacy node-id encoding `base64("010:Repository" + id)` unverified against the real API — run the guarded integration test once with a token before T007; one failed batch rejects the whole `fetchByIds` call; a 403 secondary-limit throws without honouring `Retry-After`), security-review — no findings ≥ 8/10 (names passed as GraphQL variables, aliases from batch index only, token only in the Authorization header and redacted from errors, endpoint fixed in production); real run: none possible without a token (auto-checked, not /verify)
 Memory: nothing new
-Not done: merge (yours); auto verify: running (T182); one real-API run with `GITHUB_TOKEN` (yours)
+Not done: merge (yours); auto verify: ☑ pass (session ca6bbe3b-870c-4bd2-abdb-42932f31418b, commit affa5b17bd1efb0cc3d65b5935d8cae813ac67d0, log .claude/verify-runs/T003-affa5b17bd1e.log); one real-API run with `GITHUB_TOKEN` (yours)
+Closed: row moved to Done 2026-10-31 — auto verify pass (session ca6bbe3b-870c-4bd2-abdb-42932f31418b, commit affa5b17bd1efb0cc3d65b5935d8cae813ac67d0); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (yours); auto verify: running (T182); one real-API run with `GIT
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/connectors/src/github-api.test.ts` (21 unit tests, AC 1–6, 8–11; AC 7 integration test present, skipped without `GITHUB_TOKEN`). Output: `ℹ tests 21 ℹ pass 21 ℹ fail 0` |
 | Verification command run | ☑ pass | `pnpm --filter @idea-radar/connectors test` → 21/21; agent: `pnpm typecheck` 6/6 workspaces Done |
 | Negative cases hold | ☑ pass | 401/403/500/502, GraphQL `errors[]` and network errors throw without the token; no-token call throws before any request; invalid names go to `notFound` |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [rerun pending: Gate 5 trace needed a literal `pnpm test` run; now recorded] |
+| verify | ☑ pass | auto-run by hook, session ca6bbe3b-870c-4bd2-abdb-42932f31418b, commit affa5b17bd1efb0cc3d65b5935d8cae813ac67d0, log .claude/verify-runs/T003-affa5b17bd1e.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `github-api.ts`, its test and fixture, caller `packages/connectors/src/index.ts:24` (constructor unchanged). `lane: C2, 3 files, 595 lines, EXCEEDS (lines 595 > 500)` — tests are ~300 of those lines; label kept at C2 |
 | Full smoke suite still green (no regression) | ☑ pass | connectors suite 21/21; no other package touched |
 | **Companion score (easy-verifier)** | ☑ N/A | not run in this session; offered for the merge decision |
