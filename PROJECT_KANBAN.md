@@ -19,10 +19,10 @@
 
 ### In Progress
 - [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers` | Reopened 2026-10-31: auto verify fail (branch lacked T015's API fields); `hun-155-consensus` merged in 7a73f18; rework R1
-- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars` | Done 2026-10-31: auto verify pass (session ef46e90e-b44a-4d3b-897f-bb1f40569d72, commit 6757bfe02350a556655f558f722fa5dca5e05621) | Reopened 2026-10-31: rework R1 — timeouts, swallowed error, score fixes (branch has T022 merged)
 - [ ] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus` | Done 2026-10-31: auto verify pass (session 2ae3f276-bc65-4c5d-b9d8-28abdd602e19, commit 39245bcad85167932d5d0b89760a75d0892586d8) | Reopened 2026-10-31: rework R1 — down migration, tests, score fixes (branch has T022 merged)
 
 ### Ready for Review
+- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars` | Done 2026-10-31: auto verify pass (session ef46e90e-b44a-4d3b-897f-bb1f40569d72, commit 6757bfe02350a556655f558f722fa5dca5e05621) | Reopened 2026-10-31: rework R1 — timeouts, swallowed error, score fixes (branch has T022 merged)
 - [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-150-lowkey-score` | Started 2026-10-31: branch `hun-150-lowkey-score` | Done 2026-10-31: auto verify pass (session 92ec7085-b57d-4903-a294-d03cd7d6f3fe, commit eafd6fbb5cadb0fac6e03f9ba4b8c15acafdb903) | Reopened 2026-10-31: rework R1 — easy-verifier score fixes (branch has T022 merged)
 
 ### Done
