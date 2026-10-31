@@ -36,7 +36,6 @@ Mode: auto
 2. <what was decided> — FACT: <path>:<line> "<quoted text>"
 3. <what was decided> — DEBATED: <option> (Advocate 1: <its proposal>; Advocate 2: <its proposal>) ⚠ decided for you — please review
 4. <what was decided> — SAFER OPTION: <why> ⚠ decided for you — please review
-Paused: <only when a stop that stays paused the task: which one, and why>
 Checks: tests `<command>` — <result>; reviews <skill — result>; real run `<command>` — printed `<what it printed>` (auto-checked, not /verify)
 Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
@@ -53,7 +52,7 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | migration 005, `consensus.ts`, `api.ts`, `app.ts`, worker score handler, `consensusConfig`. `lane: C2, 10 files, 619 lines, EXCEEDS (lines 619 > 500)` — mostly tests |
 | Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
-| **Companion score (easy-verifier)** | ☑ N/A | not run in this session |
+| **Companion score (easy-verifier)** | ☑ fail | overall 67 (floor 80 missed; rescored after `9d9eabd`, same value), change_risk 0 (feature, confirmed; rule `new_code_without_test_share` failed: 0.5 > 0.2, unpaired `packages/core/src/scoring.ts`, `packages/db/src/api.ts`, `packages/db/src/index.ts`), scope changes, ref `b0dfcf3...HEAD`, abstentions: solution-fit, requirement-fidelity, reliability, api, operations, infrastructure, gates: code-quality offered (borderline CCN) and left abstained — no kit-held complexity evidence, divergence: no findings sent, task-specific drags: data 62 (`migrations_without_rollback_share` 1 — the rule wants a down migration; 005 has rollback SQL only in a header comment), test-strategy 65 (`network_calls_in_unit_tests_observed` 2 in `apps/api/src/app.test.ts`, which serves on port 0 by design); repo-wide drags: supply-chain 20, security 59 (redaction hits), report: `/home/hungnguyenhuu/.easy-verifier-reports/T015/evidence-report-changes-20261031T085308-604444Z.html` |
 | **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: scoring and API only |
 | **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: scoring and API only |
 | **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: scoring and API only |
@@ -106,7 +105,7 @@ stored repo_scores:
 2|lowkey|0|0.5|{}
 ```
 
-Full suite after the change: `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` -> core 18/18, connectors 80 pass + 1 skipped of 81, db 78/78, api 22/22, worker 24/24; `pnpm typecheck` clean.
+Full suite after the change: `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` -> core 18/18, connectors 80 pass + 1 skipped of 81, db 78/78, api 23/23, worker 24/24; `pnpm typecheck` clean.
 
 **DELTA**: After each score run every scored repo has a stored `consensus_count`, Trending rows are boosted by it, and the API shows displayable-only consensus on tier items, a per-source timeline on a repo, and a paged `/consensus` list instead of the empty stub.
 
