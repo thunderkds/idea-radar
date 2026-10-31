@@ -64,6 +64,8 @@ Hosting open question (BigQuery vs dumps): this task uses dumps — FACT: `docs/
 | 6 | `ingestDays(store, { now })` reads the cursor (last fully ingested UTC date) from `store`, then for each completed UTC day after it (a day is complete when its hour 23 dump exists, i.e. `now` ≥ day+1 01:00 UTC) streams hours 0..23 sequentially, aggregates the whole day in memory, calls `store.writeDaily(rows)` once (replace semantics, matching T002 `upsertRepoDaily`), then `store.setCursor(date)`; a rerun with the same cursor processes nothing; gaps of several days are backfilled in order | idempotent + backfill |
 | 7 | `distinct_actors` is exact for the whole UTC day (unique actor ids across all 24 hours) — this is why the unit of work is a day, not an hour (Supervisor decision 2026-10-31) | correct daily totals |
 | 8 | HTTP 404 for an hour not yet published stops the run without advancing the cursor; other HTTP errors throw | negative |
+| 9 | Each row also carries `contributors` = distinct actor ids of `PushEvent` and `PullRequestEvent` `opened` that day (not stargazers), and `starsMaxHour` = the largest number of `WatchEvent`s in one hour that day | gaps A4, A5 (`docs/analysis/2026-10-31-gaps.md`) |
+| 10 | Backfill start on first run comes from `GHARCHIVE_BACKFILL_DAYS` (default 1 = yesterday only) | gap U2 (owner decision pending) |
 
 ---
 
@@ -94,6 +96,7 @@ pnpm --filter @idea-radar/connectors test && pnpm typecheck
 - Node built-ins only (`zlib`, `readline` or `stream`), global `fetch` with an injectable `fetchImpl`.
 - Aggregate in a `Map` keyed `${repoId}|${date}` with a `Set` of actor ids; one hour of a busy repo is fine in memory — the full day of events is not — keep only the per-(repo, date) aggregate, never the events.
 - Store interface lives in `gh-archive.ts` (e.g. `RollupStore { getCursor(); setCursor(); writeDaily(rows) }`), so T007 can adapt T002's functions to it.
+- T002 (parallel) adds `contributors` and `starsMaxHour` to `RepoDaily` in `packages/core/src/types.ts`. Do not edit that file: declare a local `DailyRollupRow` type in `gh-archive.ts` with all `RepoDaily` fields plus those two.
 
 ---
 

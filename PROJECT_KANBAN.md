@@ -29,6 +29,8 @@
 - [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1
 - [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
 - [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
+- [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
+- [ ] **T021** — Candidate selection over repo_daily + signals (gaps A1, A11; new, not in Linear yet) | backend-developer | C2 | Risk: Med | P1
 
 ### In Progress
 
