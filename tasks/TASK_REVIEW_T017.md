@@ -51,7 +51,7 @@ Mode: auto
 4. The consensus badge is hidden when the count is 0 or missing, instead of a "no data" chip on every row — SAFER OPTION: less noise; the detail page still shows "no data" ⚠ decided for you — please review
 Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` — dashboard 54/54 (was none), core 18/18, connectors 80/81 (1 pre-existing skip), db 70/70, api 15/15, worker 24/24, exit 0; `pnpm --filter @idea-radar/dashboard build` exit 0; reviews code-review — P0 0, P1 0, P2 2 (41 files and 2906 lines exceed the C2 lane, so the task was under-labelled; nine page components and two scripts have no unit test and are covered only by the easy-ui sessions), P3 0; easy-ui sessions visual, design-system, responsiveness, interaction and API-down all `passed` ; easy-verifier score — overall 75, floor 80 missed (Companion score row) (auto-checked, not /verify)
 Memory: memory/learnings.md — kit gotchas from wave 4 (report helper, verify close-out)
-Not done: merge (yours); auto verify: ☑ pass (session 5b78968f-8193-4089-a394-9e0f9c1434a1, commit 474eda2cdea92a0cc14f7a61a5d7def6f6db70b2, log .claude/verify-runs/T017-474eda2cdea9.log)
+Not done: merge (yours); auto verify: running (T182)
 
 ## Evidence
 
