@@ -42,22 +42,31 @@ Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
 Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
 
 -->
-Paused: auto-mode check failed — tasks/TASK_REVIEW_T023.md has no `## Auto decisions` section starting with `Mode: auto`; no `Memory:` line in the report — run the memory pass before you stop and record it there (each entry written, or `Memory: nothing new`); no test run in memory/event-trace/T023.jsonl — write /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T023" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/hungnguyenhuu/workspace/pets/hungnguyen111/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode); Risk Medium, but the trace has no `security-review` Skill call
+## Auto decisions
+
+Mode: auto
+1. The run token is the existing `attempts` column; no migration and no new column — RULE: `tasks/TASK_GUIDE_T023.md` § Approach ("Token = `attempts`.")
+2. Small fix on the in-repo queue; BullMQ and Postgres queue libraries deferred — RULE: `tasks/TASK_GUIDE_T023.md` § Requirement (Pillar 1) (user decision 2026-10-31, quoted there; `memory/decisions.md` "Job queue stays on Postgres; BullMQ deferred (T023)")
+3. `JobHandler.run` may resolve `"completed"` so the runner skips its own `completeJob` when `fetchHandler` already completed the job inside its transaction — FACT: `apps/worker/src/handlers.ts:93 "await completeJob(client, job.id);"` (on `wave5-guides`: the fetch handler completes the job itself, so a second token-checked `completeJob` would return false and log a false `lost`)
+4. The P2 (late heartbeat logs a false `heartbeat_lost`) and three P3 findings are left as suggestions, not fixed — RULE: `.claude/skills/code-review/SKILL.md` § Phase 4 — Apply Safe Fixes ("Do not apply P2/P3 fixes automatically")
+Checks: tests `TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` (Supervisor rerun in the worktree under T023) — core 52/52, dashboard 140/140, connectors 87/88 (1 pre-existing live-token skip), db 122/122, api 23/23, worker 32/32, scripts 21/21, exit 0; `pnpm lint` and `pnpm typecheck` exit 0; reviews code-review — P0 0, P1 0, P2 1 (late heartbeat after completion logs a false `heartbeat_lost`; log only), P3 3 (heartbeats not chained if Postgres hangs; AC 5 test uses real timers; stale score/shortlist/gh_archive runs still write their data, only completion is fenced — accepted in the guide's cut list); security-review — no findings; easy-verifier score — overall 74, floor 80 missed, change_risk 100 (Companion score row); real run `DEMO_AFTER=1 … tsx t023-demo.mts` — printed `run 2 still holds the job? yes (fenced)` (auto-checked, not /verify)
+Memory: memory/learnings.md — easy-verifier `score` findings need `confidence` low/medium/high and an `evidence_ref` taken from that dimension's own evidence pack
+Not done: merge (yours); auto verify: running (T182)
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/db/src/jobs.test.ts` (stale `completeJob`/`failJob` after a reclaim are no-ops; heartbeat at T0+1h50m prevents reclaim at T0+2h10m; stale-token and not-running heartbeat return false), `apps/worker/src/worker.test.ts` "run token and heartbeat (T023)" (heartbeat moves `locked_at` and stops after the job; heartbeat error logged, job still `ok`; lost run logs `lost` with no source health, on success and on throw; stale fetch run commits 0 signals). Output: db 122/122, worker 32/32 |
+| Verification command run | ☑ pass | `pnpm lint && pnpm typecheck && TEST_DATABASE_URL=postgres://radar:radar@localhost:5436/radar pnpm test` exit 0 (Supervisor rerun in the worktree under T023): core 52, dashboard 140, connectors 88 (1 pre-existing skip), db 122, api 23, worker 32, scripts 21, 0 failed |
+| Negative cases hold | ☑ pass | stale token: `completeJob` false, `failJob` null, `heartbeatJob` false, row unchanged; heartbeat on a non-running job false; heartbeat query error logged, never thrown; stale fetch run rolls back |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `jobs.ts` (claim/complete/fail/heartbeat), `runner.ts`, `handlers.ts` `fetchHandler` + `JobHandler` type, and their tests. Callers of `completeJob`/`failJob`: only `runner.ts` and `fetchHandler`. `lane: C2, 5 files, 274 lines, FITS` |
+| Full smoke suite still green (no regression) | ☑ pass | whole-repo `pnpm test` exit 0 |
+| **Companion score (easy-verifier)** | ☑ fail | overall 74 (floor 80 missed), change_risk 100 (bugfix, confirmed; `bugfix_without_regression_test` passed with `apps/worker/src/worker.test.ts` and `packages/db/src/jobs.test.ts`), scope changes, ref `wave5-guides...HEAD`, abstentions: solution-fit, requirement-fidelity, reliability, api, data, operations, infrastructure, gates: none offered, test pairs: 2 proposals confirmed + `runner.ts`↔`worker.test.ts:219` added, divergence: findings not sent (the verifier accepts only `evidence_ref`s from its own pack; the code-review refs were rejected), ratings: architecture 100, code-quality 100, blast-radius 65 (`changed_files_in_churn_hotspots_share`), test-strategy 65 (`source_files_without_covering_test_share`, `network_calls_in_unit_tests_observed`), security 59 (`redaction_hits_observed` — lockfile/kit hashes, field report E2), supply-chain 55 (`ci_actions_unpinned_share` although pinned — field report E1; `ci_provenance_step_missing`). The gap to 80 is repo-wide, not this diff. report: `/home/hungnguyenhuu/.easy-verifier-reports/T023/evidence-report-changes-20261031T135120-890805Z.html` |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI component: worker and db only |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI component: worker and db only |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI component: worker and db only |
 
 ---
 
@@ -94,5 +103,4 @@ run 2 still holds the job? yes (fenced)
 
 **DELTA**: A slow but alive run that lost its job to a reclaim can no longer mark the new run's job `ok`, fail it, or commit its signals, and a running job now sends a heartbeat so it is not reclaimed while alive.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor reran the full suite in the worktree on 2026-10-31 under the T023 trace (`memory/event-trace/T023.jsonl`); the BEFORE/AFTER captures are the implementing agent's, from commits `98bb541` (before any implementation) and `98bc5af`.
