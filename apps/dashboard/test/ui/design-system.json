@@ -1,0 +1,196 @@
+[
+ {
+  "tool": "ui_start_session",
+  "args": {
+   "target": "T017 design-system compliance: Graphite Mint tokens, Plex fonts, shell sizes"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Colours equal the tokens"
+  }
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3448/"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelectorAll('.repo-row').length > 0",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.body).backgroundColor === (() => { const p = document.createElement('i'); p.style.color = 'var(--bg)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.body).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.gm-sidenav__item[aria-current=page]')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--neon)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.repo-row__name')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--accent)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.gm-nodata')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--text-dim)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.warn-flag')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--warn)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.repo-list')).borderTopColor === (() => { const p = document.createElement('i'); p.style.color = 'var(--line)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Fonts: IBM Plex Sans for UI, IBM Plex Mono for numbers and names, loaded locally"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.body).fontFamily.startsWith('\"IBM Plex Sans\"')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.stats dd')).fontFamily.startsWith('\"IBM Plex Mono\"')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.repo-row__name')).fontFamily.startsWith('\"IBM Plex Mono\"')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.fonts.check('400 15px \"IBM Plex Sans\"') && document.fonts.check('500 14px \"IBM Plex Mono\"') && [...document.fonts].some(f => f.family.includes('IBM Plex Sans') && f.status === 'loaded') && [...document.fonts].some(f => f.family.includes('IBM Plex Mono') && f.status === 'loaded')"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "performance.getEntriesByType('resource').every(r => new URL(r.name).origin === location.origin)"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "performance.getEntriesByType('resource').some(r => /\\.woff2?$/.test(r.name))"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Shell: 56px top bar, 232px sidebar"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.topbar').getBoundingClientRect().height === 56"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelector('.sidebar').getBoundingClientRect().width === 232"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.documentElement).colorScheme === 'dark'"
+  }
+ },
+ {
+  "tool": "ui_step",
+  "args": {
+   "label": "Cards outlined, no drop shadows on ordinary elements"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "['.repo-list', '.filters', '.tabs a:not([aria-current])'].every(s => getComputedStyle(document.querySelector(s)).boxShadow === 'none')"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_navigate",
+  "args": {
+   "url": "http://localhost:3448/repos/1001"
+  }
+ },
+ {
+  "tool": "ui_wait_for",
+  "args": {
+   "condition": "document.querySelector('.chart')",
+   "timeoutMs": 15000
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.chart-bar--current')).fill === (() => { const p = document.createElement('i'); p.style.color = 'var(--neon)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "(() => { const p = document.createElement('i'); p.style.color = 'var(--neon-bar)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return getComputedStyle(document.querySelector('.chart-bar:not(.chart-bar--current)')).fill === c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "getComputedStyle(document.querySelector('.gm-strip__num--key')).color === (() => { const p = document.createElement('i'); p.style.color = 'var(--neon)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()"
+  }
+ },
+ {
+  "tool": "ui_assert",
+  "args": {
+   "condition": "document.querySelectorAll('.gm-strip__num--key, .gm-sidenav__item[aria-current=page], .tabs a[aria-current=page], .gm-btn--primary, .gm-eyebrow, .chart-bar--current').length <= 6"
+  }
+ },
+ {
+  "tool": "ui_take_screenshot",
+  "args": {}
+ },
+ {
+  "tool": "ui_end_session",
+  "args": {}
+ }
+]
