@@ -18,14 +18,14 @@
 - [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
 
 ### In Progress
-- [ ] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-150-lowkey-score` | Started 2026-10-31: branch `hun-150-lowkey-score`
-- [ ] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars`
-- [ ] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus`
-- [ ] **T017** — HUN-157 Dashboard: tier tabs + repo detail | frontend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-157-dashboard-tiers` | Started 2026-10-31: branch `hun-157-dashboard-tiers`
+- [ ] **T022** — Repo hygiene for wave-4 scores: MIT LICENSE, lint + format config, CI hardening | common-infrastructure | C1 | Risk: Low | P1 | PR/branch: `hun-t022-repo-hygiene` | Started 2026-10-31: branch `hun-t022-repo-hygiene`
 
 ### Ready for Review
 
 ### Done
+- [x] **T015** — HUN-155 Source consensus score (+ API consensus/fake-star fields, /consensus) | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-155-consensus` | Started 2026-10-31: branch `hun-155-consensus` | Done 2026-10-31: auto verify pass (session 2ae3f276-bc65-4c5d-b9d8-28abdd602e19, commit 39245bcad85167932d5d0b89760a75d0892586d8)
+- [x] **T011** — HUN-151 Fake-star detection | backend-developer | C2 | Risk: Low | P2 | PR/branch: `hun-151-fake-stars` | Started 2026-10-31: branch `hun-151-fake-stars` | Done 2026-10-31: auto verify pass (session ef46e90e-b44a-4d3b-897f-bb1f40569d72, commit 6757bfe02350a556655f558f722fa5dca5e05621)
+- [x] **T010** — HUN-150 Lowkey score components + tuning scripts | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-150-lowkey-score` | Started 2026-10-31: branch `hun-150-lowkey-score` | Done 2026-10-31: auto verify pass (session 92ec7085-b57d-4903-a294-d03cd7d6f3fe, commit eafd6fbb5cadb0fac6e03f9ba4b8c15acafdb903)
 - [x] **T016** — HUN-156 Read-only API | backend-developer | C2 | Risk: Med | P1 | PR/branch: `hun-156-api` | Started 2026-10-31: branch `hun-156-api` | Done 2026-10-31: auto verify pass (session df322962-d4a5-4761-a9bd-b67430d6de4c, commit 09ca46e52e1d59a3aecfc0bda3e486a02506bf52)
 - [x] **T008** — HUN-148 Shortlist job: candidates, metadata, README/manifests, stack tags | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-148-shortlist` | Started 2026-10-31: branch `hun-148-shortlist` | Done 2026-10-31: auto verify pass (session 2fc8017c-a156-48de-8e84-5f491bc01520, commit 7f1c2f8cc3cf5e70c8d1d8b05ce9237bb21e2a9e)
 - [x] **T009** — HUN-149 Tier classification job | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-149-tier-classification` | Started 2026-10-31: branch `hun-149-tier-classification` | Done 2026-10-31: auto verify pass (session 5874b2fb-0170-426f-a8b1-3cbd48e2626d, commit 5988ece9c32fedbdc7e2e7937322068a4f26dbe0)
@@ -46,6 +46,7 @@
 | Task | Reason | Waiting on |
 |------|--------|-----------|
 | T019 | Hosting target and public vs private launch not decided (`docs/SPEC.md` § Open questions) | user |
+| T017 | Auto verify fail: branch lacks T015's API fields (`timeline`, `consensusCount`, `fakeStarFlag`); the merge gate blocks the branch merge while any task is In Progress | T022 Done, then merge `hun-155-consensus` + rework R1 |
 
 ---
 
