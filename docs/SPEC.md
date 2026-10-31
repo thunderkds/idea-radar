@@ -92,7 +92,9 @@ One canonical repo table plus an append-only signal table; every source writes s
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | repos | repo_id (GitHub numeric ID), full_name, description, language, topics[], license, created_at, pushed_at, stars, forks, archived | Canonical; full_name can change on rename, repo_id never does |
-| repo_daily | repo_id, date, stars_new, forks_new, pushes, issues_opened, prs_opened, distinct_actors | Rolled up from GH Archive; drives velocity |
+| repo_daily | repo_id, date, stars_new, forks_new, pushes, issues_opened, prs_opened, distinct_actors | Rolled up from GH Archive; fallback star velocity for days no snapshot covers (see Tracking strategy) |
+| tracked_repos | repo_id, priority (`leader`/`normal`/`parked`), group_key, added_reason, added_at, next_due_at, last_snapshot_at | The repos we follow; `next_due_at = infinity` means only on request; migration `006_tracking.sql` |
+| repo_snapshots | repo_id, date, stars, forks, pushed_at, commits_30d | One GitHub API reading per tracked repo per day; the view `repo_star_gains` spreads the difference between snapshots over the days between them and feeds star velocity; `commits_30d` feeds lowkey `activity` |
 | signals | repo_id, source, signal_type, value (jsonb), observed_at | Append-only; e.g. ossinsight/trending, github_trending/listed, trendshift/engagement_spike |
 | repo_content | repo_id, readme_md, manifests (jsonb), file_tree_summary, stack_tags, fetched_at | Shortlist only; feeds tags now and v2 embeddings later |
 | repo_scores | repo_id, date, tier, score, components (jsonb), consensus_count, fake_star_flag | Recomputed daily; components keep the score explainable |
