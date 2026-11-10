@@ -12,6 +12,7 @@
     "test": "tsx --conditions=source --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@idea-radar/db": "workspace:*",
     "@idea-radar/ideas": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "zod": "^3.25.76"

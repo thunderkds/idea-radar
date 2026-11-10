@@ -35,6 +35,9 @@ importers:
 
   apps/mcp:
     dependencies:
+      '@idea-radar/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@idea-radar/ideas':
         specifier: workspace:*
         version: link:../../packages/ideas
