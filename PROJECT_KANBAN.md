@@ -11,10 +11,10 @@
 > v2 order: T028 → T029 → T030 → T031 (each depends on the one before).
 
 ### Todo
-- [ ] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1
 - [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1
 
 ### In Progress
+- [ ] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t030-retire-v1` | Started 2026-11-10: worktree `.claude/worktrees/T030`
 
 ### Ready for Review
 
