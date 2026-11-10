@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "routine": "daily-ideas",
+  "ideas": [
+    {
+      "id": "offline-first-markdown-notes-sync",
+      "title": "Offline-first Markdown notes with git-free sync",
+      "summary": "Several small note apps are moving to local Markdown files plus a thin sync layer. People complain that git is too heavy for non-developers. A sync layer built on plain file watching and a merge-by-paragraph rule could fill the gap.",
+      "why_now": "Two new local-first sync libraries reached 1k stars this month and a Hacker News thread asks for exactly this.",
+      "tags": ["local-first", "notes", "sync"],
+      "signals": [
+        {
+          "kind": "repo",
+          "url": "https://github.com/example/local-sync",
+          "note": "New sync library, 1.2k stars in three weeks"
+        },
+        {
+          "kind": "discussion",
+          "url": "https://news.ycombinator.com/item?id=1",
+          "note": "Thread asking for git-free sync for Markdown notes"
+        }
+      ],
+      "related_repos": ["example/local-sync"]
+    }
+  ]
+}

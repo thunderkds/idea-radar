@@ -53,3 +53,9 @@ Measured the same UTC hour (12:00) across years from data.gharchive.org: 2024-10
 - In auto mode the Supervisor never merges, so dependent tasks stack: T025 and T026 branch from `hun-t024-star-snapshots`, T027 from T026. Merge order later: T024 → T026 → T025 (expect small conflicts in `tracking.ts`, `scoring.ts`, `handlers.ts`, `worker.test.ts`) → T027.
 - `claimNext` lets `score(D)` run only when every other job whose `left(data_key, 10)` = D is `ok`. Any new daily job therefore blocks the day's score when it fails. Jobs that are not score inputs must opt out: weekly jobs use key `W`+Monday (T026); `discover` is excluded by name (T025 R1). Ask "does score need this job's output today?" for every new job.
 - Agents keep reading their `agents/*.md` role guide "head only" unless the prompt says "in full"; even then T025/T026 round 1 did not. Check the Startup reads line every time.
+
+### 2026-11-10 — ajv under NodeNext; `git stash push` trips the auto-mode push gate; no pnpm on PATH (T028)
+**Files**: packages/ideas/src/validate.ts, .claude/hooks/pre_bash_block_unsafe_merge.py
+- `ajv/dist/2020.js` and `ajv-formats` are CommonJS: under `module: NodeNext` take the constructor from `.default` (`Ajv2020Module.default`, `addFormatsModule.default`).
+- In `[auto]`/`[admin]` sessions the merge/push gate blocks any command containing `git stash push` (it reads it as a hidden push). For a red check against prior code, copy the file: `git show HEAD:<path> > <path>`, run the test, restore.
+- This machine has no `pnpm` on PATH and no corepack (node v26). A local copy lives at the session scratchpad (`npm i pnpm@9.12.0`); the routine prompt carries `npx -y pnpm@9.12.0` as its fallback.

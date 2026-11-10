@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/thunderkds/idea-radar/blob/main/ideas/schema.json",
+  "title": "Idea Radar idea file",
+  "description": "One routine run's output: ideas/<YYYY-MM-DD>[-<suffix>].json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "date", "routine", "ideas"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "date": { "type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "routine": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "ideas": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/idea" }
+    }
+  },
+  "$defs": {
+    "idea": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "summary", "tags", "signals", "related_repos"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "why_now": { "type": "string", "maxLength": 1000 },
+        "tags": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "maxLength": 40, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+        },
+        "signals": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/signal" }
+        },
+        "related_repos": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "maxLength": 140, "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" }
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url", "note"],
+      "properties": {
+        "kind": { "enum": ["repo", "article", "post", "discussion", "other"] },
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://\\S+$", "maxLength": 2000 },
+        "note": { "type": "string", "maxLength": 500 }
+      }
+    }
+  }
+}
