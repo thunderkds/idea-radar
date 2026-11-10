@@ -18,16 +18,16 @@
 
 ## Index
 - [v2 pivot: routine → idea files → MCP](decisions.md#2026-11-10--v2-pivot-claude-routine--idea-files-in-git--hosted-read-only-mcp-scraping-retired-t028t031) — files are the DB, CI checks, Railway redeploys apps/mcp; v1 in tag v1-scraper
-- [Tracking strategy: snapshots, idea groups, leaders](decisions.md#2026-10-31--tracking-strategy-github-api-snapshots-idea-groups-leaders-t024t027) — GH Archive shrank ~55×; star velocity from daily GitHub API snapshots; 1–2 leaders per idea group daily, rest weekly, parked on request
-- [Re-scrape via ADMIN_TOKEN; keep dashboard private](decisions.md#2026-10-31--re-scrape-on-request-via-admin_token-dashboard-must-stay-private-until-auth-t027) — only write route `POST /rescrape`; the dashboard server action is public, so no public launch before login/rate limit
-- [Job queue: Postgres + run token, BullMQ deferred](decisions.md#2026-10-31--job-queue-stays-on-postgres-bullmq-deferred-t023) — T023 fencing by `attempts` + heartbeat; revisit BullMQ only on multi-host lost runs
+- [Tracking strategy: snapshots, idea groups, leaders](decisions.md#2026-10-31--tracking-strategy-github-api-snapshots-idea-groups-leaders-t024t027) — GH Archive shrank ~55×; star velocity from daily GitHub API snapshots; 1–2 leaders per idea group daily, rest weekly, parked on request (v1, retired)
+- [Re-scrape via ADMIN_TOKEN; keep dashboard private](decisions.md#2026-10-31--re-scrape-on-request-via-admin_token-dashboard-must-stay-private-until-auth-t027) — only write route `POST /rescrape`; the dashboard server action is public, so no public launch before login/rate limit (v1, retired)
+- [Job queue: Postgres + run token, BullMQ deferred](decisions.md#2026-10-31--job-queue-stays-on-postgres-bullmq-deferred-t023) — T023 fencing by `attempts` + heartbeat; revisit BullMQ only on multi-host lost runs (v1, retired)
 
 <!-- Format: - [Title](cold-file.md#section) — one-line summary.
      Target ≤150 chars/entry. Advisory: reported by the size test, never enforced.
      The enforced gate is the 42,000-character whole-file budget above. -->
-- [GH Archive day-at-a-time](decisions.md#2026-10-31--gh-archive-ingests-whole-utc-days-not-hours) — T004 writes repo_daily once per completed UTC day (exact distinct_actors)
+- [GH Archive day-at-a-time](decisions.md#2026-10-31--gh-archive-ingests-whole-utc-days-not-hours) — T004 writes repo_daily once per completed UTC day (exact distinct_actors) (v1, retired)
 - [Requirements + merged AGENTS.md](decisions.md#2026-10-31--requirements-live-in-docsspecmd--docsissuesmd-agentsmd-is-merged) — docs/SPEC.md + docs/ISSUES.md are the PRD; Txxx↔HUN map on the board
 - [Codebase Map](codebase-map.md) — structural snapshot: directory tree, entry points, blast-radius hotspots. Refresh via /map-codebase.
 - [Kit gotchas, parallel wave](learnings.md#2026-10-31--kit-gotchas-found-running-wave-1-in-parallel) — own worktrees from a base branch; bare test cmd for Gate 5; unscoped review skill names; no `<x>` in reports
-- [Worker job queue](decisions.md#2026-10-31--worker-job-queue-is-an-in-repo-jobs-table-t007) — jobs table + SKIP LOCKED; score(D) after all D jobs ok; add jobs in buildHandlers/buildCaps
-- [OSS Insight empty](learnings.md#2026-10-31--oss-insight-api-returns-no-data) — API returns rows [] / unavailable since 2026-03; connector silently ok (T012 must fail loudly)
+- [Worker job queue](decisions.md#2026-10-31--worker-job-queue-is-an-in-repo-jobs-table-t007) — jobs table + SKIP LOCKED; score(D) after all D jobs ok; add jobs in buildHandlers/buildCaps (v1, retired)
+- [OSS Insight empty](learnings.md#2026-10-31--oss-insight-api-returns-no-data) — API returns rows [] / unavailable since 2026-03; connector silently ok (T012 must fail loudly) (v1, retired)

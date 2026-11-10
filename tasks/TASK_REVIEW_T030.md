@@ -53,7 +53,8 @@ Mode: auto
 5. Applied the P2 review fix (stale v1 `.gitignore` entries) — RULE: skills/code-review/SKILL.md § Phase 4 — Apply Safe Fixes
 Checks: tests `pnpm test` — exit 0 from a clean build (ideas 25/25, mcp 36/36, scripts 5/5); reviews code-review — P0 0 P1 0 P2 1 fixed (e0677a7) P3 1, security-review — no findings; real run `ls apps packages` + `git ls-tree --name-only v1-scraper apps/` — printed `mcp` / `ideas` and the 3 v1 apps (auto-checked, not /verify)
 Memory: learnings.md — zsh errors "no matches found" on an unquoted `--include=*.md` in grep; quote the glob
-Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
+Not done: merge (admin: after the auto verify pass); auto verify: ☑ pass (session b0d2c4b0-6752-42a0-bc5b-6609b31971de, commit ce251960c39896fbe23abbf6d3241db3248c1ffe, log .claude/verify-runs/T030-ce251960c398.log)
+Closed: row moved to Done 2026-11-10 — auto verify pass (session b0d2c4b0-6752-42a0-bc5b-6609b31971de, commit ce251960c39896fbe23abbf6d3241db3248c1ffe); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | Deletion task: no new tests; the acceptance checks are commands — remaining suites `packages/ideas` 25/25, `apps/mcp` 36/36, `scripts/repo-hygiene.test.ts` 5/5; AC 5 grep (`scratchpad/ac5.sh`) and `git ls-tree --name-only v1-scraper apps/` |
 | Verification command run | ☑ pass | clean rebuild (dist removed): `pnpm install --frozen-lockfile` 0, `pnpm lint` 0, `pnpm typecheck` 0, `pnpm test` 0, `pnpm ideas:check` ok, `pnpm format:check` 0; `ls apps packages` → `mcp` / `ideas` |
 | Negative cases hold | ☑ pass | AC 5 grep: 149 lines BEFORE → 0 after (2 history-wording residuals reworded: BRAINSTORMING_LOG.md:51 in e0677a7, PROJECT_KANBAN.md:29 on main); tag still lists `apps/api`, `apps/dashboard`, `apps/worker` (AC 2) |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session b0d2c4b0-6752-42a0-bc5b-6609b31971de, commit ce251960c39896fbe23abbf6d3241db3248c1ffe, log .claude/verify-runs/T030-ce251960c398.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed the non-deletion edits (package.json, eslint.config.js, .env.example, .gitignore, ci.yml, README, docs notes) and that the remaining v2 code imports nothing deleted (typecheck from clean) |
 | Full smoke suite still green (no regression) | ☑ pass | `pnpm test` exit 0 from a clean build: ideas 25/25, mcp 36/36, scripts 5/5 |
 | **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
