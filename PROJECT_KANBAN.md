@@ -11,11 +11,11 @@
 > v2.1 order: T033 → T034 → T035 → T036 (each depends on the one before). v2 (T028–T031) is done.
 
 ### Todo
-- [ ] **T034** — MCP `submit_ideas` write tool + read tools on Postgres | backend-developer | C2 | Risk: High | P0
 - [ ] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1
 - [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1
 
 ### In Progress
+- [ ] **T034** — MCP `submit_ideas` write tool + read tools on Postgres | backend-developer | C2 | Risk: High | P0 | PR/branch: `t034-mcp-submit-ideas` | Started 2026-11-10: worktree `.claude/worktrees/T034`
 
 ### Ready for Review
 
