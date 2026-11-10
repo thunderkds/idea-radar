@@ -1,27 +1,31 @@
 # PROJECT_KANBAN.md
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-10
 
-> Compact task board. Full context lives in `PROJECT_SPEC.md`, `docs/SPEC.md` and `docs/ISSUES.md`. Linear (project "Idea Radar v1") stays the status source for the team; `Txxx` ↔ `HUN-1xx` mapping is in each row.
+> Compact task board. Full context lives in `PROJECT_SPEC.md` and `PRD.md` (v2, 2026-11-10). v1 rows keep their `HUN-1xx` Linear mapping; v2 tasks (T028+) have no Linear issue.
 
 ---
 
 ## Board
 
 > Task line format: **Txxx** — [title] | [agent] | C[0–3] | Risk: Low/Med/High | P[0–2]
-> Wave 1 (T001 first, then T002–T005 in parallel) has guides. Wave 2+ rows get their `tasks/TASK_GUIDE_Txxx.md` before pickup, from the acceptance criteria in `docs/ISSUES.md`.
+> v2 order: T028 → T029 → T030 → T031 (each depends on the one before).
 
 ### Todo
-- [ ] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2
-- [ ] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2
-- [ ] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2
-- [ ] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2
-- [ ] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1
+- [ ] **T028** — Idea-file contract, validator and routine prompt | backend-developer | C2 | Risk: Medium | P0
+- [ ] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0
+- [ ] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1
+- [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1
 
 ### In Progress
 
 ### Ready for Review
 
 ### Done
+- [x] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
+- [x] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
+- [x] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
+- [x] **T019** — HUN-159 Deploy v1 | common-infrastructure | C2 | Risk: Med | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
+- [x] **T020** — Docs + diagrams from gap analysis (`docs/analysis/2026-10-31-gaps.md` D1–D15, A17) | backend-developer | C2 | Risk: Low | P1 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
 - [x] **T025** — HUN-172 GitHub Search discovery into the tracked set | backend-developer | C2 | Risk: Low | P1 | PR/branch: `hun-172-search-discovery` | Started 2026-10-31: branch `hun-172-search-discovery` (stacked on `hun-t024-star-snapshots`) | Paused 2026-10-31: reviewed (code-review R1, score), auto verify blocked — a real Search run needs `GITHUB_TOKEN`; branch kept unmerged until then | Merged 2026-10-31 on the user's instruction without an auto verify pass (blocked: a real Search run needs `GITHUB_TOKEN`); tests pass on main (596/596); the user runs the live check
 - [x] **T027** — HUN-174 Re-scrape on request (dashboard button + admin write endpoint) | frontend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-174-rescrape-button` | Started 2026-10-31: branch `hun-174-rescrape-button` (stacked on `hun-173-idea-groups`) | Done 2026-10-31: auto verify pass (session 1386189b-4cfc-48c4-a94f-c78d719d417d, commit 55da1ad8aaa38d59ff8f0ee858260ced27719926)
 - [x] **T026** — HUN-173 Idea groups + leader picks (topics + stack, weekly regroup) | backend-developer | C2 | Risk: Medium | P1 | PR/branch: `hun-173-idea-groups` | Started 2026-10-31: branch `hun-173-idea-groups` (stacked on `hun-t024-star-snapshots`) | Done 2026-10-31: auto verify pass (session a3ba81c8-7338-462d-a122-b9e1704523ab, commit 7a195041fce843a7cac0529c07ff17d64e1ef738)
@@ -51,7 +55,7 @@
 
 | Task | Reason | Waiting on |
 |------|--------|-----------|
-| T019 | Hosting target and public vs private launch not decided (`docs/SPEC.md` § Open questions) | user |
+| T031 | Live Railway deploy and routine creation need the user's Railway and claude.ai logins | user |
 
 ---
 
@@ -59,10 +63,9 @@
 
 | Stage | Status |
 |-------|--------|
-| 0.5 Brainstorming | ✅ Done (requirements locked by user in `docs/SPEC.md` + `docs/ISSUES.md`) |
-| 1 Environment Setup | 🔄 In Progress (T001) |
-| 1.5 Sub-Agent Architecture | ✅ Done (base team) |
-| 2 Planning (/plan) | 🔄 In Progress (wave 1 guides written) |
-| 3 Execution | 🔄 In Progress (waves 1–6 merged to main: T001–T012, T015–T017, T021–T027; next: T013, T014, T018, T019, T020) |
-| 4 Review | ✅ Done for waves 1–2 |
-| 5 Integration & Verify | ⬜ Not Started |
+| 0 Define (v2 pivot) | ✅ Done 2026-11-10 (PRD.md, grilling PASS, BRAINSTORMING_LOG.md Option C — auto, review) |
+| 1 Set up | ✅ Done 2026-11-10 (base team, no frontend) |
+| 2 Planning | ✅ Done 2026-11-10 (T028–T031 guides) |
+| 3 Execution | 🔄 In Progress (T028 first) |
+| 4 Review | ⬜ |
+| 5 Integration & Verify | ⬜ |
