@@ -67,8 +67,24 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-11-10 before any implementation commit, in `.claude/worktrees/T034`):
+
+```
+$ date -u +%FT%TZ && grep -rn submit_ideas apps/mcp/src; echo "grep exit=$?"
+2026-11-10T15:37:26Z
+grep exit=1            <- no match: submit_ideas does not exist anywhere in apps/mcp/src
+
+$ cd apps/mcp && date -u +%FT%TZ && pnpm test
+2026-11-10T15:37:27Z
+  ... (file-backed server: boots from IDEAS_DIR, exactly 3 read tools, /health = {ok,ideas,files,skipped})
+ℹ tests 36
+ℹ suites 1
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ duration_ms 2315.740624
+```
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 
