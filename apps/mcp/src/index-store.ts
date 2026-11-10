@@ -1,7 +1,14 @@
-import type { MergedIdea } from "@idea-radar/ideas";
+import { getIdea, listIdeas, logRejected, saveSubmission, searchIdeas } from "@idea-radar/db";
+import type { createPool, StoredIdea } from "@idea-radar/db";
+import { validateIdeaFile } from "@idea-radar/ideas";
+
+type Pool = ReturnType<typeof createPool>;
 
 export const DEFAULT_LIMIT = 20;
 export const MAX_LIMIT = 100;
+/** At most this many field errors are returned to the caller and written to the run log, each cut to MAX_ERROR_CHARS. */
+export const MAX_ERRORS = 50;
+const MAX_ERROR_CHARS = 300;
 
 /** The short form that list and search return; `get` returns the full idea. */
 export interface IdeaSummary {
@@ -21,17 +28,16 @@ export interface ListFilter {
   limit: number;
 }
 
-export interface StoreStats {
-  ideas: number;
-  files: number;
-  skipped: number;
-}
+export type SubmitOutcome = { ok: true; saved: number; date: string } | { ok: false; errors: string[] };
 
 export interface IdeaStore {
-  stats: StoreStats;
-  list(filter: ListFilter): IdeaSummary[];
-  search(query: string, limit: number): IdeaSummary[];
-  get(id: string): MergedIdea | undefined;
+  list(filter: ListFilter): Promise<IdeaSummary[]>;
+  search(query: string, limit: number): Promise<IdeaSummary[]>;
+  get(id: string): Promise<StoredIdea | undefined>;
+  /** Validate one idea file against the schema and save it; a rejected call is written to the run log. */
+  submit(payload: unknown): Promise<SubmitOutcome>;
+  /** Resolves when the database answers a trivial query; rejects otherwise. */
+  ping(): Promise<void>;
 }
 
 /** Default 20, whole numbers, clamped to 1-100. */
@@ -47,7 +53,7 @@ export function isRealDate(value: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
 }
 
-function summarize(i: MergedIdea): IdeaSummary {
+function summarize(i: StoredIdea): IdeaSummary {
   return {
     id: i.id,
     title: i.title,
@@ -58,45 +64,54 @@ function summarize(i: MergedIdea): IdeaSummary {
   };
 }
 
-/** Build the in-memory index once at boot; every method is a read over it. */
-export function createStore(ideas: MergedIdea[], files: number, skipped: number): IdeaStore {
-  // Newest last_seen first, ties by id (plain code-unit order, as in the loader).
-  const sorted = [...ideas].sort((a, b) =>
-    a.last_seen < b.last_seen ? 1 : a.last_seen > b.last_seen ? -1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
-  );
-  const entries = sorted.map((idea) => ({
-    idea,
-    summary: summarize(idea),
-    tags: idea.tags.map((t) => t.toLowerCase()),
-    title: idea.title.toLowerCase(),
-    rest: [idea.summary, idea.tags.join(" "), idea.why_now ?? ""].join("\n").toLowerCase(),
-  }));
-  const byId = new Map(ideas.map((i) => [i.id, i]));
+const clip = (line: string): string => (line.length > MAX_ERROR_CHARS ? `${line.slice(0, MAX_ERROR_CHARS)}...` : line);
+
+/** At most MAX_ERRORS lines, each clipped, with a last line counting what was left out. */
+function capErrors(errors: string[]): string[] {
+  const shown = errors.slice(0, MAX_ERRORS).map(clip);
+  return errors.length > MAX_ERRORS ? [...shown, `... and ${errors.length - MAX_ERRORS} more errors`] : shown;
+}
+
+/** The store over Postgres. Callers pass already-cleaned input (see tools.ts); a database error rejects. */
+export function createStore(pool: Pool): IdeaStore {
+  /** Never fails: the run log is a record, and a failed log must not hide the real error from the caller. */
+  const record = async (payload: unknown, error: string): Promise<void> => {
+    const body = typeof payload === "object" && payload !== null ? (payload as Record<string, unknown>) : {};
+    try {
+      await logRejected(pool, { date: body.date, routine: body.routine, error });
+    } catch {
+      /* the database is unreachable; the caller already gets an error */
+    }
+  };
 
   return {
-    stats: { ideas: ideas.length, files, skipped },
-    list({ tag, since, until, limit }) {
-      const wanted = tag?.toLowerCase();
-      const out: IdeaSummary[] = [];
-      for (const e of entries) {
-        if (out.length >= limit) break;
-        if (wanted !== undefined && !e.tags.includes(wanted)) continue;
-        if (since !== undefined && e.idea.last_seen < since) continue;
-        if (until !== undefined && e.idea.last_seen > until) continue;
-        out.push(e.summary);
-      }
-      return out;
+    async list({ tag, since, until, limit }) {
+      return (await listIdeas(pool, { tag, since, until, limit })).map(summarize);
     },
-    search(query, limit) {
-      const q = query.toLowerCase();
-      const inTitle: IdeaSummary[] = [];
-      const elsewhere: IdeaSummary[] = [];
-      for (const e of entries) {
-        if (e.title.includes(q)) inTitle.push(e.summary);
-        else if (e.rest.includes(q)) elsewhere.push(e.summary);
-      }
-      return [...inTitle, ...elsewhere].slice(0, limit);
+    async search(query, limit) {
+      return (await searchIdeas(pool, query, limit)).map(summarize);
     },
-    get: (id) => byId.get(id),
+    async get(id) {
+      return (await getIdea(pool, id)) ?? undefined;
+    },
+    async submit(payload) {
+      const checked = validateIdeaFile(payload, "submission");
+      if (!checked.ok) {
+        const errors = capErrors(checked.errors);
+        await record(payload, errors.join("\n"));
+        return { ok: false, errors };
+      }
+      try {
+        await saveSubmission(pool, checked.file);
+        return { ok: true, saved: checked.file.ideas.length, date: checked.file.date };
+      } catch (err) {
+        // The message comes from Postgres; it is cut short and never carries the payload into the log on purpose.
+        await record(payload, `save failed: ${clip(err instanceof Error ? err.message : String(err))}`);
+        return { ok: false, errors: ["the database could not save this submission; nothing was written"] };
+      }
+    },
+    async ping() {
+      await pool.query("SELECT 1");
+    },
   };
 }
