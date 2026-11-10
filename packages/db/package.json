@@ -1,0 +1,31 @@
+{
+  "name": "@idea-radar/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "tsx --conditions=source --test \"src/**/*.test.ts\"",
+    "test:server": "pglite-server --db=memory:// --port=55432 --max-connections=10 --extensions=pg_trgm"
+  },
+  "dependencies": {
+    "@idea-radar/ideas": "workspace:^",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@electric-sql/pglite-socket": "^0.2.19",
+    "@types/pg": "^8.20.0"
+  }
+}
