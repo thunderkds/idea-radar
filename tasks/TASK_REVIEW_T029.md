@@ -43,20 +43,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Track extended, Risk High for T029 (auth is the only guard in front of the data) — RULE: docs/claude-md/tracks.md § Track rule
+2. Port the v1 constant-time bearer check rather than write a new one — RULE: PROJECT_SPEC.md § Critical Constraints
+3. Spawn on Claude Code with the session model — FACT: PROJECT_SPEC.md:104 "| Claude Code | `claude` | (session model) | (session model) | (session model) | (session model) |"
+4. Fixed the unparseable-request-target crash (security scan's excluded DoS lead, raised to P1 correctness) — RULE: skills/code-review/SKILL.md § Phase 4 — Apply Safe Fixes
+5. list/search keep compact summaries; descriptions now say so and point to get_idea — DEBATED: compact + descriptions only (Advocate 1: compact, add why_now + descriptions; Advocate 2: compact, add why_now + descriptions; Advocate 3: compact, descriptions only) — decided by rule 2 (smaller change; no cited line makes why_now in summaries necessary: tasks/TASK_GUIDE_T029.md:68 "`get_idea({ id })` returns the full idea with signals, related_repos, first_seen, last_seen, files") ⚠ decided for you — please review
+Checks: tests `pnpm test` — exit 0 (mcp 36/36); reviews code-review — P0 0 P1 0 P2 0 P3 3, security-review — no findings (1 excluded DoS lead fixed as P1, 3abb92c); real run `node apps/mcp/dist/index.js` + curl — printed `no-token: 401`, search result, `{"ok":true,"ideas":1,"files":1,"skipped":0}`, `HTTP/1.1 400 Bad Request` (auto-checked, not /verify)
+Memory: learnings.md — a sync throw before `run().catch` in a node http handler leaves the socket open (tests hang): parse inside the async wrapper; `pkill -f <pattern>` kills the calling shell when the pattern is in its own command line
+Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/mcp/src/{auth,index-store,tools,server,index}.test.ts` — mcp: ℹ tests 36 ℹ pass 36 ℹ fail 0 (incl. 10k-idea timing, spawn tests for missing/short token) |
+| Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm --filter @idea-radar/mcp test && pnpm lint && pnpm typecheck` — exit 0; prettier clean |
+| Negative cases hold | ☑ pass | Mutation: `bearerMatches` forced to `true` → 3 auth tests fail (pass 32 fail 3), restored. Bad request target: new raw-socket test red on 76866c7 (`✖ a request target that is not a valid URL gets 400…`, fail 1), green after 3abb92c (36/36). Real run: no token → 401. |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed `apps/mcp/**` and the `.env.example` v2 section, plus their use of `packages/ideas` (`loadIdeas`); v1 apps and kit not reviewed (untouched) |
+| Full smoke suite still green (no regression) | ☑ pass | root `pnpm test` exit=0: core 65/65, ideas 25/25, dashboard 150 pass 0 fail, db 9/9, connectors 98 pass 0 fail, mcp 35/35 (36 after fix), worker 4/4, scripts 21/21; lint + typecheck ok |
+| **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI in this task |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI in this task |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI in this task |
 
 ---
 
@@ -93,7 +105,16 @@ $ curl -X POST /mcp tools/call list_ideas -> {"result":{"content":[{"type":"text
 $ curl /health                          -> {"ok":true,"ideas":1,"files":1,"skipped":0}
 ```
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**DELTA**: A Claude client with the token can list, search and open ideas over `POST /mcp`; callers without it get 401 and no data.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session, 2026-11-10T11:38:09Z at 6204cbf (trace `memory/event-trace/T029.jsonl`), separate from the implementing agent:
+
+```
+loaded 1 ideas from 1 files, 0 skipped (…/T029/ideas/examples)
+listening on port 18181
+no-token: 401
+{"result":{"content":[{"type":"text","text":"{\"count\":1,\"ideas\":[{\"id\":\"offline-first-markdown-notes-sync\",…
+{"ok":true,"ideas":1,"files":1,"skipped":0}
+HTTP/1.1 400 Bad Request          (GET //[ — server keeps serving)
+{"ok":true,"ideas":1,"files":1,"skipped":0}
+```
