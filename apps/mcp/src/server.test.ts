@@ -200,7 +200,9 @@ test("a request target that is not a valid URL gets 400 and the server keeps ser
   const { url } = await boot({});
   const port = Number(new URL(url).port);
   const reply = await new Promise<string>((resolveReply, reject) => {
-    const socket = rawConnect(port, "127.0.0.1", () => socket.write("GET //[ HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n"));
+    const socket = rawConnect(port, "127.0.0.1", () =>
+      socket.write("GET //[ HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n"),
+    );
     let data = "";
     socket.on("data", (chunk) => (data += chunk.toString()));
     socket.on("end", () => resolveReply(data));
