@@ -51,7 +51,7 @@ Mode: auto
 3. Spawn on Claude Code with the session model — FACT: PROJECT_SPEC.md:104 "| Claude Code | `claude` | (session model) | (session model) | (session model) | (session model) |"
 4. Reworded the two AC 5 residuals (history wording, not code) instead of narrowing AC 5 — RULE: templates/TASK_GUIDE_template.md § Approach
 5. Applied the P2 review fix (stale v1 `.gitignore` entries) — RULE: skills/code-review/SKILL.md § Phase 4 — Apply Safe Fixes
-Checks: tests `pnpm test` — exit 0 from a clean build (ideas 25/25, mcp 36/36, scripts 5/5); reviews code-review — P0 0 P1 0 P2 1 fixed (e0677a7) P3 1, security-review — see below; real run `ls apps packages` + `git ls-tree --name-only v1-scraper apps/` — printed `mcp` / `ideas` and the 3 v1 apps (auto-checked, not /verify)
+Checks: tests `pnpm test` — exit 0 from a clean build (ideas 25/25, mcp 36/36, scripts 5/5); reviews code-review — P0 0 P1 0 P2 1 fixed (e0677a7) P3 1, security-review — no findings; real run `ls apps packages` + `git ls-tree --name-only v1-scraper apps/` — printed `mcp` / `ideas` and the 3 v1 apps (auto-checked, not /verify)
 Memory: learnings.md — zsh errors "no matches found" on an unquoted `--include=*.md` in grep; quote the glob
 Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
 
