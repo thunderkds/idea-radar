@@ -48,7 +48,7 @@ Auto mode: none asked. Each one is decided below and goes in the final report.
 
 ### Option A — Postgres + Action loader
 **Approach**: `packages/db` keeps a pool and a new `ideas` migration. A workflow on `push: paths: ideas/**` runs
-`pnpm ideas:load` with a `DATABASE_URL` secret. `apps/mcp` queries Postgres (ILIKE or `tsvector`).
+`pnpm ideas:load` with a database-URL secret. `apps/mcp` queries Postgres (ILIKE or `tsvector`).
 **Pros**: The DB can be queried, and the shape is ready for future features (a dashboard, v2 chat). Freshness is about 1–2 min.
 **Cons**: Railway Postgres must be exposed over the public TCP proxy so GitHub runners can reach it, which is a new attack
 surface. Two secrets in two systems. Migrations, a SELECT-only role and loader code all need upkeep.

@@ -1,5 +1,7 @@
 # Idea Radar — v1 Spec
 
+> v1 history, superseded by [PRD.md](../PRD.md) (v2). The v1 code is in git tag `v1-scraper`.
+
 Source of truth: [Idea Radar — v1 Spec](https://claude.ai/artifact/3tr3iGY9jjLTiCm21Ejyta) (this file is a snapshot as of 2026-10-31). Work is tracked in the [Linear project](https://linear.app/thunderkds/project/idea-radar-v1-8d2ecdbf26cf); see [ISSUES.md](ISSUES.md) for the task list.
 
 ## Overview
