@@ -74,7 +74,20 @@ $ TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm --filte
 No projects matched the filters in "/home/thunderkds/workspace/pets/idea-radar/.claude/worktrees/T033"
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (2026-11-10T14:33:33Z, PGlite wire server on :55432):
+
+```
+$ TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm --filter @idea-radar/db test && pnpm lint && pnpm typecheck
+  ✔ migrate twice: tables exist, the second run applies nothing
+  ✔ a newer date replaces content and keeps first_seen
+  ✔ an older date only widens first_seen; content stays
+  ✔ the same date replaces: the later submission wins
+  ✔ sending the same submission twice leaves ideas identical, adds a run row
+  ✔ a failure mid-transaction writes no idea rows and no run row
+  ... (20 tests, 0 fail; lint and typecheck exit 0)
+  [10k] list (limit 50): 7.5 ms   [10k] list (tag t7): 3.3 ms   [10k] search 'quartz': 4.6 ms
+  [10k] search 'item 9999': 1.7 ms   [10k] get idea-5000: 0.6 ms
+```
 
 **DELTA**: [one sentence — what a user can now do that they could not before]
 
