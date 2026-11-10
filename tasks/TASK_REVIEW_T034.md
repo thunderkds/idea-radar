@@ -10,53 +10,33 @@
 
 ---
 
-<!-- Optional: the final report, only for a task run in auto mode (the user's `[auto]` or `[admin]` tag; with `[admin]`, the `Not done:` line names `merge (admin: after the auto verify pass)`,
-`docs/claude-md/tracks.md` `## Auto mode`). To use it, copy the block below out of this comment, to this
-place, and replace every <...>. Keep `Mode: auto` as its first line, exactly as written: T182's hook reads
-it. Write it to this file before the run ends; the chat message is a copy, not the report. The same
-block is the Supervisor's final chat message. It is not the `delivery-report` page and not
-Evidence. A taste decision (what the user wants) also ends with the flag. Write `DEBATED` only when ≥2
-Advocate `Agent` calls ran for that question, naming each Advocate's option. A decision with no Advocates is
-labelled `RULE`, `FACT` or `SAFER OPTION`, never `DEBATED`. A decision flagged `⚠ decided for you` is a choice, and is never labelled `FACT`. A
-safety action a rule requires (for example the backup before a delete) is `RULE` without the flag.
-At Risk Medium or High, a `RULE:` counts only when it names a written rule (`path:line`,
-`path § <heading>`, or `docs/claude-md/tracks.md` `### <section>`), and a `FACT:` needs a Citation
-(`path:line "quoted text"`); without one it is a choice and must be `DEBATED`. Good: `2. backed up the CSV
-— RULE: `docs/claude-md/tracks.md` `### Stops that stay``. Bad: `1. kept recurring.csv — RULE: Surgical Changes`.
-`Memory:` records the diff-driven memory pass you run before you stop: each entry written, or `nothing new`.
-After an auto verify pass the hook, never you, adds `Closed: row moved to Done <date> — …` and moves the row,
-or adds `Paused: done not moved — <reason>`. It moves the row only when this block holds `Mode: auto`, a
-numbered decision, `Checks:`, `Memory:`, the `Not done:` auto verify slot with its result, and `Not done:`
-naming the merge — no `<...>` left (`docs/claude-md/tracks.md` `### Auto close-out`).
-
 ## Auto decisions
 
 Mode: auto
-1. <what was decided> — RULE: <the rule>
-2. <what was decided> — FACT: <path>:<line> "<quoted text>"
-3. <what was decided> — DEBATED: <option> (Advocate 1: <its proposal>; Advocate 2: <its proposal>) ⚠ decided for you — please review
-4. <what was decided> — SAFER OPTION: <why> ⚠ decided for you — please review
-Paused: <only when a stop that stays paused the task: which one, and why>
-Checks: tests `<command>` — <result>; reviews <skill — result>; real run `<command>` — printed `<what it printed>` (auto-checked, not /verify)
-Memory: <each entry the memory pass wrote, as `file — entry` | nothing new>
-Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | /verify (yours)>
-
--->
+1. The unauthenticated `/health` returns only `{ok}`, with no counts and no token-gated variant, which amends acceptance criterion 5 — DEBATED: `{ok}` only (Advocate 1: `{ok}` publicly with the counts behind a bearer token on the same route; Advocate 2: `{ok}` publicly with the counts behind a bearer token; Advocate 3: `{ok}` only after a trivial DB ping, a details route as a later task) ⚠ decided for you — please review. The smaller undoable change won; see `reports/question_T034_20261110T225751.html`.
+2. The implementation and its `/health` change were done by the backend-developer agent, not by the Supervisor — RULE: `CLAUDE.md:205` "The Supervisor must never write implementation code directly"
+3. The two P2 findings (stale `.env.example`, no connect timeout in `packages/db`) were left unfixed and recorded as suggestions — RULE: `.claude/skills/code-review/SKILL.md:148` "Present P2/P3 fixes as suggestions only."
+4. `/verify` was left to the auto verify step because the skill is user-only — RULE: `docs/claude-md/tracks.md` `### Auto close-out`
+5. The Companion score row is N/A because the easy-verifier connection timed out — RULE: `templates/TASK_REVIEW_template.md:56` "the merge gate blocks on ☑ fail only, never on an absent or N/A row"
+Checks: tests `TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm test` — 96 pass, 0 fail (ideas 25, db 23, mcp 43, scripts 5); lint `pnpm lint` exit 0; typecheck `pnpm typecheck` exit 0; reviews code-review — no P0/P1 (P2 x2, P3 x2), security-review — no findings; real run curl `submit_ideas` then `list_ideas` against the app on :8099 with a live local PGlite — printed `{"saved":1,"date":"2026-11-10"}` then a `real-run-idea` list entry (auto-checked, not /verify)
+Memory: decisions.md — `/health` is {ok} only (T034); learnings.md — MCP write tool gotchas (T034); MEMORY.md — 2 index lines
+Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
+Note for the user: `.env.example` is not updated (a permission rule blocks reading and editing it for the agents and the Supervisor): add `DATABASE_URL`, `MCP_WRITE_TOKEN` and `DASHBOARD_TOKEN` (tokens at least 32 characters and all different) and drop `IDEAS_DIR`.
 
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/mcp/src/auth.test.ts` (AC 1, 2), `apps/mcp/src/index.test.ts` (AC 1, 6), `apps/mcp/src/server.test.ts` (AC 1-5, 7 over HTTP with a real SDK client and a test DB), `apps/mcp/src/tools.test.ts` (AC 2-4 handlers), `apps/mcp/src/index-store.test.ts` (clamp and date helpers). |
+| Verification command run | ☑ pass | Re-run by the Supervisor 2026-11-10T22:5xZ against PGlite on :55432: `pnpm test` packages/ideas 25/25, packages/db 23/23, apps/mcp 43/43, scripts 5/5 = 96 pass, 0 fail; `pnpm lint` exit 0; `pnpm typecheck` exit 0. Without `TEST_DATABASE_URL` the DB tests skip cleanly (agent run: 18 pass, 0 fail). |
+| Negative cases hold | ☑ pass | Supervisor mutation: `git diff --stat` showed `apps/mcp/src/tools.ts | 2 +-` after changing `if (role !== "write") return;` to `if (role === undefined) return;` (a read token then gets `submit_ideas`); tests: apps/mcp pass 42, fail 1, `✖ a read token lists exactly the three read tools, all read-only`. Restored with `git checkout`, tree clean. The agent's own mutation (removing the registration guard) was red the same way, and the handler guard still refused the call. |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed `apps/mcp/src/{auth,server,tools,index-store,index}.ts`, their tests and the `@idea-radar/db` link; `packages/db` was reviewed under T033 and only its callers' use was read. Stale-reference sweep: `.env.example` (blocked, P2), README, `package.json` and `docs/deploy.md` belong to T036. code-review: no P0/P1, P2 x2, P3 x2; lane_check warn-only `EXCEEDS (lines 1337 > 500)`, about 1,000 lines are tests. security-review: no findings. Reports: `reports/code-review_t034-mcp-submit-ideas_20261110T225706.html`, `reports/security-review_t034-mcp-submit-ideas_20261110T225706.html`. |
+| Full smoke suite still green (no regression) | ☑ pass | Same run: 96 pass, 0 fail across all four test groups. |
+| **Companion score (easy-verifier)** | ☑ N/A | easy-verifier failed to connect in this session (CONNECT_TIMEOUT), so no score was run. |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | not a UI task (the dashboard is T035) |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | not a UI task (the dashboard is T035) |
+| **UI: Responsiveness at target viewports** | ☑ N/A | not a UI task (the dashboard is T035) |
 
 ---
 
@@ -111,5 +91,4 @@ packages/ideas 25/25, packages/db 23/23, apps/mcp 43/43, scripts 5/5; pnpm lint 
 
 **DELTA**: the routine can now send a day's ideas with the `submit_ideas` tool (write token); they are validated, saved in Postgres and visible to readers (read token, who cannot write) at once.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/T034.jsonl`, never the
-implementing agent alone]
+**WITNESS**: `memory/event-trace/T034.jsonl` (169 records, 2026-11-10T15:36:12Z to 15:58:03Z, hash chain head `15f92ebba2a167ea25fb76f8a03c6359b14590763ba557b0e08d2a6208bb8edb`) records the backend-developer agent's run and the Supervisor's own re-run of the full suite, lint and typecheck plus the `if (role === undefined)` mutation (1 test red).

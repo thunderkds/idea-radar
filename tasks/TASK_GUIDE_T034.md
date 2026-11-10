@@ -160,3 +160,7 @@ Integration tests per Success Criteria (SDK client over HTTP against a test DB);
 - [ ] Tests written AND pass — output pasted into `tasks/TASK_REVIEW_T034.md`'s Evidence table (Hard-Stop Gate 5)
 - [ ] `Skill({ skill: "verify" })` run — feature confirmed working in running app
 - [ ] Supervisor notified: task ready for Stage 4 review
+
+## Questions Log
+
+- 2026-11-10 DEBATE Should the unauthenticated GET /health expose the idea count, run count and last-run time, or only {ok}? → Option B: exactly {ok:true} 200 after a SELECT 1 with a 2 s timeout, {ok:false} 503 otherwise, no counts and no token-gated variant (Advocate 1: {ok} publicly, counts behind a bearer token on the same route; Advocate 2: {ok} publicly, counts behind a bearer token; Advocate 3: {ok} only after a trivial DB ping, details route as a later task) ⚠ decided for you — please review (reports/question_T034_20261110T225751.html)

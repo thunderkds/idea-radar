@@ -68,3 +68,9 @@
 **Consequence**: the integration tests drop `ideas`, `runs`, `schema_migrations` on whatever `TEST_DATABASE_URL` names, so `assertLoopbackDatabaseUrl` makes them refuse any non-loopback host (3-Advocate Debate, no escape hatch). A temp schema per run was deferred.
 **Revisit when**: the dashboard needs a read-only DB role, or tests need a remote disposable database (add an opt-in then).
 **Files**: `packages/db/src/save.ts`, `packages/db/src/migrate.ts`, `packages/db/src/queries.ts`, `packages/db/src/util.ts`, `packages/db/migrations/001_ideas.sql`, `.github/workflows/ci.yml`
+
+### 2026-11-10 — `/health` is `{ok}` only; no counts on the public route (T034)
+**Decision**: unauthenticated `GET /health` returns exactly `{ok:true}` (200) after a `SELECT 1` with a 2 s timeout, or exactly `{ok:false}` (503); no idea or run counts, no error text, no token-gated variant. Chosen by the Supervisor after a 3-Advocate Debate (two Advocates would add the counts behind a bearer token; the one told to favour the smallest safe thing proposed none): the smaller undoable change wins. Amends T034's acceptance criterion 5.
+**Why**: Railway's deploy gate needs only a status code (`railway.json`, `docs/deploy.md`: "no token needed"); the earlier "counts only" security verdicts covered static counts from git files, not live run totals and last-run time.
+**Revisit when**: the owner wants a one-curl freshness check → add a bearer-gated details view (a token on `/health` or a status tool) as its own task.
+**Files**: `apps/mcp/src/server.ts`, `apps/mcp/src/server.test.ts`, `tasks/TASK_GUIDE_T034.md`

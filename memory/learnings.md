@@ -84,3 +84,11 @@ Measured the same UTC hour (12:00) across years from data.gharchive.org: 2024-10
 - At Risk High the final report needs at least one `DEBATED` line with 3 Advocate `Agent` calls (`Advocate <n>:` + `Using the repo, answer alone:`). Every `⚠` line or `SAFER OPTION` is a choice and must be debated; a `FACT`/`RULE` needs `path:line "quote"` with no escaped inner quotes. Prefer a cited `FACT`/`RULE` over a flagged choice.
 - `[admin]` merge needs: the request names the task ("merge T033 [admin]"), the hook-written `auto-run by hook` verify row COMMITTED on the branch (the hook leaves it uncommitted in the worktree), and a plain `git merge <branch>`. Pushing `main` is refused when local `main` holds commits other than that one merge on top of `origin/main`; only the branch push goes through, `main` stays the user's.
 - `pnpm` may be missing from PATH in a shell: pnpm 9.12.0 lives under `~/.local/share/pnpm/.tools/pnpm/*/bin`. The delivery-report script reads the trace of the checkout it runs from: run the main checkout's copy, passing the worktree guide path, or WITNESS shows only the worktree's stray records.
+
+### 2026-11-10 — MCP write tool on Postgres: SDK, validator and agent gotchas (T034)
+**Files**: apps/mcp/src/tools.ts, apps/mcp/src/index-store.ts, packages/db/src/pool.ts
+- The MCP SDK answers a call to an unregistered tool with an `isError` result ("Tool … not found"), not a protocol error, so registering `submit_ideas` only for the write role is enough; keep the handler-level role guard as a second layer.
+- `validateIdeaFile` reports duplicate ids only after the schema itself passes. Give `submit_ideas` loose zod fields (`z.unknown()` + `passthrough`) so a bad field becomes a named tool error and a `rejected` run, not a protocol error.
+- `createPool` in `packages/db` has no `connectionTimeoutMillis`: a database host that silently drops packets hangs boot `migrate` and `pool.end()`. A refused port fails fast. Small follow-up in `packages/db`.
+- A backend agent can stop "waiting on its own background work" with the work uncommitted and no report. Check `git status`, then `SendMessage` to resume it; tell it to commit and not wait on background work.
+- A permission rule blocks reading and editing `.env.example` for the agents and the Supervisor; the user applies that edit.

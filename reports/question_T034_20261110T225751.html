@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Thinking Report — Resolution — t034-mcp-submit-ideas</title>
+<style>
+  :root {
+    --bg:        #0a0a12;
+    --surface:   #111128;
+    --surface2:  #16162e;
+    --border:    #1e1e42;
+    --border-glow: #2a2a6e;
+    --text:      #e2e2f0;
+    --muted:     #6b6b9a;
+    --cyan:      #00d4ff;
+    --green:     #00ff88;
+    --amber:     #ffb800;
+    --red:       #ff3b6b;
+    --purple:    #a855f7;
+    --cyan-dim:  rgba(0,212,255,.12);
+    --green-dim: rgba(0,255,136,.12);
+    --red-dim:   rgba(255,59,107,.12);
+    --amber-dim: rgba(255,184,0,.12);
+    --purple-dim: rgba(168,85,247,.12);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  h1 { margin: 0; font-size: 1.25rem; color: #fff; letter-spacing: .02em; }
+  h2 { font-size: .8rem; color: var(--muted); margin: 0 0 .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--purple);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 0 24px rgba(168,85,247,.08), 0 4px 24px rgba(0,0,0,.5);
+  }
+  .header-meta { color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  .header-meta code { color: var(--cyan); background: var(--cyan-dim); padding: .1rem .4rem; border-radius: 4px; font-size: .8rem; }
+
+  /* ── BADGE ── */
+  .badge { display: inline-block; padding: .3rem .9rem; border-radius: 999px; font-weight: 700; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; }
+  .badge-green  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(0,255,136,.3); box-shadow: 0 0 8px rgba(0,255,136,.2); }
+  .badge-yellow { background: var(--amber-dim);  color: var(--amber);  border: 1px solid rgba(255,184,0,.3); box-shadow: 0 0 8px rgba(255,184,0,.2); }
+  .badge-blue   { background: var(--cyan-dim);   color: var(--cyan);   border: 1px solid rgba(0,212,255,.3); box-shadow: 0 0 8px rgba(0,212,255,.2); }
+
+  /* ── SECTION CARD ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+  .section-head {
+    padding: .7rem 1.25rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── DECISION BOX ── */
+  .decision-box { padding: 1.25rem 1.5rem; }
+  .decision-problem { font-size: .82rem; color: var(--muted); margin-bottom: .5rem; letter-spacing: .01em; }
+  .decision-statement { font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: .85rem; }
+  .decision-statement::before { content: '→ '; color: var(--cyan); }
+  .decision-rationale {
+    font-size: .875rem;
+    color: #b0b0d0;
+    line-height: 1.75;
+    border-left: 3px solid var(--green);
+    padding-left: .85rem;
+    box-shadow: -6px 0 12px rgba(0,255,136,.08);
+  }
+
+  /* ── TRADE-OFF MATRIX ── */
+  .matrix-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: .65rem 1.25rem;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    text-align: left;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  th.col-chosen { background: rgba(0,255,136,.07); color: var(--green); }
+  td { padding: .72rem 1.25rem; font-size: .875rem; border-top: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td.criteria-label { font-weight: 500; color: #9090b8; width: 200px; }
+  td.col-chosen { background: rgba(0,255,136,.04); }
+
+  .cell-yes     { color: var(--green);  font-weight: 700; }
+  .cell-partial { color: var(--amber);  font-weight: 700; }
+  .cell-no      { color: var(--red);    font-weight: 700; }
+
+  /* ── ASSUMPTIONS LIST ── */
+  .item-list { padding: 1rem 1.5rem; }
+  .item-list ul { margin: 0; padding-left: 1.25rem; }
+  .item-list li { font-size: .875rem; line-height: 1.75; color: #b0b0d0; }
+  .item-list li + li { margin-top: .3rem; }
+  .tag { display: inline-block; font-size: .7rem; font-weight: 700; padding: .1rem .5rem; border-radius: 4px; margin-right: .4rem; vertical-align: middle; letter-spacing: .04em; text-transform: uppercase; }
+  .tag-assumption { background: var(--amber-dim);  color: var(--amber);  border: 1px solid rgba(255,184,0,.25); }
+  .tag-deferred   { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(168,85,247,.25); }
+  .tag-resolved   { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(0,255,136,.25); }
+
+  /* ── FOOTER ── */
+  .footer {
+    font-size: .72rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 1rem 0 2rem;
+    border-top: 1px solid var(--border);
+    margin-top: .5rem;
+  }
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; background: var(--cyan-dim); color: var(--cyan); padding: .1rem .4rem; border-radius: 3px; font-size: .78rem; }
+  .footer code { background: var(--purple-dim); color: var(--purple); }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════════ -->
+<!--
+  SESSION_TYPE : e.g. "Brainstorming", "Grilling", "Planning"
+  BRANCH       : git branch name
+  DATE         : e.g. 2026-06-18
+  BADGE_CLASS  : green | yellow | blue
+  BADGE_LABEL  : e.g. "Direction Locked" | "Pending Approval" | "Deferred"
+-->
+<div class="header">
+  <div>
+    <h1>Thinking Report — Resolution</h1>
+    <div class="header-meta">
+      Branch: <code>t034-mcp-submit-ideas</code> &nbsp;·&nbsp; 2026-11-10
+    </div>
+  </div>
+  <span class="badge badge-green">Direction Locked</span>
+</div>
+
+<!-- ═══ DECISION BOX ══════════════════════════════════════════════════════ -->
+<!--
+  PROBLEM_STATEMENT : one sentence — what question was being answered
+  DECISION_STATEMENT: the chosen option / conclusion, one sentence
+  DECISION_RATIONALE: 2–4 sentences explaining WHY this was chosen
+-->
+<div class="section">
+  <div class="section-head"><h2>Decision</h2></div>
+  <div class="decision-box">
+    <div class="decision-problem">Problem: Should the MCP server&#x27;s unauthenticated GET /health expose the idea count, run count and last-run time, or return only {ok: true|false} and keep the counts behind a token?</div>
+    <div class="decision-statement">Option B: unauthenticated /health returns exactly {ok:true} (200 after a SELECT 1 with a 2 s timeout) or exactly {ok:false} (503); no counts and no token-gated variant. Decided by the Supervisor after a 3-Advocate Debate. ⚠ decided for you — please review</div>
+    <div class="decision-rationale">All three Advocates agreed the counts should not be public and that the response must carry no error text. Advocates 1 and 2 would add the counts behind a bearer token on the same route; Advocate 3, told to favour the smallest safe thing, proposed no counts route at all. Both forms are undoable, so the rule picks the smaller change. The cited lines were opened first: apps/mcp/src/server.ts:82 and :84, railway.json:19, PRD.md:58, docs/deploy.md:47. This amends acceptance criterion 5 of the T034 guide.</div>
+  </div>
+</div>
+
+<!-- ═══ TRADE-OFF MATRIX ══════════════════════════════════════════════════ -->
+<!--
+  Replace <th class="criteria-label"></th><th>A: public body with counts (the guide as written)</th><th class="col-chosen">B: public {ok} only ✅</th><th>C: public {ok}, counts behind a bearer token</th> with one <th> per option.
+  Mark the chosen option column with class="col-chosen".
+  Replace <tr><td class="criteria-label">Keeps run activity private</td><td class="cell-no">❌ No</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-yes">✅ Yes</td></tr>
+<tr><td class="criteria-label">Small code change</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-partial">⚠️ Partial</td></tr>
+<tr><td class="criteria-label">Railway deploy gate unaffected (status code only)</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-yes">✅ Yes</td></tr>
+<tr><td class="criteria-label">Matches acceptance criterion 5 as written</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-no">❌ No</td><td class="cell-partial">⚠️ Partial</td></tr>
+<tr><td class="criteria-label">Owner can still read the counts at once</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-no">❌ No</td><td class="cell-yes">✅ Yes</td></tr>
+<tr><td class="criteria-label">No extra surface to review</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-partial">⚠️ Partial</td></tr> with one <tr> per criterion.
+
+  Example header row:
+    <th class="criteria-label"></th>
+    <th>Option A — Shell Pipe</th>
+    <th class="col-chosen">Option B — LLM Renderer ✅</th>
+    <th>Option C — Dedicated Skill</th>
+
+  Example body row:
+    <tr>
+      <td class="criteria-label">Offline / no CDN</td>
+      <td class="cell-yes">✅ Yes</td>
+      <td class="col-chosen cell-yes">✅ Yes</td>
+      <td class="cell-yes">✅ Yes</td>
+    </tr>
+
+  Cell classes: cell-yes (green) | cell-partial (amber) | cell-no (red)
+  For the chosen column, always add col-chosen as a second class on <td>.
+-->
+<div class="section">
+  <div class="section-head"><h2>Trade-Off Matrix</h2></div>
+  <div class="matrix-wrap">
+    <table>
+      <thead>
+        <tr><th class="criteria-label"></th><th>A: public body with counts (the guide as written)</th><th class="col-chosen">B: public {ok} only ✅</th><th>C: public {ok}, counts behind a bearer token</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="criteria-label">Keeps run activity private</td><td class="cell-no">❌ No</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-yes">✅ Yes</td></tr>
+<tr><td class="criteria-label">Small code change</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-partial">⚠️ Partial</td></tr>
+<tr><td class="criteria-label">Railway deploy gate unaffected (status code only)</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-yes">✅ Yes</td></tr>
+<tr><td class="criteria-label">Matches acceptance criterion 5 as written</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-no">❌ No</td><td class="cell-partial">⚠️ Partial</td></tr>
+<tr><td class="criteria-label">Owner can still read the counts at once</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-no">❌ No</td><td class="cell-yes">✅ Yes</td></tr>
+<tr><td class="criteria-label">No extra surface to review</td><td class="cell-yes">✅ Yes</td><td class="col-chosen cell-yes">✅ Yes</td><td class="cell-partial">⚠️ Partial</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ ASSUMPTIONS & OPEN QUESTIONS ════════════════════════════════════ -->
+<!--
+  Replace <li><span class="tag tag-resolved">Resolved</span> Only Railway calls /health and it needs only a status code: railway.json:19 "healthcheckPath": "/health" and docs/deploy.md:47 "Gates each deploy on `GET /health` (no token needed)".</li>
+<li><span class="tag tag-resolved">Resolved</span> The PRD makes /health public but defines no body: PRD.md:58 "Every page but `/login` and `/health` requires the cookie."</li>
+<li><span class="tag tag-assumption">Assumption</span> The earlier security reviews (T029, T031) accepted "counts only" for static counts loaded from git files; run totals and the last run time are new information they never weighed.</li>
+<li><span class="tag tag-assumption">Assumption</span> The counts are low sensitivity, so this is a least-privilege call, not a leak fix; no document rules on it, so it is a taste decision flagged for the user.</li>
+<li><span class="tag tag-deferred">Deferred</span> A token-gated details view (a bearer on /health or a status tool) can be added later without a breaking change.</li>
+<li><span class="tag tag-deferred">Deferred</span> docs/deploy.md curl examples that read the counts from /health are rewritten in T036, which owns the docs.</li> with one <li> per item.
+  Use tags to classify: tag-assumption (amber) | tag-deferred (purple) | tag-resolved (green)
+
+  Example items:
+    <li><span class="tag tag-resolved">Resolved</span> Score scale is 0–100% — user confirmed.</li>
+    <li><span class="tag tag-assumption">Assumption</span> No Python runtime guaranteed — POSIX sh only.</li>
+    <li><span class="tag tag-deferred">Deferred</span> Flowchart visualization — revisit after matrix pilot.</li>
+-->
+<div class="section">
+  <div class="section-head"><h2>Assumptions &amp; Open Questions</h2></div>
+  <div class="item-list">
+    <ul>
+      <li><span class="tag tag-resolved">Resolved</span> Only Railway calls /health and it needs only a status code: railway.json:19 "healthcheckPath": "/health" and docs/deploy.md:47 "Gates each deploy on `GET /health` (no token needed)".</li>
+<li><span class="tag tag-resolved">Resolved</span> The PRD makes /health public but defines no body: PRD.md:58 "Every page but `/login` and `/health` requires the cookie."</li>
+<li><span class="tag tag-assumption">Assumption</span> The earlier security reviews (T029, T031) accepted "counts only" for static counts loaded from git files; run totals and the last run time are new information they never weighed.</li>
+<li><span class="tag tag-assumption">Assumption</span> The counts are low sensitivity, so this is a least-privilege call, not a leak fix; no document rules on it, so it is a taste decision flagged for the user.</li>
+<li><span class="tag tag-deferred">Deferred</span> A token-gated details view (a bearer on /health or a status tool) can be added later without a breaking change.</li>
+<li><span class="tag tag-deferred">Deferred</span> docs/deploy.md curl examples that read the counts from /health are rewritten in T036, which owns the docs.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══════════════════════════════════════════════════════════ -->
+<!--
+  SESSION_REF : path to the source file, e.g. BRAINSTORMING_LOG.md or tasks/TASK_GUIDE_T001.md
+  TASK_ID     : e.g. T001 or —
+  TIMESTAMP   : ISO-8601 e.g. 2026-06-18T14:30:22
+-->
+<div class="footer">
+  Source: <code>tasks/TASK_GUIDE_T034.md</code> &nbsp;·&nbsp; Task: T034 &nbsp;·&nbsp; Generated: 2026-11-10T22:57:51
+</div>
+
+</body>
+</html>
