@@ -18,3 +18,29 @@ export function validDateOrNull(value: unknown): string | null {
   const d = new Date(`${value}T00:00:00Z`);
   return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== value ? null : value;
 }
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * Throw unless the URL points at this machine. The integration suite runs
+ * `DROP TABLE IF EXISTS ideas, runs, schema_migrations`, so it must never reach a real database.
+ * Fails closed: an unparsable URL throws, and so does a `host`/`hostaddr` query parameter (pg lets it
+ * override the authority). The message names the host, never the password or the full URL.
+ */
+export function assertLoopbackDatabaseUrl(url: string): void {
+  const refusal = (host: string): Error =>
+    new Error(
+      `TEST_DATABASE_URL host "${host}" is not loopback (localhost, 127.0.0.1, [::1]). ` +
+        "The integration suite drops tables ideas, runs, schema_migrations, so it only runs against a local database.",
+    );
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw refusal("(unparsable URL)");
+  }
+  if (!LOOPBACK_HOSTS.has(parsed.hostname)) throw refusal(parsed.hostname);
+  if (parsed.searchParams.has("host") || parsed.searchParams.has("hostaddr")) {
+    throw refusal(`${parsed.hostname} with a host/hostaddr query parameter`);
+  }
+}

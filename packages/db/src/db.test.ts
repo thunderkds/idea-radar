@@ -3,8 +3,10 @@ import { after, before, describe, test } from "node:test";
 import type { Idea, IdeaFile } from "@idea-radar/ideas";
 import type pg from "pg";
 import { createPool, getIdea, listIdeas, logRejected, migrate, saveSubmission, searchIdeas, stats } from "./index.js";
+import { assertLoopbackDatabaseUrl } from "./util.js";
 
 const url = process.env.TEST_DATABASE_URL;
+if (url) assertLoopbackDatabaseUrl(url);
 const skip = url
   ? false
   : "TEST_DATABASE_URL is not set: run `pnpm --filter @idea-radar/db test:server` and set TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres";
