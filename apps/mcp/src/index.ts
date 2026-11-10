@@ -1,8 +1,4 @@
-import { fileURLToPath } from "node:url";
 import { startServer } from "./server.js";
-
-// Same relative depth from src/ and from dist/, so the default finds the repo's ideas/ in both.
-const DEFAULT_IDEAS_DIR = fileURLToPath(new URL("../../../ideas", import.meta.url));
 
 const port = process.env.PORT === undefined || process.env.PORT === "" ? 8080 : Number(process.env.PORT);
 if (!Number.isInteger(port) || port < 0 || port > 65535) {
@@ -12,8 +8,10 @@ if (!Number.isInteger(port) || port < 0 || port > 65535) {
 
 try {
   const { port: listening } = await startServer({
+    databaseUrl: process.env.DATABASE_URL ?? "",
     token: process.env.MCP_TOKEN ?? "",
-    ideasDir: process.env.IDEAS_DIR || DEFAULT_IDEAS_DIR,
+    writeToken: process.env.MCP_WRITE_TOKEN ?? "",
+    dashboardToken: process.env.DASHBOARD_TOKEN ?? "",
     port,
   });
   console.log(`listening on port ${listening}`);
