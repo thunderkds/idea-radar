@@ -52,8 +52,9 @@ Mode: auto
 4. Fixed the unparseable-request-target crash (security scan's excluded DoS lead, raised to P1 correctness) — RULE: skills/code-review/SKILL.md § Phase 4 — Apply Safe Fixes
 5. list/search keep compact summaries; descriptions now say so and point to get_idea — DEBATED: compact + descriptions only (Advocate 1: compact, add why_now + descriptions; Advocate 2: compact, add why_now + descriptions; Advocate 3: compact, descriptions only) — decided by rule 2 (smaller change; no cited line makes why_now in summaries necessary: tasks/TASK_GUIDE_T029.md:68 "`get_idea({ id })` returns the full idea with signals, related_repos, first_seen, last_seen, files") ⚠ decided for you — please review
 Checks: tests `pnpm test` — exit 0 (mcp 36/36); reviews code-review — P0 0 P1 0 P2 0 P3 3, security-review — no findings (1 excluded DoS lead fixed as P1, 3abb92c); real run `node apps/mcp/dist/index.js` + curl — printed `no-token: 401`, search result, `{"ok":true,"ideas":1,"files":1,"skipped":0}`, `HTTP/1.1 400 Bad Request` (auto-checked, not /verify)
-Memory: learnings.md — a sync throw before `run().catch` in a node http handler leaves the socket open (tests hang): parse inside the async wrapper; `pkill -f <pattern>` kills the calling shell when the pattern is in its own command line
-Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
+Memory: learnings.md — a sync throw before `run().catch` in a node http handler leaves the socket open (tests hang): parse inside the async wrapper; `pkill -f PATTERN` kills the calling shell when PATTERN is in its own command line
+Not done: merge (admin: after the auto verify pass); auto verify: ☑ pass (session 61b8d274-6e05-4378-a6e4-9130d85256bd, commit b4ce424d03e748c27366198fe609bb8b97fffe5e, log .claude/verify-runs/T029-b4ce424d03e7.log)
+Closed: row moved to Done 2026-11-10 — auto verify pass (session 61b8d274-6e05-4378-a6e4-9130d85256bd, commit b4ce424d03e748c27366198fe609bb8b97fffe5e); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -62,7 +63,7 @@ Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/mcp/src/{auth,index-store,tools,server,index}.test.ts` — mcp: ℹ tests 36 ℹ pass 36 ℹ fail 0 (incl. 10k-idea timing, spawn tests for missing/short token) |
 | Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm --filter @idea-radar/mcp test && pnpm lint && pnpm typecheck` — exit 0; prettier clean |
 | Negative cases hold | ☑ pass | Mutation: `bearerMatches` forced to `true` → 3 auth tests fail (pass 32 fail 3), restored. Bad request target: new raw-socket test red on 76866c7 (`✖ a request target that is not a valid URL gets 400…`, fail 1), green after 3abb92c (36/36). Real run: no token → 401. |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session 61b8d274-6e05-4378-a6e4-9130d85256bd, commit b4ce424d03e748c27366198fe609bb8b97fffe5e, log .claude/verify-runs/T029-b4ce424d03e7.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed `apps/mcp/**` and the `.env.example` v2 section, plus their use of `packages/ideas` (`loadIdeas`); v1 apps and kit not reviewed (untouched) |
 | Full smoke suite still green (no regression) | ☑ pass | root `pnpm test` exit=0: core 65/65, ideas 25/25, dashboard 150 pass 0 fail, db 9/9, connectors 98 pass 0 fail, mcp 35/35 (36 after fix), worker 4/4, scripts 21/21; lint + typecheck ok |
 | **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
