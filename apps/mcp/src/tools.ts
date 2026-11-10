@@ -8,8 +8,8 @@ const EXTERNAL =
 const MAX_QUERY = 200;
 
 export const TOOL_DESCRIPTIONS = {
-  list_ideas: `List researched project ideas, newest first (by last_seen). Optional filters: tag, since and until (YYYY-MM-DD, inclusive), limit (default 20, 1-100). ${EXTERNAL}`,
-  search_ideas: `Case-insensitive text search over idea title, summary, tags and why_now; title matches rank first. query is 1-${MAX_QUERY} characters. ${EXTERNAL}`,
+  list_ideas: `List researched project ideas, newest first (by last_seen). Optional filters: tag, since and until (YYYY-MM-DD, inclusive), limit (default 20, 1-100). Returns short summaries; call get_idea for signals, related_repos and why_now. ${EXTERNAL}`,
+  search_ideas: `Case-insensitive text search over idea title, summary, tags and why_now; title matches rank first. query is 1-${MAX_QUERY} characters. Returns short summaries; call get_idea for signals, related_repos and why_now. ${EXTERNAL}`,
   get_idea: `Get one idea by id with its signals, related_repos, first_seen, last_seen and source files. ${EXTERNAL}`,
 };
 
