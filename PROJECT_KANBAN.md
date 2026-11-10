@@ -66,6 +66,12 @@
 | 0 Define (v2 pivot) | ✅ Done 2026-11-10 (PRD.md, grilling PASS, BRAINSTORMING_LOG.md Option C — auto, review) |
 | 1 Set up | ✅ Done 2026-11-10 (base team, no frontend) |
 | 2 Planning | ✅ Done 2026-11-10 (T028–T031 guides) |
-| 3 Execution | 🔄 In Progress (T028 first) |
-| 4 Review | ⬜ |
-| 5 Integration & Verify | ⬜ |
+| 3 Execution | ✅ Done 2026-11-10 (T028–T031 merged to main) |
+| 4 Review | ✅ Done (code-review + security-review per task) |
+| 5 Integration & Verify | ✅ auto verify pass ×4; live deploy + routine creation are the user's (logins) |
+
+## Follow-ups (no guide yet — need a TASK_GUIDE before work)
+
+- `ideas:check DIR`: a missing or relative folder passes silently, and the ok line counts only `ideas/` (T028 verify)
+- CI guard: fail a routine commit that touches anything outside `ideas/` (T031 security note: the routine reads untrusted pages)
+- `/health` `files` counts only files that contribute ideas (T029 P3)

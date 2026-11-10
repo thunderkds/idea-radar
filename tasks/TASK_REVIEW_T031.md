@@ -52,7 +52,8 @@ Mode: auto
 4. Live Railway deploy and routine creation left to the user (needs their logins) — RULE: docs/claude-md/tracks.md `### Stops that stay`
 Checks: tests `pnpm test` — exit 0 (ideas 25/25, mcp 36/36, scripts 5/5); reviews code-review — P0 0 P1 0 P2 2 (start command fixed f75bde3; stale toggle wording fixed on main) P3 0, security-review — no findings; real run railway.json build + `node apps/mcp/dist/index.js` in a clean clone — printed `{"ok":true,"ideas":0,"files":0,"skipped":0}` and `no-token: 401` (auto-checked, not /verify)
 Memory: learnings.md — Railway watchPatterns use leading-slash gitignore syntax; Anthropic docs now call routines "scheduled tasks" and no longer list the unrestricted-push toggle
-Not done: merge (admin: after the auto verify pass); auto verify: running (T182); live Railway deploy + routine creation (yours — needs your Railway and claude.ai logins)
+Not done: merge (admin: after the auto verify pass); auto verify: ☑ pass (session e4834ff2-1ba3-4a6e-b91c-fcab428dc6e3, commit c1812a9ec1f2fe14e5d62341b660495cdea1ea46, log .claude/verify-runs/T031-c1812a9ec1f2.log); live Railway deploy + routine creation (yours — needs your Railway and claude.ai logins)
+Closed: row moved to Done 2026-11-10 — auto verify pass (session e4834ff2-1ba3-4a6e-b91c-fcab428dc6e3, commit c1812a9ec1f2fe14e5d62341b660495cdea1ea46); Gates 5 and 6 checked
 
 ## Evidence
 
@@ -61,7 +62,7 @@ Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | Config/docs task: acceptance is the run check, not a unit test — `railway.json` read by `node -e` (healthcheckPath present) and its exact build/start commands run in a clean clone; existing suites ideas 25/25, mcp 36/36, scripts 5/5 |
 | Verification command run | ☑ pass | clean clone of f75bde3: `railway.json ok`; build command (from railway.json) exit 0; start command `node apps/mcp/dist/index.js` → `loaded 0 ideas from 0 files, 0 skipped` + `listening on port 8792`; `/health` → `{"ok":true,"ideas":0,"files":0,"skipped":0}` |
 | Negative cases hold | ☑ pass | no token → `no-token: 401`; agent's check: the `node -e` gate exits 1 when `healthcheckPath` is absent; secret grep (40+ hex / long Bearer) over railway.json, docs/deploy.md, README.md: no matches |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session e4834ff2-1ba3-4a6e-b91c-fcab428dc6e3, commit c1812a9ec1f2fe14e5d62341b660495cdea1ea46, log .claude/verify-runs/T031-c1812a9ec1f2.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed railway.json, docs/deploy.md, README Deploy section against apps/mcp start/env behaviour; apps/mcp and packages/ideas code unchanged |
 | Full smoke suite still green (no regression) | ☑ pass | `pnpm test` in the worktree: ideas 25/25, mcp 36/36, scripts 5/5, fail 0 |
 | **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
