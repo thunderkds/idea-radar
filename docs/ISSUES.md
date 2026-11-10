@@ -1,5 +1,7 @@
 # Idea Radar v1 — Task list
 
+> v1 history, superseded by [PRD.md](../PRD.md) (v2). The v1 code is in git tag `v1-scraper`.
+
 Mirrors the [Linear project](https://linear.app/thunderkds/project/idea-radar-v1-8d2ecdbf26cf). Linear is the source of truth for status; this file gives each task its acceptance criteria so it can be worked without Linear access. Reference the ID in branch names and commits (e.g. `hun-142-postgres-schema`, `HUN-142: add repo_daily upsert`).
 
 Work milestones in order. Within a milestone, follow the listed order unless a task says otherwise.
