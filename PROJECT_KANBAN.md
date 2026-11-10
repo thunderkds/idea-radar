@@ -16,9 +16,9 @@
 - [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1
 
 ### In Progress
-- [ ] **T033** — Postgres store for ideas (packages/db) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t033-postgres-store` | Started 2026-11-10: worktree `.claude/worktrees/T033`
 
 ### Ready for Review
+- [ ] **T033** — Postgres store for ideas (packages/db) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t033-postgres-store` | Started 2026-11-10: worktree `.claude/worktrees/T033` | Ready 2026-11-10: code-review (P2×1 test DROP TABLE has no host guard, P3×2; no P0/P1), security-review clean, tests 20/20 + lint + typecheck, mutation red 1/1
 
 ### Done
 - [x] **T032** — `ideas:check DIR`: fail on missing folder, relative paths from caller, full count | Supervisor | C1 | Risk: Low | P2 | PR/branch: `t032-ideas-check-paths` | Track: minimal | Record: tasks/MINIMAL_LOG.md | Won't do 2026-11-10: superseded by v2.1 (T036 removes `ideas:check`); auto verify fail (relative path resolves from repo root, not the caller) — branch left unmerged
