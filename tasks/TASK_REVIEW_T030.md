@@ -43,20 +43,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Track extended, Risk Medium for T030 (deletes a storage format and most of the code) — RULE: docs/claude-md/tracks.md § Track rule
+2. Delete `apps/api` and `apps/dashboard` with the rest of v1 — FACT: PRD.md:54 "| FR-008 | The worker, connectors, scoring, tiering, the v1 API and the v1 dashboard must be removed from `main`; the v1 code stays reachable through the `v1-scraper` tag. | US-004 |"
+3. Spawn on Claude Code with the session model — FACT: PROJECT_SPEC.md:104 "| Claude Code | `claude` | (session model) | (session model) | (session model) | (session model) |"
+4. Reworded the two AC 5 residuals (history wording, not code) instead of narrowing AC 5 — RULE: templates/TASK_GUIDE_template.md § Approach
+5. Applied the P2 review fix (stale v1 `.gitignore` entries) — RULE: skills/code-review/SKILL.md § Phase 4 — Apply Safe Fixes
+Checks: tests `pnpm test` — exit 0 from a clean build (ideas 25/25, mcp 36/36, scripts 5/5); reviews code-review — P0 0 P1 0 P2 1 fixed (e0677a7) P3 1, security-review — see below; real run `ls apps packages` + `git ls-tree --name-only v1-scraper apps/` — printed `mcp` / `ideas` and the 3 v1 apps (auto-checked, not /verify)
+Memory: learnings.md — zsh errors "no matches found" on an unquoted `--include=*.md` in grep; quote the glob
+Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | Deletion task: no new tests; the acceptance checks are commands — remaining suites `packages/ideas` 25/25, `apps/mcp` 36/36, `scripts/repo-hygiene.test.ts` 5/5; AC 5 grep (`scratchpad/ac5.sh`) and `git ls-tree --name-only v1-scraper apps/` |
+| Verification command run | ☑ pass | clean rebuild (dist removed): `pnpm install --frozen-lockfile` 0, `pnpm lint` 0, `pnpm typecheck` 0, `pnpm test` 0, `pnpm ideas:check` ok, `pnpm format:check` 0; `ls apps packages` → `mcp` / `ideas` |
+| Negative cases hold | ☑ pass | AC 5 grep: 149 lines BEFORE → 0 after (2 history-wording residuals reworded: BRAINSTORMING_LOG.md:51 in e0677a7, PROJECT_KANBAN.md:29 on main); tag still lists `apps/api`, `apps/dashboard`, `apps/worker` (AC 2) |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed the non-deletion edits (package.json, eslint.config.js, .env.example, .gitignore, ci.yml, README, docs notes) and that the remaining v2 code imports nothing deleted (typecheck from clean) |
+| Full smoke suite still green (no regression) | ☑ pass | `pnpm test` exit 0 from a clean build: ideas 25/25, mcp 36/36, scripts 5/5 |
+| **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI in this task (the dashboard is deleted) |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI in this task |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI in this task |
 
 ---
 
@@ -118,5 +130,4 @@ Supervisor owns (`PROJECT_KANBAN.md:29` T025 row, `BRAINSTORMING_LOG.md:51` Opti
 **DELTA**: `main` holds only the v2 stack (`apps/mcp`, `packages/ideas`); the v1 scraper, its Postgres setup and
 docs pointers are gone, and v1 stays reachable through tag `v1-scraper`.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: Supervisor session, 2026-11-10T11:5xZ, clean rebuild in worktree T030 (trace `memory/event-trace/T030.jsonl`), separate from the implementing agent: install/lint/typecheck/test/format all exit 0; `ls apps packages` → `mcp`, `ideas`; tag lists the 3 v1 apps.
