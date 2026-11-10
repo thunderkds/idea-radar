@@ -91,6 +91,6 @@ routine's prompt does.
 
 | # | Question / Assumption | Owner | Due |
 |---|----------------------|-------|-----|
-| 1 | Fact (web, 2026-11-10): routines push only to `claude/*` branches unless the repo's "Allow unrestricted branch pushes" permission is on; an open report says scheduled routines can get a 403 on push. The user turns the permission on when creating the routine (`docs/deploy.md`). | thunderkds | 2026-11-17 |
+| 1 | Fact (Anthropic docs, checked in T031): a routine (now "scheduled task") pushes to `claude/*` unless its prompt directs another branch; GitHub branch protection is the control. Third-party posts mention an "Allow unrestricted branch pushes" toggle that the current docs do not list; an open report says scheduled runs can get a 403 on push. Confirm on the first routine run (`docs/deploy.md` § 2). | thunderkds | 2026-11-17 |
 | 2 | Assumption: one shared bearer token is enough for "me and some people" (drives FR-007). Revisit if the readers grow past a few people. | thunderkds | 2026-12-10 |
 | 3 | Assumption: ideas are never deleted by the routine; removal is a manual DB operation. | thunderkds | 2026-12-10 |

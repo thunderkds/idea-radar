@@ -76,7 +76,7 @@ Bind every agent:
 |------|-----------|--------|-------|
 | Idea-file contract | High | Hub: routine, CI, loader and tools all depend on it | `ideas/schema.json`, `packages/ideas/` |
 | MCP auth | High | Only guard in front of the data | `apps/mcp/src/auth.ts` |
-| Routine push to `main` | Med | Default routine permission allows `claude/*` only; reported 403 on push | `docs/deploy.md`, `routines/daily-ideas.md` |
+| Routine push to `main` | Med | A run pushes to `claude/*` unless the prompt directs `main`; GitHub branch protection can block it; reported 403 on push; the routine reads untrusted web pages, so it must commit only `ideas/<date>.json` | `docs/deploy.md`, `routines/daily-ideas.md` |
 | v1 retirement | Med | Large delete; build/CI must stay green | whole workspace (T030) |
 | Railway redeploy on push | Med | Wrong watch paths → stale data with no error | `railway.json` |
 
@@ -122,4 +122,4 @@ Frontend-Implementer is not used in v2 (no UI; dashboard deferred).
 | Date | Insight | Source task |
 |------|---------|------------|
 | 2026-11-10 | v1 scraping retired; files-as-database chosen over Postgres (BRAINSTORMING_LOG.md Option C) | Stage 0 |
-| 2026-11-10 | Claude routines push only to `claude/*` unless "Allow unrestricted branch pushes" is on | Stage 0 |
+| 2026-11-10 | Routines (now "scheduled tasks") push to `claude/*` unless the prompt directs another branch; the "Allow unrestricted branch pushes" toggle from third-party posts is not in current Anthropic docs (T031) | Stage 0, T031 |
