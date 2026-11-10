@@ -15,6 +15,7 @@
 ### In Progress
 
 ### Ready for Review
+- [ ] **T032** — `ideas:check DIR`: fail on missing folder, relative paths from caller, full count | Supervisor | C1 | Risk: Low | P2 | PR/branch: `t032-ideas-check-paths` | Track: minimal | Record: tasks/MINIMAL_LOG.md
 
 ### Done
 - [x] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031` | Ready 2026-11-10: code-review (P2 start-cmd fixed), security-review clean, clean-clone build+start+health ok | Done 2026-11-10: auto verify pass (session e4834ff2-1ba3-4a6e-b91c-fcab428dc6e3, commit c1812a9ec1f2fe14e5d62341b660495cdea1ea46)
@@ -72,6 +73,5 @@
 
 ## Follow-ups (no guide yet — need a TASK_GUIDE before work)
 
-- `ideas:check DIR`: a missing or relative folder passes silently, and the ok line counts only `ideas/` (T028 verify)
 - CI guard: fail a routine commit that touches anything outside `ideas/` (T031 security note: the routine reads untrusted pages)
 - `/health` `files` counts only files that contribute ideas (T029 P3)
