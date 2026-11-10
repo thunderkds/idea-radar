@@ -43,7 +43,7 @@ What `railway.json` does:
 
 - Builds with Railpack: `pnpm install --frozen-lockfile && pnpm --filter @idea-radar/mcp... build`
   (the server and the `packages/ideas` it depends on, nothing else).
-- Starts with `pnpm --filter @idea-radar/mcp start` (`node dist/index.js`).
+- Starts with `node apps/mcp/dist/index.js` from the repo root (no pnpm needed at runtime; the default `IDEAS_DIR` is the repo's `ideas/`).
 - Gates each deploy on `GET /health` (no token needed) and restarts on a crash, at most 10 times.
 - Redeploys only when a push to `main` changes one of the `watchPatterns`: `ideas/**`, `apps/mcp/**`,
   `packages/ideas/**`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `railway.json`.
