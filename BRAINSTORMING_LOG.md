@@ -150,3 +150,25 @@ Files that **must not** be touched:
 
 > **Approved direction**: Option C — Files are the database
 > Auto mode: Supervisor took the recommended option on 2026-11-10 (RULE: `docs/claude-md/tracks.md` `### Every user stop and its auto rule` row 4). ⚠ decided for you — please review. Alternatives: A (Postgres + Action loader), B (Postgres + server pull).
+
+---
+
+## Addendum 2026-11-10 — v2.1 direction (user-chosen)
+
+**Why it changed:** after v2 shipped, the security review found the routine (which reads untrusted web pages)
+committing to `main` could change deployed code. The user chose: "claude scan and push to the app mcp, the app
+will execute and save data, after that, show it in app dashboard".
+
+| Option | Summary | Chosen |
+|---|---|---|
+| A — Branch + auto-merge | routine pushes `claude/ideas-*`; an Action merges idea-only diffs | |
+| B — Keep main + message check | CI rejects `ideas:` commits touching code | |
+| C — MCP write tool → Postgres → dashboard | routine calls `submit_ideas`; app validates and saves; dashboard reads | ✅ user, 2026-11-10 |
+
+User choices: storage **Railway Postgres** (container files vanish on redeploy); dashboard **behind a login token**;
+git idea files **replaced** by MCP ingest; dashboard **pages inside `apps/mcp`** (one service).
+
+**Edge cases for the guides:** read token must never write; a rejected submission writes nothing; re-sending a
+submission is idempotent; dashboard escapes all idea text and links only `http(s)`; login cookie HttpOnly +
+SameSite=Lax + Secure on HTTPS, constant-time token compare; server refuses to start without `DATABASE_URL`
+and all three tokens; migrations run at boot before listening; DB down → `/health` 503.

@@ -8,16 +8,20 @@
 ## Board
 
 > Task line format: **Txxx** — [title] | [agent] | C[0–3] | Risk: Low/Med/High | P[0–2]
-> v2 order: T028 → T029 → T030 → T031 (each depends on the one before).
+> v2.1 order: T033 → T034 → T035 → T036 (each depends on the one before). v2 (T028–T031) is done.
 
 ### Todo
+- [ ] **T033** — Postgres store for ideas (packages/db) | backend-developer | C2 | Risk: High | P0
+- [ ] **T034** — MCP `submit_ideas` write tool + read tools on Postgres | backend-developer | C2 | Risk: High | P0
+- [ ] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1
+- [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1
 
 ### In Progress
 
 ### Ready for Review
-- [ ] **T032** — `ideas:check DIR`: fail on missing folder, relative paths from caller, full count | Supervisor | C1 | Risk: Low | P2 | PR/branch: `t032-ideas-check-paths` | Track: minimal | Record: tasks/MINIMAL_LOG.md
 
 ### Done
+- [x] **T032** — `ideas:check DIR`: fail on missing folder, relative paths from caller, full count | Supervisor | C1 | Risk: Low | P2 | PR/branch: `t032-ideas-check-paths` | Track: minimal | Record: tasks/MINIMAL_LOG.md | Won't do 2026-11-10: superseded by v2.1 (T036 removes `ideas:check`); auto verify fail (relative path resolves from repo root, not the caller) — branch left unmerged
 - [x] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031` | Ready 2026-11-10: code-review (P2 start-cmd fixed), security-review clean, clean-clone build+start+health ok | Done 2026-11-10: auto verify pass (session e4834ff2-1ba3-4a6e-b91c-fcab428dc6e3, commit c1812a9ec1f2fe14e5d62341b660495cdea1ea46)
 - [x] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t030-retire-v1` | Started 2026-11-10: worktree `.claude/worktrees/T030` | Ready 2026-11-10: code-review (P2 fixed), security-review clean, clean-build suite green | Done 2026-11-10: auto verify pass (session b0d2c4b0-6752-42a0-bc5b-6609b31971de, commit ce251960c39896fbe23abbf6d3241db3248c1ffe)
 - [x] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t029-mcp-server` (stacked on `t028-idea-contract`) | Started 2026-11-10: worktree `.claude/worktrees/T029` | Ready 2026-11-10: code-review (P3×3), security-review clean (+1 P1 crash fix), tests 36/36, 1 Debate | Done 2026-11-10: auto verify pass (session 61b8d274-6e05-4378-a6e4-9130d85256bd, commit b4ce424d03e748c27366198fe609bb8b97fffe5e)
@@ -70,8 +74,8 @@
 | 3 Execution | ✅ Done 2026-11-10 (T028–T031 merged to main) |
 | 4 Review | ✅ Done (code-review + security-review per task) |
 | 5 Integration & Verify | ✅ auto verify pass ×4; live deploy + routine creation are the user's (logins) |
+| v2.1 (MCP ingest → Postgres → dashboard) | 🔄 Planned 2026-11-10 (PRD v2.1, BRAINSTORMING_LOG addendum, T033–T036 guides) |
 
 ## Follow-ups (no guide yet — need a TASK_GUIDE before work)
 
-- CI guard: fail a routine commit that touches anything outside `ideas/` (T031 security note: the routine reads untrusted pages)
-- `/health` `files` counts only files that contribute ideas (T029 P3)
+- none (the CI guard and `/health` files count are superseded by v2.1)

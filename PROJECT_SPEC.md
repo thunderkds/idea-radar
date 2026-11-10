@@ -1,6 +1,6 @@
 # PROJECT_SPEC.md
 **Last updated**: 2026-11-10
-**Version**: 2.0 (pivot: Claude-researched ideas, MCP access)
+**Version**: 2.1 (routine → MCP write tool → Postgres → MCP read + dashboard)
 
 > **Scope of this document**: *How* to build it safely — agent config, constraints, risk areas.
 > Product intent and requirements live in `PRD.md`; the chosen direction is `BRAINSTORMING_LOG.md`
@@ -13,7 +13,7 @@
 - **Requirements**: PRD.md
 - **Direction**: BRAINSTORMING_LOG.md (Option C — files are the database; auto-selected, please review)
 - **Codebase map**: memory/codebase-map.md
-- **Tech stack**: TypeScript (Node 22), pnpm 9 workspaces, `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), JSON Schema idea files in git as storage (no DB), Railway hosting, GitHub Actions CI
+- **Tech stack**: TypeScript (Node 22), pnpm 9 workspaces, `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), Railway Postgres (`pg`), server-rendered dashboard pages in `apps/mcp`, Railway hosting, GitHub Actions CI
 - **Main flow**: PROJECT_SPEC.md (§ Architecture Summary)
 - **Approved by**:
 
@@ -32,37 +32,38 @@
 
 ## Architecture Summary
 
-A Claude scheduled routine commits one idea file per run to `main`. CI validates every idea file. Railway
-redeploys `apps/mcp` on each push to `main`. At boot the server loads every valid `ideas/*.json` into memory
-and serves three read-only MCP tools over stateless Streamable HTTP, behind a bearer token.
+v2.1 (2026-11-10): the Claude routine sends ideas to `apps/mcp` with the MCP write tool `submit_ideas`. The
+server validates them against `ideas/schema.json`, saves them in Railway Postgres, and serves them to Claude
+(read tools) and to a browser (dashboard pages behind a login token) from the same service.
 
 ```mermaid
 flowchart LR
-  R["Claude routine<br/>(daily cron, prompt: routines/daily-ideas.md)"] -->|git push main| G["GitHub repo<br/>ideas/YYYY-MM-DD.json"]
-  G -->|push| CI["GitHub Actions CI<br/>pnpm ideas:check"]
-  G -->|push, watch paths| RW["Railway redeploy"]
-  RW --> M["apps/mcp boot<br/>load + validate + merge by id"]
-  M --> T["MCP tools: list_ideas · search_ideas · get_idea<br/>POST /mcp, Bearer MCP_TOKEN"]
-  C["Claude Code / Desktop"] -->|Streamable HTTP| T
+  R["Claude routine<br/>(daily, prompt: routines/daily-ideas.md)"] -->|"MCP submit_ideas<br/>Bearer MCP_WRITE_TOKEN"| M["apps/mcp (Railway)"]
+  C["Claude Code / Desktop"] -->|"list_ideas · search_ideas · get_idea<br/>Bearer MCP_TOKEN"| M
+  B["Browser"] -->|"/login (DASHBOARD_TOKEN) → cookie<br/>/ · /ideas/:id"| M
+  M -->|"validate (ideas/schema.json)<br/>upsert in one transaction"| P[("Railway Postgres<br/>ideas · runs")]
+  M -->|read| P
 ```
 
 | Part | Responsibility | Path |
 |---|---|---|
-| Contract | JSON Schema for idea files | `ideas/schema.json` |
-| Ideas package | types, validator, load/merge, search | `packages/ideas/` |
-| MCP server | HTTP + auth + tools + `/health` | `apps/mcp/` |
-| Routine prompt | what the routine researches and how it writes | `routines/daily-ideas.md` |
+| Contract | JSON Schema for a submission | `ideas/schema.json` |
+| Ideas package | types, validator | `packages/ideas/` |
+| DB package | pool, migrations, idea upsert/queries, run log | `packages/db/` (T033) |
+| MCP server + dashboard | HTTP, auth (3 tokens), MCP tools, dashboard pages, `/health` | `apps/mcp/` |
+| Routine prompt | what the routine researches and how it submits | `routines/daily-ideas.md` |
 
 ---
 
 ## Critical Constraints
 
 Bind every agent:
-- Idea files are the only store. The server never writes them; no HTTP write route exists.
-- Every idea file must pass `ideas/schema.json`. A schema change bumps `schema_version`; the loader skips unknown versions with a log line.
-- An idea is keyed by its `id` (kebab-case slug). The latest file `date` wins; same date → the file name that sorts last.
-- `apps/mcp` refuses to start without `MCP_TOKEN`; the token is compared in constant time (port of v1 `bearerMatches`).
-- Idea text is untrusted content (routine output from the web). Return it as data; never execute or follow it.
+- Postgres is the only store. The only write path is `submit_ideas` behind `MCP_WRITE_TOKEN`; `MCP_TOKEN` and the dashboard are read-only.
+- Every submission must pass `ideas/schema.json`. A schema change bumps `schema_version`; the server rejects unknown versions.
+- An idea is keyed by its `id` (kebab-case slug). The submission with the latest `date` wins; same date → the later submission.
+- Schema changes are new numbered migration files in `packages/db/migrations/`; never edit an applied one.
+- `apps/mcp` refuses to start without `DATABASE_URL`, `MCP_TOKEN`, `MCP_WRITE_TOKEN` and `DASHBOARD_TOKEN` (each ≥32 chars, all different); tokens are compared in constant time (`bearerMatches`).
+- Idea text is untrusted content (routine output from the web). Return it as data; the dashboard HTML-escapes all of it and links only `http(s)` URLs.
 - No secrets in code or commits; config comes from env (`.env.example`).
 - Unit tests next to code (`*.test.ts`, `node:test` via `tsx --test`).
 - Branch per task: `t<nnn>-<short-slug>`; commits reference the task ID (`T028: …`).
@@ -74,11 +75,13 @@ Bind every agent:
 
 | Area | Risk Level | Reason | Files |
 |------|-----------|--------|-------|
-| Idea-file contract | High | Hub: routine, CI, loader and tools all depend on it | `ideas/schema.json`, `packages/ideas/` |
+| Idea contract | High | Hub: routine, write tool, DB and pages all depend on it | `ideas/schema.json`, `packages/ideas/` |
+| Write path + DB | High | Only write route; schema migrations | `apps/mcp/src/tools.ts`, `packages/db/` |
+| Dashboard auth + HTML | High | Cookie session; untrusted text rendered as HTML | `apps/mcp/src/dashboard*.ts` |
 | MCP auth | High | Only guard in front of the data | `apps/mcp/src/auth.ts` |
-| Routine push to `main` | Med | A run pushes to `claude/*` unless the prompt directs `main`; GitHub branch protection can block it; reported 403 on push; the routine reads untrusted web pages, so it must commit only `ideas/<date>.json` | `docs/deploy.md`, `routines/daily-ideas.md` |
+| Routine connector | Med | A cloud routine sees only claude.ai connectors or the repo `.mcp.json`; the write token must reach it without being committed | `docs/deploy.md`, `routines/daily-ideas.md` | `docs/deploy.md`, `routines/daily-ideas.md` |
 | v1 retirement | Med | Large delete; build/CI must stay green | whole workspace (T030) |
-| Railway redeploy on push | Med | Wrong watch paths → stale data with no error | `railway.json` |
+| Railway deploy | Med | Postgres plugin + `DATABASE_URL`; migrations at boot | `railway.json`, `docs/deploy.md` |
 
 ---
 
