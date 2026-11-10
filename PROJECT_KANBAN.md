@@ -14,9 +14,9 @@
 - [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1
 
 ### In Progress
-- [ ] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t030-retire-v1` | Started 2026-11-10: worktree `.claude/worktrees/T030`
 
 ### Ready for Review
+- [ ] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t030-retire-v1` | Started 2026-11-10: worktree `.claude/worktrees/T030` | Ready 2026-11-10: code-review (P2 fixed), security-review clean, clean-build suite green
 
 ### Done
 - [x] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t029-mcp-server` (stacked on `t028-idea-contract`) | Started 2026-11-10: worktree `.claude/worktrees/T029` | Ready 2026-11-10: code-review (P3×3), security-review clean (+1 P1 crash fix), tests 36/36, 1 Debate | Done 2026-11-10: auto verify pass (session 61b8d274-6e05-4378-a6e4-9130d85256bd, commit b4ce424d03e748c27366198fe609bb8b97fffe5e)
