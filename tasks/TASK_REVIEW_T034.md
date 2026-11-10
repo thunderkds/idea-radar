@@ -86,9 +86,30 @@ $ cd apps/mcp && date -u +%FT%TZ && pnpm test
 ℹ duration_ms 2315.740624
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (2026-11-10, real run: `apps/mcp` started with `src/index.ts` on :8099 against a local PGlite on :55432; curl, tokens elided):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ grep -rn submit_ideas apps/mcp/src      -> now matches in tools.ts, tools.test.ts, server.test.ts
+2026-11-10T15:53:54Z
+--- GET /health (no token)
+{"ok":true} [HTTP 200]
+--- read token calls submit_ideas
+{"result":{"content":[{"type":"text","text":"MCP error -32602: Tool submit_ideas not found"}],"isError":true},...,"id":1}
+--- write token: submit_ideas
+{"result":{"content":[{"type":"text","text":"{\"saved\":1,\"date\":\"2026-11-10\"}"}]},...,"id":2}
+--- write token: bad url is rejected
+{"result":{"content":[{"type":"text","text":"submission rejected, nothing was saved:\nsubmission: /ideas/0/signals/0/url must match pattern \"^https?://\\S+$\"\nsubmission: /ideas/0/signals/0/url must match format \"uri\""}],"isError":true},...,"id":3}
+--- read token: list_ideas
+{"count":4,"ideas":[{"id":"new-one",...},{"id":"real-run-idea","title":"Real run idea","summary":"Saved by curl","tags":["demo"],"first_seen":"2026-11-10","last_seen":"2026-11-10"},{"id":"old-one",...},{"id":"old-two",...}]}
+--- no token
+{"error":"unauthorized"} [HTTP 401]
+
+$ TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm test   (exit 0)
+packages/ideas 25/25, packages/db 23/23, apps/mcp 43/43, scripts 5/5; pnpm lint and pnpm typecheck pass
+```
+(The other three ideas in the list are leftovers of the test suite in the shared PGlite.)
+
+**DELTA**: the routine can now send a day's ideas with the `submit_ideas` tool (write token); they are validated, saved in Postgres and visible to readers (read token, who cannot write) at once.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/T034.jsonl`, never the
 implementing agent alone]
