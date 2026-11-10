@@ -12,6 +12,7 @@
     "lint": "pnpm -r lint && eslint scripts eslint.config.js",
     "format:check": "prettier --check packages apps scripts eslint.config.js",
     "test": "pnpm -r test && tsx --conditions=source --test \"scripts/**/*.test.ts\"",
+    "ideas:check": "pnpm --filter @idea-radar/ideas check",
     "db:migrate": "pnpm --filter @idea-radar/db migrate",
     "worker": "pnpm --filter @idea-radar/worker dev",
     "api": "pnpm --filter @idea-radar/api dev",
