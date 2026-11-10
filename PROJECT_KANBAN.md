@@ -15,9 +15,9 @@
 ### In Progress
 
 ### Ready for Review
-- [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031` | Ready 2026-11-10: code-review (P2 start-cmd fixed), security-review clean, clean-clone build+start+health ok
 
 ### Done
+- [x] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031` | Ready 2026-11-10: code-review (P2 start-cmd fixed), security-review clean, clean-clone build+start+health ok | Done 2026-11-10: auto verify pass (session e4834ff2-1ba3-4a6e-b91c-fcab428dc6e3, commit c1812a9ec1f2fe14e5d62341b660495cdea1ea46)
 - [x] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t030-retire-v1` | Started 2026-11-10: worktree `.claude/worktrees/T030` | Ready 2026-11-10: code-review (P2 fixed), security-review clean, clean-build suite green | Done 2026-11-10: auto verify pass (session b0d2c4b0-6752-42a0-bc5b-6609b31971de, commit ce251960c39896fbe23abbf6d3241db3248c1ffe)
 - [x] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t029-mcp-server` (stacked on `t028-idea-contract`) | Started 2026-11-10: worktree `.claude/worktrees/T029` | Ready 2026-11-10: code-review (P3×3), security-review clean (+1 P1 crash fix), tests 36/36, 1 Debate | Done 2026-11-10: auto verify pass (session 61b8d274-6e05-4378-a6e4-9130d85256bd, commit b4ce424d03e748c27366198fe609bb8b97fffe5e)
 - [x] **T028** — Idea-file contract, validator and routine prompt | backend-developer | C2 | Risk: Medium | P0 | PR/branch: `t028-idea-contract` | Started 2026-11-10: worktree `.claude/worktrees/T028` | Ready 2026-11-10: code-review (P2×2 fixed), security-review clean, tests 25/25 | Done 2026-11-10: auto verify pass (session 442a34c1-8344-454a-9e3d-863b9c70c4c3, commit e10608742bb13d0654091711050bd1d5409900bc)
