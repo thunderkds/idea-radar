@@ -119,3 +119,9 @@ test("an empty or missing directory loads nothing", () => {
   withDir({}, (dir) => assert.deepEqual(loadIdeas(dir), { ideas: [], skipped: [] }));
   assert.deepEqual(loadIdeas(join(tmpdir(), "does-not-exist-ideas")), { ideas: [], skipped: [] });
 });
+
+test("a path that is not a directory throws instead of loading nothing", () => {
+  withDir({ "2026-11-10.json": file("2026-11-10", idea("a", "A")) }, (dir) => {
+    assert.throws(() => loadIdeas(join(dir, "2026-11-10.json")), /ENOTDIR/);
+  });
+});

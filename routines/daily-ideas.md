@@ -35,8 +35,9 @@ The file must follow `ideas/schema.json` (see `ideas/README.md` for the field ru
 
 ## 3. Check and commit
 
-1. Run `pnpm install --frozen-lockfile` if dependencies are missing, then `pnpm ideas:check`.
+1. Run `pnpm install --frozen-lockfile` if dependencies are missing, then `pnpm ideas:check`
+   (if `pnpm` is not installed, use `npx -y pnpm@9.12.0` in its place).
    If it prints errors, fix the file and run it again until it exits 0. Never commit a file that fails.
 2. Commit **only** `ideas/<date>.json`, with the message `ideas: <date>`.
-3. Push to `main`.
+3. Push to `main`. If the push is rejected, do not push to any other branch: stop and report the exact error.
 4. Never edit any other file: no code, no `schema.json`, no docs, no other idea file.

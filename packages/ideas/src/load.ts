@@ -21,8 +21,10 @@ export function readIdeaDir(dir: string): ReadResult {
       .filter((e) => e.isFile() && e.name.endsWith(".json") && e.name !== "schema.json")
       .map((e) => e.name)
       .sort(compare);
-  } catch {
-    return { files: [], skipped: [] }; // no ideas/ directory yet
+  } catch (err) {
+    // Only a missing directory means "no ideas yet"; any other error (permissions, not a directory) must surface.
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return { files: [], skipped: [] };
+    throw err;
   }
   const files: ReadResult["files"] = [];
   const skipped: SkippedFile[] = [];
