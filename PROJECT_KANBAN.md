@@ -18,9 +18,9 @@
 - [ ] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t029-mcp-server` (stacked on `t028-idea-contract`) | Started 2026-11-10: worktree `.claude/worktrees/T029`
 
 ### Ready for Review
-- [ ] **T028** — Idea-file contract, validator and routine prompt | backend-developer | C2 | Risk: Medium | P0 | PR/branch: `t028-idea-contract` | Started 2026-11-10: worktree `.claude/worktrees/T028` | Ready 2026-11-10: code-review (P2×2 fixed), security-review clean, tests 25/25
 
 ### Done
+- [x] **T028** — Idea-file contract, validator and routine prompt | backend-developer | C2 | Risk: Medium | P0 | PR/branch: `t028-idea-contract` | Started 2026-11-10: worktree `.claude/worktrees/T028` | Ready 2026-11-10: code-review (P2×2 fixed), security-review clean, tests 25/25 | Done 2026-11-10: auto verify pass (session 442a34c1-8344-454a-9e3d-863b9c70c4c3, commit e10608742bb13d0654091711050bd1d5409900bc)
 - [x] **T013** — HUN-153 Trendshift connector (scoring only) | backend-developer | C2 | Risk: Med | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
 - [x] **T014** — HUN-154 GitHub Explorer connector | backend-developer | C1 | Risk: Low | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
 - [x] **T018** — HUN-158 Dashboard: rising topics, consensus, ops | frontend-developer | C2 | Risk: Low | P2 | Won't do 2026-11-10: v1 retired (pivot, PRD.md; T030)
