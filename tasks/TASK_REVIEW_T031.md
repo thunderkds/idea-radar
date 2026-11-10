@@ -1,4 +1,4 @@
-# TASK_REVIEW — T031: [Short Title]
+# TASK_REVIEW — T031: Railway deploy config and routine/MCP setup docs
 
 > Sibling of `tasks/TASK_GUIDE_T031.md`. Everything here is **filled by the reviewer at Stage
 > 4/5** — it is deliberately NOT in the guide, because the implementing agent re-reads the guide on
@@ -43,20 +43,31 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 -->
 
+## Auto decisions
+
+Mode: auto
+1. Track extended, Risk Medium for T031 (deploy config and the setup path for the only secret) — RULE: docs/claude-md/tracks.md § Track rule
+2. Start with `node apps/mcp/dist/index.js` instead of `pnpm --filter … start` (pnpm at runtime unverified) — RULE: skills/code-review/SKILL.md § Phase 4 — Apply Safe Fixes
+3. Spawn on Claude Code with the session model — FACT: PROJECT_SPEC.md:104 "| Claude Code | `claude` | (session model) | (session model) | (session model) | (session model) |"
+4. Live Railway deploy and routine creation left to the user (needs their logins) — RULE: docs/claude-md/tracks.md `### Stops that stay`
+Checks: tests `pnpm test` — exit 0 (ideas 25/25, mcp 36/36, scripts 5/5); reviews code-review — P0 0 P1 0 P2 2 (start command fixed f75bde3; stale toggle wording fixed on main) P3 0, security-review — no findings; real run railway.json build + `node apps/mcp/dist/index.js` in a clean clone — printed `{"ok":true,"ideas":0,"files":0,"skipped":0}` and `no-token: 401` (auto-checked, not /verify)
+Memory: learnings.md — Railway watchPatterns use leading-slash gitignore syntax; Anthropic docs now call routines "scheduled tasks" and no longer list the unrestricted-push toggle
+Not done: merge (admin: after the auto verify pass); auto verify: running (T182); live Railway deploy + routine creation (yours — needs your Railway and claude.ai logins)
+
 ## Evidence
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | Config/docs task: acceptance is the run check, not a unit test — `railway.json` read by `node -e` (healthcheckPath present) and its exact build/start commands run in a clean clone; existing suites ideas 25/25, mcp 36/36, scripts 5/5 |
+| Verification command run | ☑ pass | clean clone of f75bde3: `railway.json ok`; build command (from railway.json) exit 0; start command `node apps/mcp/dist/index.js` → `loaded 0 ideas from 0 files, 0 skipped` + `listening on port 8792`; `/health` → `{"ok":true,"ideas":0,"files":0,"skipped":0}` |
+| Negative cases hold | ☑ pass | no token → `no-token: 401`; agent's check: the `node -e` gate exits 1 when `healthcheckPath` is absent; secret grep (40+ hex / long Bearer) over railway.json, docs/deploy.md, README.md: no matches |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed railway.json, docs/deploy.md, README Deploy section against apps/mcp start/env behaviour; apps/mcp and packages/ideas code unchanged |
+| Full smoke suite still green (no regression) | ☑ pass | `pnpm test` in the worktree: ideas 25/25, mcp 36/36, scripts 5/5, fail 0 |
+| **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI in this task |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI in this task |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI in this task |
 
 ---
 
@@ -83,9 +94,19 @@ README.md "## Deploy" section, verbatim:
 See docs/deploy.md (T031).
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (2026-11-10T12:58:28Z, clean clone at f75bde3, commands read from `railway.json`):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ ls railway.json docs/deploy.md
+railway.json  docs/deploy.md
+railway.json ok
+build=0
+loaded 0 ideas from 0 files, 0 skipped (…/t031clone/ideas)
+listening on port 8792
+{"ok":true,"ideas":0,"files":0,"skipped":0}
+no-token: 401
+```
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**DELTA**: The owner can deploy `apps/mcp` to Railway from the repo with no hand-set build/start command, and follow one doc to create the routine and connect Claude Code/Desktop.
+
+**WITNESS**: Supervisor session, 2026-11-10T12:58Z (trace `memory/event-trace/T031.jsonl`), separate from the implementing agent; output above.
