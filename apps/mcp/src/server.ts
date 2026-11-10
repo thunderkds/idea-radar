@@ -71,8 +71,14 @@ async function handleMcp(store: IdeaStore, req: IncomingMessage, res: ServerResp
 
 export function createHttpServer(store: IdeaStore, token: string, log: (line: string) => void): Server {
   return createServer((req, res) => {
-    const path = new URL(req.url ?? "/", "http://localhost").pathname;
     const run = async () => {
+      // Parse inside run(): a request target that is not a valid URL must become a 400, never an uncaught throw.
+      let path: string;
+      try {
+        path = new URL(req.url ?? "/", "http://localhost").pathname;
+      } catch {
+        return sendJson(res, 400, { error: "bad request target" });
+      }
       if (path === "/health") {
         if (req.method !== "GET") return sendJson(res, 405, { error: "method not allowed" }, { allow: "GET" });
         return sendJson(res, 200, { ok: true, ...store.stats });

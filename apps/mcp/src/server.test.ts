@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
+import { connect as rawConnect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -193,4 +194,22 @@ test("startServer refuses a bad token and a directory error", async () => {
   const notADir = join(dir, "file.txt");
   writeFileSync(notADir, "x");
   await assert.rejects(startServer({ token: TOKEN, ideasDir: notADir, port: 0, log: () => {} }));
+});
+
+test("a request target that is not a valid URL gets 400 and the server keeps serving", async () => {
+  const { url } = await boot({});
+  const port = Number(new URL(url).port);
+  const reply = await new Promise<string>((resolveReply, reject) => {
+    const socket = rawConnect(port, "127.0.0.1", () => socket.write("GET //[ HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n"));
+    let data = "";
+    socket.on("data", (chunk) => (data += chunk.toString()));
+    socket.on("end", () => resolveReply(data));
+    socket.on("error", reject);
+    socket.setTimeout(3000, () => {
+      socket.destroy();
+      resolveReply(data);
+    });
+  });
+  assert.match(reply, /^HTTP\/1\.1 400/);
+  assert.equal((await fetch(`${url}/health`)).status, 200);
 });
