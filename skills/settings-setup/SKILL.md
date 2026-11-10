@@ -37,14 +37,14 @@ Read `profiles.json`. Each profile has an `id`, a `label`, a `for` line (who it 
 Run a dry run for each profile:
 
 ```
-python3 skills/settings-setup/scripts/apply_profile.py <id> --dry-run
+python3 "${CLAUDE_SKILL_DIR}/scripts/apply_profile.py" <id> --dry-run
 ```
 
 - Exit 2: the script cannot read the file safely (for example JSONC comments). It changed
   nothing. Tell the user the reason it printed, and stop. Do not fix the file yourself.
 - `high-security`, `solo-engineer` or `team-project` prints `no change`: say
   "This project already has profile <label>." and stop.
-- Only `legacy` prints `no change`: the project has the kit's 2 anchor rules (Legacy). Say so,
+- Only `legacy` prints `no change`: the project has the kit's 4 deny rules (Legacy). Say so,
   and go on to Step 2. Legacy is today's kit default, not a choice the user made.
 
 ### Step 2 — Offer the profiles
@@ -72,7 +72,7 @@ The result is the list of profiles to apply, in this order: the question 2 profi
 For each chosen profile, run the dry run and show its output unchanged:
 
 ```
-python3 skills/settings-setup/scripts/apply_profile.py <id> --dry-run
+python3 "${CLAUDE_SKILL_DIR}/scripts/apply_profile.py" <id> --dry-run
 ```
 
 - `+ <key>: <value>` is a rule or key the script will add.
@@ -86,7 +86,7 @@ Ask: "Write these changes to `.claude/settings.json`?"
 Only after the user says yes, run each chosen profile without `--dry-run`:
 
 ```
-python3 skills/settings-setup/scripts/apply_profile.py <id>
+python3 "${CLAUDE_SKILL_DIR}/scripts/apply_profile.py" <id>
 ```
 
 It prints the lines it added and `wrote .claude/settings.json`. A second run prints `no change`.
@@ -95,7 +95,7 @@ If the user says no, write nothing and say that the file did not change.
 The script writes 2-space JSON with a trailing newline. Tell the user that it may change the
 file's indentation, and that no value is removed.
 
-### Auto mode (`[auto]`)
+### Auto mode (`[auto]`/`[admin]`)
 
 Ask no question. Run only Step 1 and the dry run of `high-security`. Write nothing. In the final
 report, under `Not done:`, put: `settings-setup: recommend high-security (dry run below), not

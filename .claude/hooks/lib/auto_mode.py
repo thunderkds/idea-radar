@@ -28,8 +28,13 @@ keeps a second copy.
       - ``strict``  — the marker is the *first* line of the report block. ``stop_auto_mode_check.py``
         check (1).
       - ``auto_section`` / ``tagged`` — an extended report carrying ``## Auto decisions``, or a
-        Decision record whose text carries the literal ``[auto]`` tag. ``marked`` is the union, which
-        is what ``stop_auto_mode_check.py`` treats as "this task is an auto-mode run".
+        Decision record whose text carries the literal ``[auto]`` tag (or ``[admin]``, T284). ``marked``
+        is the union, which is what ``stop_auto_mode_check.py`` treats as "this task is an auto-mode
+        run".
+
+**The tags (T284).** `request_text`, `auto_tagged`, `admin_tagged`, `latest_request` and
+`admin_request` are the one reader of the tags in a user request: the Stop check reads `[auto]` /
+`[admin]` windows with them, and the merge gate reads whether the latest request is `[admin]`.
 
 **Never widens, never raises on its own.** `read` raises `Unreadable` for a file that exists but
 cannot be read, so each caller keeps its own fail-open line on stderr; everything else degrades to
@@ -38,13 +43,19 @@ pass the raw file text when you intend to write it back, and `skip_comments=True
 template copy is never the thing you edit.
 """
 import glob
+import json
 import os
 import re
 import subprocess
 from collections import namedtuple
+from datetime import datetime, timezone
 
 MARKER = "Mode: auto"
 TAG = "[auto]"
+# T284: `[admin]` is auto mode, and also lets the merge gate allow a merge or push of the task's own
+# branch after a passed auto verify. There is no second marker line: an admin task is marked
+# `Mode: auto` like any other auto-mode task.
+ADMIN_TAG = "[admin]"
 AUTO_SECTION = "## Auto decisions"
 MINIMAL_LOG = "MINIMAL_LOG.md"
 MINIMAL_LOG_REL = os.path.join("tasks", MINIMAL_LOG)
@@ -52,12 +63,122 @@ GUIDE_PREFIX = "TASK_GUIDE_"
 REVIEW_PREFIX = "TASK_REVIEW_"
 MINIMAL_ROW_STANDIN = "| Track: minimal"  # for a task found from its file, not from a board row
 
+
+def parse_ts(value):
+    """T292: the one ISO timestamp parser of the hooks (`stop_auto_mode_check.py` and
+    `session_work.py` bind it). An aware datetime from a transcript or trace timestamp, a naive one
+    read as UTC; None for anything else."""
+    try:
+        ts = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except Exception:
+        return None
+    return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+
+
 COMMENT = re.compile(r"<!--.*?-->", re.S)
 ROW_ID = re.compile(r"\*\*([A-Za-z]+-?\d+)\*\*")
 MINIMAL_ROW = re.compile(r"\|\s*Track: minimal\b")
 TASK_ID = re.compile(r"[A-Za-z]+-?\d+")
 NEWEST_RECORD = re.compile(r"^## ([A-Za-z]+-?\d+) — [^\n]*\n(.*?)(?=^## |\Z)", re.S | re.M)
 GIT_TIMEOUT_S = 5
+
+# --- The tags in a user request (T229, T284) --------------------------------------------------
+#
+# A request is a `user` transcript entry the user sent: not a tool result, a task notification, a
+# skill body or reminder, the compact summary or a `!` command. A tag inside a code span is a
+# mention, not the tag. `[admin]` is read more strictly than `[auto]`, because it lifts a merge-gate
+# block: only a request the transcript marks `origin.kind` "human" (and not a sub-agent's sidechain)
+# counts, and a `>` quoted line is pasted text, never the tag. Any doubt is "not admin".
+CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)
+QUOTED_LINE = re.compile(r"^[ \t]*>.*$", re.M)
+NOT_A_REQUEST = re.compile(r"\s*<(task-notification|bash-input|bash-stdout|bash-stderr|local-command)")
+
+
+def request_text(entry):
+    """The text of a user request in a transcript entry, or None for any other entry (a tool
+    result, a task notification, a skill body or reminder, the compact summary, a `!` command)."""
+    if not isinstance(entry, dict) or entry.get("type") != "user":
+        return None
+    if entry.get("isMeta") or entry.get("isCompactSummary") or entry.get("isSidechain"):
+        return None  # T284: a sub-agent's prompt is not the user's request
+    origin = entry.get("origin")
+    if isinstance(origin, dict) and origin.get("kind") not in (None, "human"):
+        return None
+    content = (entry.get("message") or {}).get("content")
+    if isinstance(content, list):
+        content = " ".join(b.get("text", "") for b in content
+                           if isinstance(b, dict) and b.get("type") == "text")
+    if not isinstance(content, str) or not content.strip() or NOT_A_REQUEST.match(content):
+        return None
+    return content
+
+
+def auto_tagged(text):
+    """True when request `text` turns auto mode on: `[auto]` or `[admin]` outside code spans.
+
+    A request is free text, where a tag in a code span is a mention. `request_tagged` below reads a
+    Decision record instead — a file the Supervisor writes, whose `**Asked:**` line may quote the
+    request in backticks — and keeps T180's plain substring rule, so `[auto]`'s reading of a record
+    does not change."""
+    plain = CODE.sub(" ", text or "")
+    return TAG in plain or ADMIN_TAG in plain
+
+
+def admin_tagged(text):
+    """True when request `text` carries `[admin]` outside code spans and `>` quoted lines."""
+    return ADMIN_TAG in QUOTED_LINE.sub(" ", CODE.sub(" ", text or ""))
+
+
+def latest_request(transcript_path):
+    """`(entry, text)` of the session's latest request the user typed, or None (no request, no
+    transcript, a path that is not absolute, any read error).
+
+    For the merge gate only an entry marked `origin.kind` "human" (and not a sidechain) is a request
+    (T284 decision): an entry with no origin neither ends an `[auto]` window, nor opens one, nor
+    carries `[admin]`. The Stop check keeps T229's looser `request_text` reading."""
+    try:
+        if not isinstance(transcript_path, str) or not os.path.isabs(transcript_path):
+            return None
+        latest = None
+        with open(transcript_path, encoding="utf-8") as f:
+            for line in f:
+                if '"user"' not in line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                text = request_text(entry)
+                origin = entry.get("origin") if isinstance(entry, dict) else None
+                if text is not None and isinstance(origin, dict) and origin.get("kind") == "human":
+                    latest = (entry, text)
+        return latest
+    except Exception:
+        return None
+
+
+def admin_request(transcript_path):
+    """`(timestamp, text)` when the session's latest request is one the user typed and it carries
+    `[admin]`; None on any doubt. A later request without the tag ends it."""
+    latest = latest_request(transcript_path)
+    if latest is None:
+        return None
+    entry, text = latest
+    origin = entry.get("origin")
+    if not isinstance(origin, dict) or origin.get("kind") != "human" or entry.get("isSidechain"):
+        return None
+    try:
+        ts = datetime.fromisoformat(str(entry.get("timestamp")).replace("Z", "+00:00"))
+    except Exception:
+        return None
+    ts = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+    return (ts, text) if admin_tagged(text) else None
+
+
+def request_tagged(text):
+    """True when a Decision record's text carries `[auto]` or `[admin]` (T284: the same check as
+    T180's `TAG in body`; see `auto_tagged` for why code spans are not stripped here)."""
+    return TAG in (text or "") or ADMIN_TAG in (text or "")
 
 
 class Unreadable(Exception):
@@ -199,14 +320,31 @@ def section(text, heading_pattern, skip_comments=False):
     """(start, end, body) of the block under the first heading matching `heading_pattern`, or None.
 
     With `skip_comments`, a heading inside an HTML comment is passed over — that is the copy of a
-    template, not the report, and writing into it would edit the instructions.
+    template, not the report, and writing into it would edit the instructions. A comment that ends
+    the block — only blank lines and comments after it — is not part of the block either (T244): a
+    template comment right below the report would otherwise take the report's next line. A comment
+    between two fields stays inside.
     """
     spans = comment_spans(text) if skip_comments else []
     for m in re.finditer(rf"^{heading_pattern}[^\n]*\n(.*?)(?=^## |\Z)", text, re.S | re.M):
         if any(a <= m.start() < b for a, b in spans):
             continue
-        return m.start(1), m.end(1), m.group(1)
+        start, end = m.start(1), m.end(1)
+        for a, _ in sorted(spans):
+            if start <= a < end and _only_comments(text, a, end, spans):
+                end = a
+                break
+        return start, end, text[start:end]
     return None
+
+
+def _only_comments(text, a, end, spans):
+    """True when `text[a:end]` is blank once every comment span is removed from it."""
+    keep = [True] * (end - a)
+    for s, e in spans:
+        for i in range(max(s, a), min(e, end)):
+            keep[i - a] = False
+    return not "".join(c for c, k in zip(text[a:end], keep) if k).strip()
 
 
 def record_block(text, task_id, skip_comments=False):
@@ -263,7 +401,7 @@ def file_candidates(dirs, skip):
     newest = NEWEST_RECORD.search(log)
     if newest and newest.group(1) not in skip and newest.group(1) not in found:
         body = newest.group(2)
-        if MARKER in body.splitlines() or TAG in body:
+        if MARKER in body.splitlines() or request_tagged(body):
             found[newest.group(1)] = MINIMAL_ROW_STANDIN
     return found, notes
 
@@ -324,7 +462,7 @@ def resolve(task_id, row, dirs):
                         marker=MARKER in body.splitlines(),
                         strict=first_line(body) == MARKER,
                         auto_section=False,
-                        tagged=TAG in body,
+                        tagged=request_tagged(body),
                         exists=block is not None, row=row, ambiguous=ambiguous)
     branch = row_branch(row)
     path, ambiguous = find_for_task(f"{REVIEW_PREFIX}{task_id}.md", dirs, task_id, branch=branch)

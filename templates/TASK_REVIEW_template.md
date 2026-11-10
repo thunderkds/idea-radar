@@ -10,7 +10,7 @@
 
 ---
 
-<!-- Optional: the final report, only for a task run in auto mode (the user's `[auto]` tag,
+<!-- Optional: the final report, only for a task run in auto mode (the user's `[auto]` or `[admin]` tag; with `[admin]`, the `Not done:` line names `merge (admin: after the auto verify pass)`,
 `docs/claude-md/tracks.md` `## Auto mode`). To use it, copy the block below out of this comment, to this
 place, and replace every <...>. Keep `Mode: auto` as its first line, exactly as written: T182's hook reads
 it. Write it to this file before the run ends; the chat message is a copy, not the report. The same
@@ -49,7 +49,7 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 |-------|--------|------------------------|
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
 | Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | |
+| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
 | Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |

@@ -175,7 +175,7 @@ def record_gaps(gate, root, task_id, tasks_dir, head, session):
     record = vr.read_record(root, task_id, head)
     if not record:
         return [f"no run record for {task_id} at commit {head[:12]}"]
-    if record.get("verdict") != "pass":
+    if record.get("verdict") not in ("pass", vr.SKIP_PASS):  # T289: the gate re-checks a skip-pass
         return [f"the run record says {record.get('verdict')!s}, not pass"]
     if (record.get("task"), record.get("commit"), record.get("session")) != (task_id, head, session):
         return ["the run record names another task, commit or session"]

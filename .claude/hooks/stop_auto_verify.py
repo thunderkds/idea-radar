@@ -41,16 +41,27 @@ When the run ends, this script (never the Supervisor) writes three things:
   * the run record (D5, `lib/verify_record.py`), where agents are denied write access;
   * the result, where that track keeps its evidence —
       - extended (T182 D4): the `verify` Evidence row, `☑ pass` / `☑ fail` / `☐ blocked`, Notes
-        `auto-run by hook, session <id>, commit <sha>, log .claude/verify-runs/<file> — <verdict>`;
+        `auto-run by hook, session <id>, commit <sha>, log .claude/verify-runs/<file> — <verdict>`
+        (T289: a docs-only skip is `☑ pass` with `..., log <file>, skip (no runtime surface:
+        <paths>) — pass`);
       - minimal (T188 D3): one line under the Decision record's `Checked:` field,
-        `- verify: ☑ pass — auto-run by hook, session <id>, commit <sha>, log .claude/...`;
+        `- verify: ☑ pass — auto-run by hook, session <id>, commit <sha>, log .claude/...`
+        (T289: a docs-only skip ends `log <file>, skip (no runtime surface: <paths>)`);
   * the report's `Not done:` auto verify slot (T188 D7), so the report the user reads stops saying
     `auto verify: running (T182)` after the run has ended. The merge clause is left as it is.
-The verdict is the result's `**Verdict:** PASS|FAIL` line (the bold may also close after the
+The verdict is the result's `**Verdict:** PASS|FAIL|SKIP` line (the bold may also close after the
 word or the sentence: `**Verdict: PASS**`, T208). A line that lists choices (`**Verdict:** PASS | FAIL`,
-`PASS / FAIL`, `PASS or fail`, `PASS - FAIL`) is no verdict (T209): the blank report template reads as `blocked`. SKIP,
-BLOCKED, no verdict line, two different verdicts, a non-success run (budget stop, error), output that
+`PASS / FAIL`, `PASS or fail`, `PASS - FAIL`) is no verdict (T209): the blank report template reads as `blocked`. BLOCKED,
+no verdict line, two different verdicts, a non-success run (budget stop, error), output that
 is not JSON, a timeout or no `claude` on PATH are all `blocked`. The run's text is data: only that line decides.
+
+T289: a lone SKIP line is a pass in one case. The hook itself asks git (`verify_record.docs_only_change`)
+whether every file the task's branch changed since it left `main` lies in the short docs-only list
+(`.md`/`.txt` files under `tasks/`, `memory/`, `docs/` but not `docs/claude-md/`, `memory/MEMORY.md` or
+`tasks/TASK_GUIDE_*`; `test_*.py` and `tests/fixtures/` under `tests/` and `.claude/hooks/tests/`; root `*.md`
+but not the prompt-config and control-state ones). If so, the row says `☑ pass` with `skip (no runtime surface: <paths>)`
+and the run record says `skip-pass`; the merge gate repeats the path check before it trusts that record.
+An empty or unreadable range, a rename, a symlink or one path outside the list leaves `blocked`.
 
 A row or line the user filled (a `☑` result that is not an `auto-run by hook` one) is never started
 over or overwritten, and neither is a `Not done:` slot the user wrote — that reason goes in the run
@@ -63,8 +74,9 @@ line; T203 D6 keeps this scope, so an unmarked task's row stays in Ready for Rev
 run record proves the pass (D3), the task's evidence meets Hard-Stop Gates 5 and 6 (D2) and the report
 holds every required field (D9), it writes the report's `Closed:` line and moves the board row from
 Ready for Review to Done; otherwise it writes `Paused: done not moved — <reason>` and leaves the row.
-A `fail` or `blocked` verdict leaves the row untouched. Merge, push and `ship` stay with the user: the
-run issues no git command that writes. Fails open: any error is one stderr line, never a block.
+A `fail` or `blocked` verdict leaves the row untouched. The run never merges, pushes or runs `ship`:
+it issues no git command that writes (with `[admin]`, the Supervisor may merge and push afterwards,
+T284). Fails open: any error is one stderr line, never a block.
 """
 import json
 import os
@@ -74,15 +86,31 @@ import signal
 import subprocess
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-KANBAN = os.path.join(ROOT, "PROJECT_KANBAN.md")
 RUNS_REL = os.path.join(".claude", "verify-runs")
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+from project_root import NO_PROJECT, exit_outside_kit_project, project_root, script_project_root  # noqa: E402
+
+# T232: `--start` is a command, not a hook: exit 0 there means "a run started", so it keeps its
+# one-line answer and only the Stop entry stands down. The detached `--run` gets
+# $CLAUDE_PROJECT_DIR from `start()`, which sets it to the root it resolved (T234 D5): a `Bash` tool
+# call has none, and without it `--run` would resolve to the folder this file sits in.
+# call_claude() strips it for the headless `claude` alone.
+if sys.argv[1:2] != ["--start"]:
+    exit_outside_kit_project()
+# `--start` runs in a `Bash` tool call, where $CLAUDE_PROJECT_DIR is empty (T234 D5): it finds the
+# project from the cwd. The Stop hook gets the variable from the harness.
+ROOT = script_project_root() if sys.argv[1:2] == ["--start"] else project_root()
+if ROOT is None:  # T234 D7: `--start` from a plugin, in no project: never read the plugin's board
+    print(f"{sys.argv[2] if len(sys.argv) > 2 else '--start'}: {NO_PROJECT} — nothing started")
+    sys.exit(1)
+KANBAN = os.path.join(ROOT, "PROJECT_KANBAN.md")
+
 import auto_closeout as ac  # noqa: E402
 import auto_mode as am  # noqa: E402
 import verify_record as vr  # noqa: E402
 
+SKIP_NOT_DOCS = "SKIP, and git does not show a change of docs-only files"
 CHILD_ENV = "CLAUDE_AUTO_VERIFY_RUN"
 BUDGET_ENV, BUDGET_DEFAULT = "CLAUDE_AUTO_VERIFY_BUDGET_USD", "2"
 TIMEOUT_ENV, TIMEOUT_DEFAULT_S = "CLAUDE_AUTO_VERIFY_TIMEOUT_S", 1800
@@ -182,7 +210,7 @@ def start(task, head):
         fd = os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_APPEND, 0o644)
     except FileExistsError:
         return log_rel, False  # this task and commit already ran (or is running)
-    env = dict(os.environ, **{CHILD_ENV: "1"})
+    env = dict(os.environ, **{CHILD_ENV: "1", "CLAUDE_PROJECT_DIR": ROOT})
     try:
         subprocess.Popen([sys.executable, os.path.abspath(__file__), "--run", task.task_id,
                           task.report_path, task.checkout, head, log_rel, task.track,
@@ -328,7 +356,8 @@ def timeout_s():
 
 
 def parse(stdout):
-    """(verdict, session, reason) from `claude -p --output-format json` output."""
+    """(verdict, session, reason) from `claude -p --output-format json` output. The verdict is
+    `pass`, `fail`, `skip` (a lone SKIP line, T289) or `blocked`."""
     try:
         data = json.loads(stdout)
     except Exception:
@@ -344,6 +373,8 @@ def parse(stdout):
         return "pass", session, ""
     if verdicts == {"FAIL"}:
         return "fail", session, ""
+    if verdicts == {"SKIP"}:  # T289: `run()` turns it into a pass only if git says docs-only
+        return "skip", session, ""
     return "blocked", session, "no single verdict line"
 
 
@@ -370,6 +401,16 @@ def call_claude(checkout):
         return None, f"timed out after {timeout_s()}s"
     print(out or "", err or "", sep="\n", flush=True)
     return out, ""
+
+
+def settle_skip(checkout, head):
+    """T289: a SKIP answer is a pass only when git agrees that nothing the branch changed has a
+    runtime surface (`verify_record.docs_only_change`; the model's text is not read again). Returns
+    (verdict, reason, base, paths): `skip-pass`, or `blocked` for any doubt."""
+    found = vr.docs_only_change(checkout, head)
+    if found is None:
+        return "blocked", SKIP_NOT_DOCS, None, ()
+    return vr.SKIP_PASS, "", found[0], found[1]
 
 
 def write_row(review_path, task_id, cells):
@@ -458,20 +499,25 @@ def run():
         verdict, session = "blocked", "none"
     else:
         verdict, session, reason = parse(out)
+    base, paths = None, ()
+    if verdict == "skip":  # T289: the only verdict git can turn into a pass
+        verdict, reason, base, paths = settle_skip(checkout, head)
     print(f"verdict: {verdict}" + (f" ({reason})" if reason else ""), flush=True)
     try:
-        vr.write_record(ROOT, task_id, head, verdict, session, log_rel)
+        vr.write_record(ROOT, task_id, head, verdict, session, log_rel, base=base)
     except Exception as exc:
         print(f"run record not written ({type(exc).__name__}: {exc})", flush=True)
     if minimal:
         write_verify_line(report_path, task_id,
-                          vr.record_line(head, verdict, session, log_rel, reason))
+                          vr.record_line(head, verdict, session, log_rel, reason, paths))
     else:
-        write_row(report_path, task_id, vr.row_cells(head, verdict, session, log_rel, reason))
+        write_row(report_path, task_id,
+                  vr.row_cells(head, verdict, session, log_rel, reason, paths))
+    skipped = ", skip (no runtime surface)" if verdict == vr.SKIP_PASS else ""
     write_slot(report_path, task_id, minimal,
-               f"auto verify: {vr.RESULT_CELL[verdict]} (session {session}, commit {head}, "
+               f"auto verify: {vr.RESULT_CELL[verdict]}{skipped} (session {session}, commit {head}, "
                f"log {log_rel})")
-    if verdict != "pass":
+    if verdict not in ("pass", vr.SKIP_PASS):
         return  # T189 D1: only a pass closes the task out; the row stays where it is
     if not marked:  # T203 D6: the Done move stays T189's scope — auto-mode tasks only
         print("close-out skipped: not an auto-mode task (no `Mode: auto` line) — nothing moved; "

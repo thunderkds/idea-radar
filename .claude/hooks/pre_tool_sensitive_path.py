@@ -40,7 +40,6 @@ import re
 import sys
 
 HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))
-_FILE_ROOT = os.path.dirname(os.path.dirname(HOOKS_DIR))
 PATTERNS_RELPATH = os.path.join(".claude", "sensitive-paths.txt")
 PREDICTED_HEADING = "Files to Change (Predicted)"
 # What is passed to read_guide_section: its slicer puts `\b` after the heading,
@@ -55,6 +54,9 @@ TAG = "[hook:sensitive-path]"
 # turned into an `ask` in main().
 sys.path.insert(0, os.path.join(HOOKS_DIR, "lib"))
 try:
+    from project_root import exit_outside_kit_project  # noqa: E402
+    from project_root import project_root as project_dir  # noqa: E402
+    exit_outside_kit_project()  # T232: first, so a broken lib stays silent in a non-kit project
     from guide_sections import read_guide_section  # noqa: E402
     from shell_data import strip_heredoc_bodies, strip_quoted_spans  # noqa: E402
     from task_context import resolve_task_id  # noqa: E402
@@ -75,12 +77,22 @@ BACKTICK_SPAN_PATTERN = re.compile(r"`([^`]+)`")
 QUOTED_REDIRECT_TARGET_PATTERN = re.compile(r"""(?:&|\d*)>[>|]?\s*(?:"([^"]*)"|'([^']*)')""")
 
 
-def project_dir():
-    env_root = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
-    return env_root if env_root else _FILE_ROOT
-
-
 # --- Pattern file ------------------------------------------------------------
+
+def pattern_file_path(root):
+    """The project's list; the plugin's own copy only when the project has none (T233).
+
+    A hook run from a plugin cache sits at `<plugin>/.claude/hooks`, so the copy shipped with the
+    plugin is `<plugin>/.claude/sensitive-paths.txt`. In the `setup.sh` install the two paths are
+    the same file, so nothing changes there. A project file that exists but cannot be read is
+    still returned, so the caller asks; it never falls back.
+    """
+    project_file = os.path.join(root, PATTERNS_RELPATH)
+    if os.path.lexists(project_file):
+        return project_file
+    plugin_file = os.path.join(os.path.dirname(HOOKS_DIR), "sensitive-paths.txt")
+    return plugin_file if os.path.lexists(plugin_file) else project_file
+
 
 def expand_braces(pattern):
     """`prod*.{yml,json}` -> [`prod*.yml`, `prod*.json`]. Nested groups recurse."""
@@ -301,7 +313,7 @@ def main():
         sys.exit(0)
 
     root = project_dir()
-    patterns_file = os.path.join(root, PATTERNS_RELPATH)
+    patterns_file = pattern_file_path(root)
     try:
         patterns = load_patterns(patterns_file)
     except Exception as exc:
