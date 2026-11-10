@@ -17,6 +17,8 @@
 ---
 
 ## Index
+- [v2.1: Postgres store behind the MCP](decisions.md#2026-11-10--v21-postgres-store-behind-the-mcp-v2-files-are-the-database-superseded-t033t036) — routine → `submit_ideas` → Railway Postgres; merge rule newer-date-wins; tests refuse non-loopback DB; supersedes v2 files-as-DB
+- [Auto-mode gates (Gate 5, Debate, [admin] merge)](learnings.md#2026-11-10--auto-mode-gates-that-bit-t033-gate-5-debate-admin-merge) — `pnpm test` only counts; High risk needs a 3-Advocate Debate; name the task + commit the verify row; `main` push stays the user's
 - [Railway + routine facts](learnings.md#2026-11-10--railway-watch-patterns-routines-are-now-scheduled-tasks-t031) — leading-slash watchPatterns, start with node dist, routines push where the prompt says (toggle not in docs)
 - [v2 pivot: routine → idea files → MCP](decisions.md#2026-11-10--v2-pivot-claude-routine--idea-files-in-git--hosted-read-only-mcp-scraping-retired-t028t031) — files are the DB, CI checks, Railway redeploys apps/mcp; v1 in tag v1-scraper
 - [Tracking strategy: snapshots, idea groups, leaders](decisions.md#2026-10-31--tracking-strategy-github-api-snapshots-idea-groups-leaders-t024t027) — GH Archive shrank ~55×; star velocity from daily GitHub API snapshots; 1–2 leaders per idea group daily, rest weekly, parked on request (v1, retired)
