@@ -91,4 +91,5 @@ Measured the same UTC hour (12:00) across years from data.gharchive.org: 2024-10
 - `validateIdeaFile` reports duplicate ids only after the schema itself passes. Give `submit_ideas` loose zod fields (`z.unknown()` + `passthrough`) so a bad field becomes a named tool error and a `rejected` run, not a protocol error.
 - `createPool` in `packages/db` has no `connectionTimeoutMillis`: a database host that silently drops packets hangs boot `migrate` and `pool.end()`. A refused port fails fast. Small follow-up in `packages/db`.
 - A backend agent can stop "waiting on its own background work" with the work uncommitted and no report. Check `git status`, then `SendMessage` to resume it; tell it to commit and not wait on background work.
+- With the database down `/mcp` `tools/call` hangs (no timeout, no log) while `/health` 503s after 2 s: same missing connect timeout. `search_ideas` is a literal substring match, so "markdown sync" does not match an idea containing both words apart.
 - A permission rule blocks reading and editing `.env.example` for the agents and the Supervisor; the user applies that edit.

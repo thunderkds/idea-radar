@@ -20,8 +20,16 @@ Mode: auto
 5. The Companion score row is N/A because the easy-verifier connection timed out — RULE: `templates/TASK_REVIEW_template.md:56` "the merge gate blocks on ☑ fail only, never on an absent or N/A row"
 Checks: tests `TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm test` — 96 pass, 0 fail (ideas 25, db 23, mcp 43, scripts 5); lint `pnpm lint` exit 0; typecheck `pnpm typecheck` exit 0; reviews code-review — no P0/P1 (P2 x2, P3 x2), security-review — no findings; real run curl `submit_ideas` then `list_ideas` against the app on :8099 with a live local PGlite — printed `{"saved":1,"date":"2026-11-10"}` then a `real-run-idea` list entry (auto-checked, not /verify)
 Memory: decisions.md — `/health` is {ok} only (T034); learnings.md — MCP write tool gotchas (T034); MEMORY.md — 2 index lines
-Not done: merge (admin: after the auto verify pass); auto verify: running (T182)
+Not done: merge (admin: after the auto verify pass); auto verify: ☑ pass (session c38593bc-2b82-4f19-865a-bf2180d6fb98, commit e42e6973e985c37f2dcae5495b03277ee7e4014a, log .claude/verify-runs/T034-e42e6973e985.log)
 Note for the user: `.env.example` is not updated (a permission rule blocks reading and editing it for the agents and the Supervisor): add `DATABASE_URL`, `MCP_WRITE_TOKEN` and `DASHBOARD_TOKEN` (tokens at least 32 characters and all different) and drop `IDEAS_DIR`.
+Closed: row moved to Done 2026-11-10 — auto verify pass (session c38593bc-2b82-4f19-865a-bf2180d6fb98, commit e42e6973e985c37f2dcae5495b03277ee7e4014a); Gates 5 and 6 checked
+
+## Notes for T035 and T036 (from the auto verify run, `.claude/verify-runs/T034-e42e6973e985.log`)
+
+- With the database down, a `tools/call` on `/mcp` hangs with no response and no log line (curl timed out at 25 s), while `/health` correctly returns 503 after 2 s. Same root cause as the missing connect timeout in `packages/db` `createPool`; a routine calling `submit_ideas` during an outage waits until its client times out. Follow-up in `packages/db`.
+- `search_ideas "markdown sync"` finds nothing although both words are in an idea: it is a literal substring match, so multi-word queries match only as an exact phrase (the old in-memory store behaved the same). The dashboard search (T035) should know this.
+- Not exercised: real Postgres 16 (CI's service); the migration, `pg_trgm` and the upsert all ran on PGlite only.
+- `docs/deploy.md` still shows `/health` returning counts; T036 rewrites it.
 
 ## Evidence
 
@@ -30,7 +38,7 @@ Note for the user: `.env.example` is not updated (a permission rule blocks readi
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/mcp/src/auth.test.ts` (AC 1, 2), `apps/mcp/src/index.test.ts` (AC 1, 6), `apps/mcp/src/server.test.ts` (AC 1-5, 7 over HTTP with a real SDK client and a test DB), `apps/mcp/src/tools.test.ts` (AC 2-4 handlers), `apps/mcp/src/index-store.test.ts` (clamp and date helpers). |
 | Verification command run | ☑ pass | Re-run by the Supervisor 2026-11-10T22:5xZ against PGlite on :55432: `pnpm test` packages/ideas 25/25, packages/db 23/23, apps/mcp 43/43, scripts 5/5 = 96 pass, 0 fail; `pnpm lint` exit 0; `pnpm typecheck` exit 0. Without `TEST_DATABASE_URL` the DB tests skip cleanly (agent run: 18 pass, 0 fail). |
 | Negative cases hold | ☑ pass | Supervisor mutation: `git diff --stat` showed `apps/mcp/src/tools.ts | 2 +-` after changing `if (role !== "write") return;` to `if (role === undefined) return;` (a read token then gets `submit_ideas`); tests: apps/mcp pass 42, fail 1, `✖ a read token lists exactly the three read tools, all read-only`. Restored with `git checkout`, tree clean. The agent's own mutation (removing the registration guard) was red the same way, and the handler guard still refused the call. |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
+| verify | ☑ pass | auto-run by hook, session c38593bc-2b82-4f19-865a-bf2180d6fb98, commit e42e6973e985c37f2dcae5495b03277ee7e4014a, log .claude/verify-runs/T034-e42e6973e985.log — pass |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed `apps/mcp/src/{auth,server,tools,index-store,index}.ts`, their tests and the `@idea-radar/db` link; `packages/db` was reviewed under T033 and only its callers' use was read. Stale-reference sweep: `.env.example` (blocked, P2), README, `package.json` and `docs/deploy.md` belong to T036. code-review: no P0/P1, P2 x2, P3 x2; lane_check warn-only `EXCEEDS (lines 1337 > 500)`, about 1,000 lines are tests. security-review: no findings. Reports: `reports/code-review_t034-mcp-submit-ideas_20261110T225706.html`, `reports/security-review_t034-mcp-submit-ideas_20261110T225706.html`. |
 | Full smoke suite still green (no regression) | ☑ pass | Same run: 96 pass, 0 fail across all four test groups. |
 | **Companion score (easy-verifier)** | ☑ N/A | easy-verifier failed to connect in this session (CONNECT_TIMEOUT), so no score was run. |
