@@ -59,3 +59,9 @@ Measured the same UTC hour (12:00) across years from data.gharchive.org: 2024-10
 - `ajv/dist/2020.js` and `ajv-formats` are CommonJS: under `module: NodeNext` take the constructor from `.default` (`Ajv2020Module.default`, `addFormatsModule.default`).
 - In `[auto]`/`[admin]` sessions the merge/push gate blocks any command containing `git stash push` (it reads it as a hidden push). For a red check against prior code, copy the file: `git show HEAD:<path> > <path>`, run the test, restore.
 - This machine has no `pnpm` on PATH and no corepack (node v26). A local copy lives at the session scratchpad (`npm i pnpm@9.12.0`); the routine prompt carries `npx -y pnpm@9.12.0` as its fallback.
+
+### 2026-11-10 — node http: parse the URL inside the async wrapper; `pkill -f` can kill your own shell (T029)
+**Files**: apps/mcp/src/server.ts, apps/mcp/src/server.test.ts
+- In a `createServer` handler, anything that runs before `run().catch(...)` (e.g. `new URL(req.url)`) throws synchronously on a target like `GET //[` → uncaught exception; in tests the socket stays open and the file hangs. Parse inside the wrapper and answer 400; give raw-socket tests a `setTimeout` guard.
+- `pkill -f "<pattern>"` inside a Bash tool call matches the calling shell when the pattern is in its own command line (exit 144). Keep the PID (`node … & SRV=$!; kill $SRV`).
+- MCP list tools: return compact summaries and say so in the description; `get_idea` holds signals (Debate T029).

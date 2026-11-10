@@ -171,3 +171,7 @@ Unit tests for the index store and each tool; HTTP tests that start the server o
 - [ ] `Skill({ skill: "verify" })` run — feature confirmed working in running app
 - [ ] `memory/MEMORY.md` updated (if new patterns or feedback learned)
 - [ ] Supervisor notified: task ready for Stage 4 review
+
+## Questions Log
+
+- 2026-11-10 DEBATE list_ideas/search_ideas: compact summaries or full ideas? → compact summaries; descriptions say so and point to get_idea (Advocate 1: compact, add why_now + descriptions; Advocate 2: compact, add why_now + descriptions; Advocate 3: compact, descriptions only) ⚠ decided for you — please review
