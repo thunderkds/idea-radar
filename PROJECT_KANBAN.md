@@ -15,9 +15,9 @@
 - [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1
 
 ### In Progress
-- [ ] **T034** — MCP `submit_ideas` write tool + read tools on Postgres | backend-developer | C2 | Risk: High | P0 | PR/branch: `t034-mcp-submit-ideas` | Started 2026-11-10: worktree `.claude/worktrees/T034`
 
 ### Ready for Review
+- [ ] **T034** — MCP `submit_ideas` write tool + read tools on Postgres | backend-developer | C2 | Risk: High | P0 | PR/branch: `t034-mcp-submit-ideas` | Started 2026-11-10: worktree `.claude/worktrees/T034` | Ready 2026-11-10: code-review (no P0/P1; P2×2: `.env.example` not updated (permission rule, user applies), `createPool` has no connect timeout (packages/db follow-up); P3×2), security-review clean, tests 96/96 + lint + typecheck, mutation red 1/1, 1 Debate (/health is {ok} only, AC5 amended)
 
 ### Done
 - [x] **T033** — Postgres store for ideas (packages/db) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t033-postgres-store` | Started 2026-11-10: worktree `.claude/worktrees/T033` | Ready 2026-11-10: code-review (no P0/P1; P2 test DROP TABLE host guard fixed after a 3-Advocate Debate, P3×2), security-review clean, tests 23/23 + lint + typecheck, mutation red 1/1, auto verify pass (commit 9c1924c) | Done 2026-11-10: auto verify pass (session 55333ccf-4480-4664-9ceb-881b0511c7a0, commit 0afe23c5522f6d9b4d3ba5dafbdd9a29cf49f777) | Merge pending: branch `t033-postgres-store` is not merged into main; it needs a request with the `[admin]` tag (or the user's merge). T034 depends on it
