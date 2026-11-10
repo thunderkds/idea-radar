@@ -11,11 +11,11 @@
 > v2 order: T028 → T029 → T030 → T031 (each depends on the one before).
 
 ### Todo
-- [ ] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0
 - [ ] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1
 - [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1
 
 ### In Progress
+- [ ] **T029** — Hosted read-only MCP server (list/search/get ideas) | backend-developer | C2 | Risk: High | P0 | PR/branch: `t029-mcp-server` (stacked on `t028-idea-contract`) | Started 2026-11-10: worktree `.claude/worktrees/T029`
 
 ### Ready for Review
 - [ ] **T028** — Idea-file contract, validator and routine prompt | backend-developer | C2 | Risk: Medium | P0 | PR/branch: `t028-idea-contract` | Started 2026-11-10: worktree `.claude/worktrees/T028` | Ready 2026-11-10: code-review (P2×2 fixed), security-review clean, tests 25/25
