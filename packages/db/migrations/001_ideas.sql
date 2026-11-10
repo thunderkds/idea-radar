@@ -20,7 +20,6 @@ CREATE TABLE ideas (
 );
 
 CREATE INDEX ideas_last_seen_idx ON ideas (last_seen DESC, id);
-CREATE INDEX ideas_tags_idx ON ideas USING gin (tags);
 CREATE INDEX ideas_search_idx ON ideas USING gin (search_text gin_trgm_ops);
 
 CREATE TABLE runs (
