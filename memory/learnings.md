@@ -71,3 +71,9 @@ Measured the same UTC hour (12:00) across years from data.gharchive.org: 2024-10
 - In zsh an unquoted `grep --include=*.md` fails with "no matches found" before grep runs. Quote the glob: `--include='*.md'`.
 - A deletion task always shows `lane: … EXCEEDS` (T030: 184 files, 22,381 lines) because the guide predicts whole directories; treat it as expected, not under-labelling.
 - After deleting packages, run `pnpm build` (or `typecheck`) from a clean `dist/` before `pnpm test`: a stale `dist/` can hide a broken import.
+
+### 2026-11-10 — Railway watch patterns; routines are now "scheduled tasks" (T031)
+**Files**: railway.json, docs/deploy.md, routines/daily-ideas.md
+- Railway `build.watchPatterns` are gitignore-style and written with a leading slash (`/ideas/**`); a bare `package.json` matches at any depth. Deploy from the repo root (no Root Directory) so the pnpm workspace and `ideas/` are present.
+- Start with `node apps/mcp/dist/index.js`, not `pnpm … start`: no dependency on pnpm being on PATH in the runtime image.
+- Anthropic's docs (2026-11) call routines "scheduled tasks (formerly routines)". A run pushes to `claude/*` unless the prompt directs another branch; the "Allow unrestricted branch pushes" toggle that third-party posts mention is not in the current docs — confirm in the UI on the first run.

@@ -36,7 +36,13 @@ pnpm --filter @idea-radar/mcp dev
 
 ## Deploy
 
-See docs/deploy.md (T031).
+Railway deploy, the daily routine and client setup: [`docs/deploy.md`](docs/deploy.md). Settings live in
+[`railway.json`](railway.json). To run the server locally:
+
+```bash
+pnpm install && pnpm build
+MCP_TOKEN=$(openssl rand -hex 32) pnpm --filter @idea-radar/mcp start   # then: curl localhost:8080/health
+```
 
 ## Docs
 
