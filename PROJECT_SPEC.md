@@ -12,7 +12,7 @@
 
 - **Requirements**: PRD.md
 - **Direction**: BRAINSTORMING_LOG.md (Option C — files are the database; auto-selected, please review)
-- **Codebase map**: memory/codebase-map.md (v1 snapshot; re-run `/map-codebase` after T030)
+- **Codebase map**: memory/codebase-map.md
 - **Tech stack**: TypeScript (Node 22), pnpm 9 workspaces, `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), JSON Schema idea files in git as storage (no DB), Railway hosting, GitHub Actions CI
 - **Main flow**: PROJECT_SPEC.md (§ Architecture Summary)
 - **Approved by**:
