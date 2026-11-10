@@ -52,8 +52,8 @@ Mode: auto
 4. Validate with `ajv` against `ideas/schema.json` (one contract file) — RULE: `PROJECT_SPEC.md § Critical Constraints` "Every idea file must pass `ideas/schema.json`"
 5. Task breakdown T028→T031, sequential — RULE: `docs/claude-md/tracks.md` `### Every user stop and its auto rule` row 12
 6. Spawn on Claude Code with the session model — FACT: `PROJECT_SPEC.md:104` "| Claude Code | `claude` | (session model) | (session model) | (session model) | (session model) |"
-Checks: tests — pending (agent running); reviews — pending; real run — pending
-Memory: pending (memory pass runs at Stage 5)
+Checks: tests `pnpm test` — exit 0 (ideas 25/25 after fix); reviews code-review — P0 0 P1 0 P2 2 fixed (e44eb02) P3 1, security-review — no findings; real run `pnpm ideas:check` — printed `ideas:check ok (0 idea file(s) …)`, bad file exit 1 naming file + field (auto-checked, not /verify)
+Memory: learnings.md — ajv/ajv-formats need `.default` under NodeNext; `git stash push` is blocked by the auto-mode push gate (use a file copy for red checks)
 Not done: merge (admin: after the auto verify pass); auto verify: not started (task still In Progress)
 Paused: auto-mode check failed — no test run in memory/event-trace/T028.jsonl — write /home/thunderkds/workspace/pets/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID with the task ID (minimal-track step 1): `mkdir -p /home/thunderkds/workspace/pets/idea-radar/.claude/hooks/.state/active_task.d && printf '%s\n%s\n' "T028" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /home/thunderkds/workspace/pets/idea-radar/.claude/hooks/.state/active_task.d/$CLAUDE_CODE_SESSION_ID`, then rerun the task's tests so the trace records them under the task, then stop; Risk Medium: decision 1 (`RULE`) is a choice — its RULE cites no written rule (`path:line`, `path § <heading>` or `docs/claude-md/tracks.md` `### <section>`) — so it must be `DEBATED` with exactly 2 Advocates named; Risk Medium: decision 2 (`RULE`) is a choice — it is flagged ⚠ — so it must be `DEBATED` with exactly 2 Advocates named; Risk Medium: decision 3 (`DEBATED`) is a choice — it names 3 Advocates, not exactly 2 — so it must be `DEBATED` with exactly 2 Advocates named; Risk Medium: decision 6 (`FACT`) is a choice — its FACT has no Citation (`path:line "quoted text"`) — so it must be `DEBATED` with exactly 2 Advocates named; 1 `DEBATED` line(s) need ≥2 Advocate `Agent` calls (description `Advocate <n>:` and a prompt starting `Using the repo, answer alone:`); the trace has 0; extended track, but the trace has no `code-review` Skill call (Stage 4 runs in auto mode); Risk Medium, but the trace has no `security-review` Skill call [report 32d30e6ab340]
 
@@ -61,16 +61,16 @@ Paused: auto-mode check failed — no test run in memory/event-trace/T028.jsonl 
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `packages/ideas/src/validate.test.ts`, `load.test.ts`, `check.test.ts` — `pnpm test` (ideas): ℹ tests 25 ℹ pass 25 ℹ fail 0 |
+| Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm --filter @idea-radar/ideas test && pnpm ideas:check && pnpm lint && pnpm typecheck` — exit 0; `ideas:check ok (0 idea file(s) …/ideas)` |
+| Negative cases hold | ☑ pass | New loader test red on the prior `load.ts` (`✖ a path that is not a directory throws…`, pass 24 fail 1), green after the fix (pass 25 fail 0). CLI on a bad file: `…/2026-11-10.json: /ideas/0/id must match pattern …`, `/ideas/0/signals/0/url must match pattern "^https?://\S+$"`, exit=1. Agent mutation: reversed merge sort → merge test fails. |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed `packages/ideas/**`, `ideas/**`, `routines/daily-ideas.md`, CI step, root `package.json`; skipped v1 apps/packages (untouched) and kit files |
+| Full smoke suite still green (no regression) | ☑ pass | root `pnpm test` exit=0: core 65/65, ideas 24/24 (+1 after fix), dashboard 150 pass 0 fail, db 9/9, connectors 98 pass 0 fail, worker 4/4, scripts 21/21; lint + typecheck ok |
+| **Companion score (easy-verifier)** | ☑ N/A | easy-verifier MCP server failed to connect this session (CONNECT_TIMEOUT); not run |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI in this task |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI in this task |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI in this task |
 
 ---
 
@@ -93,9 +93,21 @@ ls: cannot access 'routines': No such file or directory
 ls: cannot access 'packages/ideas': No such file or directory
 ```
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: captured 2026-11-10T11:17:06Z in worktree T028 at e44eb02:
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ pnpm -s ideas:check
+ideas:check ok (0 idea file(s) in …/.claude/worktrees/T028/ideas)
+exit=0
+$ ls ideas routines
+ideas: README.md examples schema.json
+routines: daily-ideas.md
+$ pnpm -s --filter @idea-radar/ideas check <dir with a bad file>
+…/2026-11-10.json: /ideas/0/id must match pattern "^[a-z0-9]+(-[a-z0-9]+)*$"
+…/2026-11-10.json: /ideas/0/signals/0/url must match pattern "^https?://\S+$"
+exit=1
+```
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**DELTA**: The routine has a fixed file format and a check that names the file and field of any error, and CI rejects a bad idea file on push.
+
+**WITNESS**: Supervisor session, 2026-11-10T11:17Z (trace `memory/event-trace/T028.jsonl`), separate from the implementing agent.
