@@ -11,9 +11,9 @@
 > v2 order: T028 → T029 → T030 → T031 (each depends on the one before).
 
 ### Todo
-- [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1
 
 ### In Progress
+- [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031`
 
 ### Ready for Review
 
