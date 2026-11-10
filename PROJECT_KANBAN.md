@@ -13,9 +13,9 @@
 ### Todo
 
 ### In Progress
-- [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031`
 
 ### Ready for Review
+- [ ] **T031** — Railway deploy config and routine/MCP setup docs | common-infrastructure | C1 | Risk: Medium | P1 | PR/branch: `t031-railway-deploy` | Started 2026-11-10: worktree `.claude/worktrees/T031` | Ready 2026-11-10: code-review (P2 start-cmd fixed), security-review clean, clean-clone build+start+health ok
 
 ### Done
 - [x] **T030** — Retire the v1 scraping stack | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t030-retire-v1` | Started 2026-11-10: worktree `.claude/worktrees/T030` | Ready 2026-11-10: code-review (P2 fixed), security-review clean, clean-build suite green | Done 2026-11-10: auto verify pass (session b0d2c4b0-6752-42a0-bc5b-6609b31971de, commit ce251960c39896fbe23abbf6d3241db3248c1ffe)
