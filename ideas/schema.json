@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/thunderkds/idea-radar/blob/main/ideas/schema.json",
-  "title": "Idea Radar idea file",
-  "description": "One routine run's output: ideas/<YYYY-MM-DD>[-<suffix>].json",
+  "title": "Idea Radar submission",
+  "description": "One routine run's output: the argument of the submit_ideas MCP tool",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "date", "routine", "ideas"],
