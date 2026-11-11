@@ -168,20 +168,37 @@ All numbers here are estimates; read the real usage of a run in the task's **His
 
 Where the tokens go, largest first (estimate):
 
-1. Web pages the routine opens. The prompt limits this: it reads the trending and search listings (4 to 6
-   pages, rows with name, description, stars) and opens at most 8 repository pages. No blogs, no README reads.
+1. Web pages the routine opens. The prompt limits this to **20 pages in all**: the trending and search listings
+   (4 to 6 pages, only to pick repositories) plus **one page for each of the 13 repositories** (its README and About
+   sidebar; no links followed, no retry). Measured on 2026-11-11 with `curl` and a tag-stripping text conversion
+   (tokens at about 4 characters each): a small README repository page, 3,544 characters (about 890 tokens); a medium
+   one, 8,609 characters (about 2,150 tokens); a long one (a README of about 40,000 characters), 38,070 characters
+   (about 9,500 tokens). The average of the three is about 4,200 tokens, so 13 pages are about 55,000 tokens (estimate;
+   a repository with a very long README costs up to about 14,000, and the prompt tells the routine to read only the
+   top of it). A listing page measured about 3,300 tokens (trending); the search page converted to far less because
+   its ten repository rows sit in the page's embedded script JSON (`"hl_name":"owner/name"`), which a converter that
+   drops script content loses. It is not known whether the routine's own fetch tool keeps them: open the first run in
+   **History** and check that the `low-key` and `medium` repositories came from search rows. If the search rows are
+   missing, the routine sends fewer than 13 (the prompt says never pad), and the `low-key` bucket is the one that
+   goes empty. Raw HTML is 5 to 20 times larger (the same pages
+   are 229 KB to 655 KB), so check in **History** that the routine's fetch returns text and not raw HTML.
 2. The `list_ideas` call that avoids repeats. The prompt allows one call with `limit` 40. The size grows with the
    table, about 6,000 tokens or more when the summaries are long (estimate). It is not cut further because the
    server merges by `id`, so a repeated repository only updates its `last_seen`.
-3. Output: 20 short ideas (summary at most 3 sentences, one signal, at most 4 tags).
-4. A rejected submission: the prompt allows one resend, and the error now names the allowed values, so one resend
+3. Output: 13 ideas (summary at most 5 sentences and 900 characters, at most 2 sentences of `why_now`, one signal,
+   at most 4 tags), about 5,000 tokens (estimate).
+4. A rejected submission: the prompt allows one resend, and the error names the allowed values, so one resend
    should be enough.
+
+In all, a run reads about 70,000 to 90,000 tokens of pages and listings plus the call and the output (estimate;
+the model re-reads the conversation on each step, so the billed total is higher). Compared with T037 (up to 8
+repository pages and no README), this trades a larger input for ideas that say what each project does and how.
 
 What you can change yourself:
 
 - Choose a cheaper model for the scheduled task, if the task page lets you pick one. This is the biggest lever.
 - Keep network access on **Custom** with `github.com` only (step 6), not **Full**.
-- Open the run in **History** and read its usage after the first runs; the prompt budget (8 pages, one
+- Open the run in **History** and read its usage after the first runs; the prompt budget (20 pages, 13 ideas, one
   `list_ideas` call) can then be tightened or relaxed in `routines/daily-ideas.md`.
 
 ## 4. Add the server to Claude

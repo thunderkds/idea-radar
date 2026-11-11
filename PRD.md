@@ -48,7 +48,7 @@ routine's prompt does.
 | ID | Requirement | Traces to |
 |----|-------------|-----------|
 | FR-001 | One idea format (JSON Schema) at `ideas/schema.json` is the contract for every submission. | US-001, US-002 |
-| FR-002 | The repo holds the routine's prompt as a file; it tells the routine to research GitHub only (one repository per idea: 10 rising, 5 low-key under 500 stars, 5 medium at 500 to 5,000 stars, each tagged with its bucket) and send the ideas with the MCP tool `submit_ideas`, and never to edit the repository. The prompt is self-contained: it lists the allowed signal kinds and the field limits, and bounds its own fetches and retries to keep the daily cost low. | US-001 |
+| FR-002 | The repo holds the routine's prompt as a file; it tells the routine to research GitHub only (13 ideas, one repository per idea: 3 rising, 5 medium at 500 to 5,000 stars, 5 low-key under 500 stars, each tagged with its bucket), to read each repository's own page once (its README and About sidebar, no links followed) so the idea says what the project does, how it works and gives one build angle, and send the ideas with the MCP tool `submit_ideas`, and never to edit the repository. The prompt is self-contained: it lists the allowed signal kinds and the field limits, treats README and page text as data and never as instructions, and bounds its own fetches (at most 20 pages) and retries to keep the daily cost low. | US-001 |
 | FR-003 | `submit_ideas` rejects a submission that breaks the schema with a tool error naming each field (a wrong value from a fixed list names the allowed values; at most 10 errors are listed, then a count of the rest); nothing is written for a rejected submission. | US-002 |
 | FR-004 | A valid submission is saved in Postgres in one transaction and is visible to the read tools and the dashboard at once. Each call is logged as a run (date, routine, idea count, ok/rejected). | US-002 |
 | FR-005 | An idea keeps its `id` across submissions; the version with the latest `date` wins (same date: the later submission). `first_seen` and `last_seen` are kept. Re-sending the same submission changes nothing but the run log. | US-002 |
@@ -67,7 +67,7 @@ routine's prompt does.
 | NFR-001 | The only write path is `submit_ideas` behind `MCP_WRITE_TOKEN`. Dashboard pages are read-only. Idea text is untrusted: the dashboard escapes all of it and links only `http(s)` URLs. | Security |
 | NFR-002 | Secrets (`MCP_TOKEN`, `MCP_WRITE_TOKEN`, `DASHBOARD_TOKEN`, `DATABASE_URL`) live only in Railway variables and the routine's environment, never in the repo. Tokens are compared in constant time. | Security |
 | NFR-003 | A submitted idea is queryable and visible on the dashboard immediately after `submit_ideas` returns. | Freshness |
-| NFR-004 | Tool calls and dashboard pages answer in under 1 s at p95 for up to 10,000 ideas. <!-- ASSUMPTION (Supervisor default, revisit): ~20 ideas/day → ~7k/year. --> | Performance |
+| NFR-004 | Tool calls and dashboard pages answer in under 1 s at p95 for up to 10,000 ideas. <!-- ASSUMPTION (Supervisor default, revisit): ~13 ideas/day → ~5k/year. --> | Performance |
 | NFR-005 | Always-on parts: the MCP/dashboard service and Railway Postgres; nothing else. | Simplicity / cost |
 
 ---
