@@ -106,8 +106,8 @@ that is registered as a claude.ai **custom connector**. So the write token goes 
 5. Trigger: **Schedule**, **Daily**, a time that suits you.
 6. Environment: the default **Trusted** network access allows package registries and an allowlist only. The
    routine opens source URLs, so if its report says it could not reach a site, edit the environment and
-   set network access to **Full** (or add the domains under **Custom**). The connector call to your
-   Railway domain must be allowed too.
+   prefer **Custom** and list the source domains (plus your Railway domain for the connector call) over **Full**:
+   a wider network lets an injected web page send data out.
 7. Run it once to test: **Run now** on the task page. Then confirm all of these:
    - the run report shows a `submit_ideas` call that returned `{"saved":N,"date":"<today>"}`;
    - the dashboard (`/`) lists the new ideas;
@@ -115,7 +115,12 @@ that is registered as a claude.ai **custom connector**. So the write token goes 
 
 Alternative when the connector has no header field: the routine can read a repo `.mcp.json` entry whose header
 takes the token from the routine's environment, so the token is never committed. Add this entry to the repo
-the routine uses, and set `IDEA_RADAR_WRITE_TOKEN` as an environment variable of the routine:
+the routine uses, and set `IDEA_RADAR_WRITE_TOKEN` as an environment variable of the routine.
+
+**Caution:** prefer the connector. A connector header is not visible to the model, but an environment variable
+is: the write token is then visible to the model, which reads untrusted web pages, so an injected page could
+try to read it and send it out. Use this route only if the connector has no header field, and rotate
+`MCP_WRITE_TOKEN` (section 5) if a run's report looks odd.
 
 ```json
 {

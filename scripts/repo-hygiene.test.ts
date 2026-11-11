@@ -66,6 +66,14 @@ test("docs/deploy.md covers Postgres, the three tokens and the dashboard login, 
     assert.ok(deploy.includes(name), `deploy.md does not mention ${name}`);
   }
   assert.doesNotMatch(deploy, /git push|ideas:check|IDEAS_DIR/);
+  // The env-var route exposes the write token to the routine's model; the doc must warn and prefer the connector.
+  assert.match(deploy, /prefer the connector/i, "deploy.md must prefer the connector over the env-var route");
+  assert.match(
+    deploy,
+    /write token[^.]*visible to the (routine's )?model/i,
+    "deploy.md must say the env-var route exposes the write token",
+  );
+  assert.match(deploy, /prefer \*\*Custom\*\*/i, "deploy.md must prefer Custom network access over Full");
   assert.doesNotMatch(deploy, /\b[0-9a-f]{32,}\b/i, "deploy.md shows a long hex string that looks like a token");
   for (const m of deploy.matchAll(/Bearer\s+(\S+)/g)) {
     assert.match(m[1] ?? "", /^["<$]/, `Bearer is followed by a non-placeholder: ${m[0]}`);
