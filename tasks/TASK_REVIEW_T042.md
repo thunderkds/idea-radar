@@ -50,13 +50,13 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 | **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `scripts/repo-hygiene.test.ts`: new test "the routine prompt skips bait, tags borderline repositories caution, and never runs a repository (T042)" (security or toolkit, re-upload, captcha, cheats, nonexistent, `caution`, skip rule, tags order, skipped count in the reply, run/install); the cap test is now 740. Red first on the 669-word prompt: `AssertionError: the caution sign for a security or toolkit pitch is missing` (15 pass, 1 fail). |
 | Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` exit 0, run with `TEST_DATABASE_URL` on my own PGlite (port 55438, stopped by PID after). Tests: ideas 13/13, db 23/23, mcp 108/108, scripts 16/16; 0 failed, 0 skipped in every package. `Checking formatting... All matched files use Prettier code style!` |
 | Negative cases hold | ☑ pass | Mutation 1: removed the `caution` tag rule (the `add the tag` clause and the tags-line tail); `git diff --stat -- routines/daily-ideas.md` non-empty; red: `ℹ pass 15 / ℹ fail 1`, `the caution tag is missing`. Mutation 2: changed `Clearly bait: skip it` to `ignore it`; red: `the skip rule for clearly bait is missing`. Restored: `ℹ pass 16 / ℹ fail 0`, prompt body 739 words. |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
+| verify | ☑ pass | Run by the Supervisor on commit `e502631`, not a user-typed `/verify` (the user said "let go"): a real production build on a fresh PGlite (port 55439) and a server on port 18092. A 13-idea submission with two ideas tagged `low-key`, `caution` and a `why_now` clause saved 13, and sent again saved 13; a 4-tag idea (`rising`, `caution`, `a`, `b`) saved. `list_ideas` with tag `caution` returned the 3 flagged ideas; the dashboard `?tag=caution` page listed exactly those 3; the low-key section held both flagged ideas with a `caution` chip; the idea page showed the clause. The prompt's word count is 739 and its only host is `github.com`. Both processes stopped by PID — pass. The routine's real choices (does it skip bait and tag borderline repositories) are not tested here; the owner's live run is that check |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `git diff main...t042-caution-flags`: `routines/daily-ideas.md`, `scripts/repo-hygiene.test.ts` plus this file. Read: the prompt tests from line 111, `apps/mcp/src/html.ts:224` (bucket is `tags[0]`, card shows `tags.slice(1)`), `ideas/schema.json` tags rule; the agent's grep over `docs/deploy.md` and `ideas/README.md` checked (nothing quoted changed). `lane_check`: C1, 2 files, 60 lines, FITS |
 | Full smoke suite still green (no regression) | ☑ pass | the full `pnpm test` above, 0 skipped |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **Companion score (easy-verifier)** | ☒ N/A | The easy-verifier server failed to connect in this session (CONNECT_TIMEOUT), so there is no score |
+| **UI: Visual regression (diff or verdict pasted)** | ☒ N/A | No UI change (a prompt file and a text test) |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☒ N/A | No UI change (a prompt file and a text test) |
+| **UI: Responsiveness at target viewports** | ☒ N/A | No UI change (a prompt file and a text test) |
 
 ---
 
@@ -86,5 +86,10 @@ $ awk 'f{print} /^---$/{f=1}' routines/daily-ideas.md | wc -w
 
 **DELTA**: [one sentence — what a user can now do that they could not before]
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: the Supervisor, 2026-11-11, ran the hygiene file (16 of 16) and drove the real production build with caution-tagged submissions on port 18092 (see the `verify` row). The `memory/event-trace/T042.jsonl` file was not consulted.
+
+## Stage 4 reviews (2026-11-11, by the Supervisor; the agent did not run the review skills)
+
+- **Code review**: no P0, P1 or P2. Three P3 notes: the explicit "Do not call it again" after the `list_ideas` rule was trimmed (the word `once` still says it); the prompt is 739 of 740 words, so the next prompt change must trim or raise the cap; a replacement after a skipped repository can cost a page, covered by the 20-page cap and the "send fewer" rule. Report: `reports/code-review_t042-caution-flags_20261111T150951.html`.
+- **Security review**: nothing at confidence 8 or higher. Report: `reports/security-review_t042-caution-flags_20261111T150951.html`.
+- **lane_check**: C1, 2 files, 60 lines, FITS.
