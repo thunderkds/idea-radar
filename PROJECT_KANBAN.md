@@ -13,6 +13,7 @@
 ### Todo
 
 ### In Progress
+- [ ] **T037** — GitHub-only routine (10 rising, 5 low-key, 5 medium), cheaper daily run, clearer `submit_ideas` rejection | backend-developer | C2 | Risk: Medium | P0 | PR/branch: `t037-routine-github` | Started 2026-11-11: worktree `.claude/worktrees/T037`
 
 ### Ready for Review
 

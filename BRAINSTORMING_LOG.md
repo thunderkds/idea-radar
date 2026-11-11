@@ -172,3 +172,42 @@ git idea files **replaced** by MCP ingest; dashboard **pages inside `apps/mcp`**
 submission is idempotent; dashboard escapes all idea text and links only `http(s)`; login cookie HttpOnly +
 SameSite=Lax + Secure on HTTPS, constant-time token compare; server refuses to start without `DATABASE_URL`
 and all three tokens; migrations run at boot before listening; DB down → `/health` 503.
+
+---
+
+## Addendum 2026-11-11 — T037: GitHub-only routine, cheaper daily run, clearer rejection
+
+**Tier:** Standard (one file of prompt text plus a small validator change; the direction was set by the user).
+**User input:** "it comes from the github only first, we can provide the resource later. top 10 repos raising, the 5 lowkeys repos, 5 medium repos" and "evaluate the token and refactor the prompt if any for the better cost for daily tasks". The user answered "go" to the proposed bucket rules (rising 10, low-key 5 under 500 stars, medium 5 at 500-5,000 stars) and the tag names `rising`, `low-key`, `medium`.
+**Trigger:** the first live run was rejected: `signals[].kind` was not one of `repo|article|post|discussion|other`; the routine has no repository, so it could not read `ideas/README.md`, and the prompt did not list the values.
+
+### Claims checked against files (2026-11-11)
+- `ideas/schema.json:51` kind enum is `repo, article, post, discussion, other`; `:15` allows at most 100 ideas per submission.
+- `packages/ideas/src/validate.ts:22-26` builds each error as `<file>: <path> <ajv message>`; the enum message carries no values, and `allErrors: true` repeats it once per idea (6 lines in the user's run).
+- `apps/mcp/src/tools.ts:12` `list_ideas` returns id, title, summary, tags, first_seen, last_seen (summary up to 2,000 characters); default limit 20, clamped to 100. `routines/daily-ideas.md` says to call it "a few times", so its cost grows with the table.
+- `ideas/README.md` merge rule: an idea is stored once under its `id`; a re-send updates it. So a stable id (`owner-repo`) already dedupes on the server.
+
+### Paths
+| Path | Summary | Token cost per day | Verdict |
+|---|---|---|---|
+| A. Prompt only | New buckets, enum list, cost rules | lowest change | leaves the unhelpful rejection text, so the next wrong field repeats the same dead end |
+| B. Prompt + validator message (chosen) | A plus: enum errors name the allowed values, rejection lists at most 10 errors and a count | retry costs less: one resend with the right values | small, testable, fixes the cause and the symptom |
+| C. B plus a server-side change (ids-only `list_ideas`, or a `repo_seen` tool) | cheapest dedup | saves about the 6k tokens of one `list_ideas` call | rejected: new tool surface and a `packages/db` change for a small saving; revisit when the table is large |
+
+**50% less code (B):** no new tool and no config; two `if`s in the validator and one cap in the tool, plus prompt text.
+
+### Where the daily tokens go (estimate; measure from the first run's usage)
+1. Web pages opened: the largest cost by far (20 ideas × a page each). Levers: take name, description, stars and "stars today" from the trending and search listing pages; open a repo's own page only when the listing is not enough, at most 8 times; a fixed page budget; GitHub only (no blogs).
+2. `list_ideas` dedup: grows with the table. Lever: one call, `limit` 40, no repeats; the server merges by id, so an overlap only updates `last_seen`.
+3. Output: 20 ideas. Lever: short fields (summary at most 3 sentences, `why_now` one sentence, at most 4 tags, one signal) and no restating the research.
+4. Retry: a rejected submission is resent whole. Lever: the clearer error makes the first resend succeed; the prompt allows one resend.
+5. User-side: choose a cheaper model for the scheduled task, and keep network access on Custom (github.com only).
+
+### Edge cases
+- GitHub trending or search may be unreachable from the routine's network (the default Trusted list is an allowlist): the prompt says to report it and submit what it has, not to pad.
+- Fewer than 20 qualify: send fewer; never invent a repo or a star count.
+- A repo in two buckets: keep it in the first of rising, medium, low-key.
+- Repo names with `.` or `_` must become a valid kebab id (`a-z0-9` and single `-`, at most 80).
+- A fork or a "awesome-list" repo is not an idea: skip.
+
+> **Approved direction**: Path B. User said "go" on 2026-11-11 to the proposed bucket rules and tags; thresholds and tag names are Supervisor defaults the user accepted, revisit after the first runs.
