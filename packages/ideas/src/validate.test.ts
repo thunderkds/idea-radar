@@ -109,6 +109,12 @@ test("only enum errors get the allowed-values suffix; other messages keep their 
   f.ideas[0].id = "Not A Slug";
   f.ideas[0].score = 9;
   const errors = errorsOf(f);
-  assert.ok(errors.some((e) => e.includes("/id must match pattern")), errors.join("\n"));
-  assert.ok(errors.every((e) => !e.includes("allowed values")), errors.join("\n"));
+  assert.ok(
+    errors.some((e) => e.includes("/id must match pattern")),
+    errors.join("\n"),
+  );
+  assert.ok(
+    errors.every((e) => !e.includes("allowed values")),
+    errors.join("\n"),
+  );
 });

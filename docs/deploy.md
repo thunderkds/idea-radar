@@ -105,9 +105,9 @@ that is registered as a claude.ai **custom connector**. So the write token goes 
    does not read or write one.
 5. Trigger: **Schedule**, **Daily**, a time that suits you.
 6. Environment: the default **Trusted** network access allows package registries and an allowlist only. The
-   routine opens source URLs, so if its report says it could not reach a site, edit the environment and
-   prefer **Custom** and list the source domains (plus your Railway domain for the connector call) over **Full**:
-   a wider network lets an injected web page send data out.
+   routine reads GitHub only, so if its report says it could not reach a site, edit the environment and
+   prefer **Custom** and list `github.com` (plus your Railway domain for the connector call) over **Full**:
+   a wider network lets an injected web page send data out. The prompt does not use `api.github.com`.
 7. Run it once to test: **Run now** on the task page. Then confirm all of these:
    - the run report shows a `submit_ideas` call that returned `{"saved":N,"date":"<today>"}`;
    - the dashboard (`/`) lists the new ideas;
@@ -143,7 +143,7 @@ Open the failed run in the task's **History** and read the last tool result.
 
 | Result | Meaning | What to do |
 |---|---|---|
-| `submission rejected, nothing was saved:` and a list of fields | the routine sent ideas that break `ideas/schema.json` | the prompt makes it fix the fields and send once more, then stop; if it still fails, read the field errors and fix the prompt or the schema |
+| `submission rejected, nothing was saved:` and a list of fields | the routine sent ideas that break `ideas/schema.json` | the list shows at most 10 errors and then `... and N more`; a wrong value names the allowed ones, for example `(repo, article, post, discussion, other)`. The prompt makes the routine fix those fields and resend once, then stop; if it still fails, read the errors and fix the prompt or the schema |
 | `submit_ideas needs the write token` or the tool is missing | the connector uses `MCP_TOKEN`, or is off for this task | put `MCP_WRITE_TOKEN` in the connector header and turn it on |
 | `401 unauthorized` | wrong or old token in the connector | update the header (see "Rotate the tokens") |
 | `the database could not answer; try again` | Postgres is down or unreachable | check the Postgres service in Railway and `/health`; run the task again |
@@ -161,6 +161,28 @@ curl -fsS https://<domain>/health        # {"ok":true} only; the dashboard shows
 
 Also open the task's **History** on claude.ai for the run's status and error. Nothing alerts you by itself;
 checking weekly is enough for a daily feed.
+
+### Cost of a daily run
+
+All numbers here are estimates; read the real usage of a run in the task's **History** and trust that.
+
+Where the tokens go, largest first (estimate):
+
+1. Web pages the routine opens. The prompt limits this: it reads the trending and search listings (4 to 6
+   pages, rows with name, description, stars) and opens at most 8 repository pages. No blogs, no README reads.
+2. The `list_ideas` call that avoids repeats. The prompt allows one call with `limit` 40. The size grows with the
+   table, about 6,000 tokens or more when the summaries are long (estimate). It is not cut further because the
+   server merges by `id`, so a repeated repository only updates its `last_seen`.
+3. Output: 20 short ideas (summary at most 3 sentences, one signal, at most 4 tags).
+4. A rejected submission: the prompt allows one resend, and the error now names the allowed values, so one resend
+   should be enough.
+
+What you can change yourself:
+
+- Choose a cheaper model for the scheduled task, if the task page lets you pick one. This is the biggest lever.
+- Keep network access on **Custom** with `github.com` only (step 6), not **Full**.
+- Open the run in **History** and read its usage after the first runs; the prompt budget (8 pages, one
+  `list_ideas` call) can then be tightened or relaxed in `routines/daily-ideas.md`.
 
 ## 4. Add the server to Claude
 

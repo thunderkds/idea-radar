@@ -86,9 +86,47 @@ submission: /ideas/24/signals/0/kind must be equal to one of the allowed values
 ```
 Old prompt (`routines/daily-ideas.md`): 450 words in the whole file, **416 words below the `---` line** (`awk 'f{print} /^---$/{f=1}' routines/daily-ideas.md | wc -w`). It lists no signal `kind` value, tells the routine to search "GitHub trending and new repositories ... Hacker News and Reddit discussions, developer blog posts", to call `list_ideas` "a few times", and to choose "up to 10 ideas".
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER** (same script, captured 2026-11-11T09:03:10Z at commit-set 238363d..HEAD; the tool handler now runs over the real `createStore` on a PGlite Postgres, because the cap lives in `apps/mcp/src/index-store.ts`):
+```
+--- validateIdeaFile, 6 ideas with kind github
+submission: /ideas/0/signals/0/kind must be equal to one of the allowed values (repo, article, post, discussion, other)
+... (same line for /ideas/1 to /ideas/5)
+--- submit_ideas tool handler, 25 invalid ideas: isError=true, lines=12, chars=1262
+submission rejected, nothing was saved:
+submission: /ideas/0/signals/0/kind must be equal to one of the allowed values (repo, article, post, discussion, other)
+submission: /ideas/1/signals/0/kind must be equal to one of the allowed values (repo, article, post, discussion, other)
+...
+submission: /ideas/9/signals/0/kind must be equal to one of the allowed values (repo, article, post, discussion, other)
+... and 15 more errors
+--- ideas rows after the rejection: 0
+```
+Answer size for 25 bad ideas: 26 lines / 2029 characters before, 12 lines / 1262 characters after. Prompt: `routines/daily-ideas.md` is now GitHub-only, 472 words below the `---` line (hygiene limit 550); it lists the five `kind` values and the six character limits, and names the 10 / 5 / 5 buckets. (The word count went up from 416 because the prompt now carries the schema values the routine could not read; the saving is in the fetch budget, the single `list_ideas` call, short fields and one resend.)
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+**Live GitHub check (AC9)**, from this machine on 2026-11-11, plain `curl -L -A "Mozilla/5.0 (idea-radar check)"`, no token, no cookie, no login:
+| Form the prompt names | HTTP | Body |
+|---|---|---|
+| `https://github.com/trending?since=daily` | 200, 553 KB | 12 repository rows. First: `meta/astryx` 23,847 stars, TypeScript, "3,108 stars today"; `anthropics/skills` 192,706 stars, "1,679 stars today"; `addyosmani/agent-skills` 115,448 stars, "465 stars today" (each with a description) |
+| `https://github.com/trending?since=weekly` | 200, 579 KB | 14 repository rows. First: `NVIDIA/auto-ontology` 11,616 stars, "9,621 stars this week"; `vercel-labs/agent-desktop` 21,657 stars, "9,502 stars this week"; `anthropics/skills` 192,707 stars, "5,014 stars this week" |
+| search, low-key: `https://github.com/search?type=repositories&s=stars&o=desc&q=stars%3A%3C500+created%3A%3E2026-08-13+pushed%3A%3E2026-10-28` | 200, 225 KB | 10 rows in the page's visible text, as `name description language · stars · Updated ...`: `useopendesk/opendesk ... Go · 499`, `ashayas/icloud-s3 ... Rust · 499`, `skizzophrenic/SquachWatch-CYD ... C++ · 499`, `wangwanjie/gately ... Go · 498` |
+| search, medium: `https://github.com/search?type=repositories&s=stars&o=desc&q=stars%3A500..5000+created%3A%3E2026-10-12` | 200, 225 KB | `JustAResearcher/gpu-unlock-ada ... C · 4.9k`, `designfuchen/word-atlas ... TypeScript · 4.7k`, `interplains/Zero-Breach-Toolkit ... Python · 4.7k`, `BryceYuuu/RUN ... Python · 4.5k` |
+
+Both forms work, so the prompt keeps both. Notes: the search page is a JavaScript page, but the repository rows are in its HTML text (about 4.6 KB of visible text), so a fetch tool that reads text gets them. `api.github.com` search also answered 200 but returns about 84 KB of JSON for 15 repositories (about 5.5 KB each), which is a far larger read, so the prompt does not use it and `docs/deploy.md` lists `github.com` only. Trending shows 12 to 14 rows per page, so `rising` (10) is reachable from the daily and weekly pages together. Everything fetched is untrusted data.
+
+**DELTA**: A GitHub-only routine now asks for 20 tagged repositories (10 rising, 5 low-key, 5 medium) with every allowed signal `kind` and limit in its own prompt, and a rejected submission now names the allowed values and shows at most 10 errors, so the first resend can succeed and costs less.
+
+**Mutation checks (all four, each turned a test red; the file was restored with `git checkout --` after each)**
+
+| # | Mutation | Test that failed |
+|---|---|---|
+| 1 | removed `` `discussion`, `` from the kind list in `routines/daily-ideas.md` (1 line) | `scripts/repo-hygiene.test.ts` "the routine prompt lists every signal kind and every length limit the schema sets" (11 pass, 1 fail) |
+| 2 | enum suffix removed in `packages/ideas/src/validate.ts` (1 line) | `validate.test.ts` "an enum error names the allowed values, so a wrong signal kind can be fixed in one resend" (12 pass, 1 fail) |
+| 3 | `MAX_ANSWER_ERRORS = 10` changed to `50` in `apps/mcp/src/index-store.ts` (1 line) | `server.test.ts` "a rejection answers with at most 10 error lines and a count of the rest, and writes nothing" (24 pass, 1 fail) |
+| 4 | added ", plus Reddit" to "Use GitHub only." in the prompt (1 line) | `scripts/repo-hygiene.test.ts` "the routine prompt researches GitHub only: three buckets ..., no other source" (11 pass, 1 fail) |
+
+Red-before-green: the enum test and the first cap test were run red before the code changed (enum 12 pass / 1 fail; cap 9 pass / 1 fail), and the three prompt tests were red against the old prompt (9 pass / 3 fail). The cap moved from `tools.ts` to `index-store.ts` after the full run showed that the store already capped the answer at 50 lines (see the report); the cap test was rewritten against the real store and mutation 3 was run against that.
+
+**Verification command**, 2026-11-11T09:02:34Z, with `TEST_DATABASE_URL` set to a PGlite server on 55432; exit 0:
+`pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` gave packages/ideas 13 pass, packages/db 23 pass, apps/mcp 89 pass, scripts 12 pass, 0 failed, 0 skipped; lint, typecheck and `All matched files use Prettier code style!`.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]

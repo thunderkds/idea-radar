@@ -403,6 +403,38 @@ describe("with a Postgres (needs TEST_DATABASE_URL)", { skip }, () => {
     await writer.close();
   });
 
+  test("a rejection answers with at most 10 error lines and a count of the rest, and writes nothing", async () => {
+    await reset();
+    const writer = await connect(url, WRITE);
+    const file = ideaFile("2026-11-10", ["a"]);
+    const bad = (n: number) => ({
+      ...file,
+      ideas: Array.from({ length: n }, (_, i) => ({
+        ...file.ideas[0]!,
+        id: `idea-${i}`,
+        signals: [{ kind: "github", url: "https://github.com/a/b", note: "n" }],
+      })),
+    });
+    const lines = async (n: number) => text(await submit(writer, bad(n))).split("\n");
+    const first = "submission rejected, nothing was saved:";
+    const ten = await lines(10);
+    assert.equal(ten[0], first);
+    assert.equal(ten.length, 11, "10 errors: the first line and 10 error lines, no count line");
+    const eleven = await lines(11);
+    assert.equal(eleven.length, 12);
+    assert.equal(eleven[11], "... and 1 more errors");
+    const many = await lines(25);
+    assert.equal(many.length, 12);
+    assert.equal(many[0], first);
+    assert.equal(many[11], "... and 15 more errors");
+    assert.match(
+      many[10]!,
+      /\/ideas\/9\/signals\/0\/kind must be equal to one of the allowed values \(repo, article, post, discussion, other\)$/,
+    );
+    assert.equal(await count("ideas"), 0);
+    await writer.close();
+  });
+
   test("the same submission twice saves once per id; a newer date updates the idea", async () => {
     await reset();
     const writer = await connect(url, WRITE);

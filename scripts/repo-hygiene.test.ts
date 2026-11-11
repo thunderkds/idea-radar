@@ -83,7 +83,6 @@ test("docs/deploy.md covers Postgres, the three tokens and the dashboard login, 
 // --- T037: the routine prompt is GitHub-only, self-contained, and short. It has no repository to read, so it must
 // carry the schema's allowed values and limits itself; these tests read them from ideas/schema.json.
 const schema = JSON.parse(read("ideas/schema.json")) as {
-  properties: { ideas: { items: unknown } };
   $defs: {
     idea: { properties: Record<string, { maxLength?: number; items?: { maxLength?: number } }> };
     signal: { properties: { kind: { enum: string[] }; note: { maxLength: number } } };

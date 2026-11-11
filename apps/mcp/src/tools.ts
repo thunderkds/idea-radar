@@ -21,9 +21,6 @@ export type ToolResult = {
   isError?: true;
 };
 
-/** A rejection lists at most this many error lines; the routine fixes the first ones and the rest repeat them. */
-const MAX_ERROR_LINES = 10;
-
 const text = (value: unknown): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(value) }] });
 const fail = (message: string): ToolResult => ({ isError: true, content: [{ type: "text", text: message }] });
 
@@ -87,10 +84,7 @@ export function createToolHandlers(store: IdeaStore, role: Role | undefined, log
       return guarded("submit_ideas", async () => {
         const outcome = await store.submit(file);
         if (outcome.ok) return text({ saved: outcome.saved, date: outcome.date });
-        const lines = outcome.errors.slice(0, MAX_ERROR_LINES);
-        const more = outcome.errors.length - lines.length;
-        if (more > 0) lines.push(`... and ${more} more`);
-        return fail(`submission rejected, nothing was saved:\n${lines.join("\n")}`);
+        return fail(`submission rejected, nothing was saved:\n${outcome.errors.join("\n")}`);
       });
     },
   };

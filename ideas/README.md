@@ -2,7 +2,8 @@
 
 The routine in `routines/daily-ideas.md` sends one submission per run to the MCP server with the tool
 `submit_ideas`. The server checks it against the schema and saves the ideas in Postgres. This folder holds the
-contract only; no idea data is kept in git.
+contract only; no idea data is kept in git. The routine cannot read this folder, so its prompt repeats the allowed
+signal kinds and the length limits; a test keeps them in line with `schema.json`.
 
 - **Contract**: [`schema.json`](schema.json) (JSON Schema draft 2020-12). Every submission must pass it, or
   nothing is saved.
@@ -11,6 +12,8 @@ contract only; no idea data is kept in git.
 - **How it is sent**: `submit_ideas` takes the object below as its arguments (the write token is required).
   On success it returns `{ "saved": N, "date": "YYYY-MM-DD" }`. On a schema violation it returns a tool error that
   names each wrong field as `<json path> <message>` and saves nothing; fix the fields and send the whole object again.
+  A value outside a fixed list names the allowed ones, for example `... /signals/0/kind must be equal to one of the
+  allowed values (repo, article, post, discussion, other)`. The error lists at most 10 fields, then `... and N more`.
 
 ## Format (`schema_version` 1)
 
