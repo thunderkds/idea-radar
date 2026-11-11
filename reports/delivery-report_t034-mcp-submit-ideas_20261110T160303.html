@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Delivery Report — T034 — t034-mcp-submit-ideas</title>
+<style>
+  :root {
+    --bg:        #0a0a12;
+    --surface:   #111128;
+    --surface2:  #16162e;
+    --border:    #1e1e42;
+    --text:      #e2e2f0;
+    --muted:     #6b6b9a;
+    --cyan:      #00d4ff;
+    --green:     #00ff88;
+    --amber:     #ffb800;
+    --purple:    #a855f7;
+    --cyan-dim:  rgba(0,212,255,.12);
+    --green-dim: rgba(0,255,136,.12);
+    --amber-dim: rgba(255,184,0,.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  h1 { margin: 0; font-size: 1.25rem; color: #fff; letter-spacing: .02em; }
+  h2 { font-size: .8rem; color: var(--muted); margin: 0 0 .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
+
+  .header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--cyan);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0 24px rgba(0,212,255,.08), 0 4px 24px rgba(0,0,0,.5);
+  }
+  .header-meta { color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  .header-meta code { color: var(--cyan); background: var(--cyan-dim); padding: .1rem .4rem; border-radius: 4px; font-size: .8rem; }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+  .section-head { padding: .7rem 1.25rem; background: var(--surface2); border-bottom: 1px solid var(--border); }
+
+  /* ── BEFORE/AFTER SIDE BY SIDE ── */
+  .ba-wrap { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1.25rem 1.5rem; }
+  .ba-col { flex: 1 1 320px; min-width: 0; }
+  .ba-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+  .ba-before .ba-label { color: var(--amber); }
+  .ba-after  .ba-label  { color: var(--green); }
+  .ba-col pre {
+    background: #06060c; border: 1px solid var(--border); border-radius: 6px;
+    padding: .85rem; font-size: .8rem; white-space: pre-wrap; word-break: break-word;
+    margin: 0; max-height: 320px; overflow-y: auto; font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  .delta-box {
+    padding: 1.1rem 1.5rem; font-size: 1.05rem; font-weight: 600; color: #fff;
+    border-left: 3px solid var(--cyan); box-shadow: -6px 0 12px rgba(0,212,255,.08);
+  }
+  .delta-box::before { content: 'DELTA → '; color: var(--cyan); font-size: .78rem; letter-spacing: .05em; }
+
+  .witness-box { padding: 1rem 1.5rem; font-size: .85rem; color: #b0b0d0; }
+  .witness-box pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: 'Cascadia Code', 'Fira Code', monospace; }
+
+  .no-demo-warning {
+    margin: 0 1.5rem 1rem; padding: .75rem 1rem; background: var(--amber-dim);
+    border: 1px solid rgba(255,184,0,.3); border-radius: 6px; color: var(--amber); font-size: .82rem;
+  }
+
+  /* ── EVIDENCE TABLE ── */
+  .evidence-summary {
+    padding: .9rem 1.5rem; font-size: 1rem; font-weight: 700; color: var(--green);
+    background: var(--green-dim); border-bottom: 1px solid var(--border);
+  }
+  .matrix-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: .6rem 1.25rem; font-size: .82rem; border-top: 1px solid var(--border); vertical-align: top; }
+  td pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: inherit; color: inherit; }
+  .ev-check pre { color: #cfcfe8; font-weight: 500; }
+  .ev-filled  { color: var(--green); }
+  .ev-blank   { color: var(--amber); }
+  .ev-n-a     { color: var(--muted); }
+  .ev-notes pre { color: #9090b8; }
+
+  .footer {
+    font-size: .72rem; color: var(--muted); text-align: center;
+    padding: 1rem 0 2rem; border-top: 1px solid var(--border); margin-top: .5rem;
+  }
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; background: var(--cyan-dim); color: var(--cyan); padding: .1rem .4rem; border-radius: 3px; font-size: .78rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Delivery Report — T034</h1>
+  <div class="header-meta">Branch: <code>t034-mcp-submit-ideas</code> &nbsp;·&nbsp; 2026-11-10</div>
+</div>
+
+
+
+<div class="section">
+  <div class="section-head"><h2>Before / After</h2></div>
+  <div class="ba-wrap">
+    <div class="ba-col ba-before">
+      <div class="ba-label">Before</div>
+      <pre>```
+$ date -u +%FT%TZ && grep -rn submit_ideas apps/mcp/src; echo "grep exit=$?"
+2026-11-10T15:37:26Z
+grep exit=1            <- no match: submit_ideas does not exist anywhere in apps/mcp/src
+
+$ cd apps/mcp && date -u +%FT%TZ && pnpm test
+2026-11-10T15:37:27Z
+  ... (file-backed server: boots from IDEAS_DIR, exactly 3 read tools, /health = {ok,ideas,files,skipped})
+ℹ tests 36
+ℹ suites 1
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ duration_ms 2315.740624
+```</pre>
+    </div>
+    <div class="ba-col ba-after">
+      <div class="ba-label">After</div>
+      <pre>`apps/mcp` started with `src/index.ts` on :8099 against a local PGlite on :55432; curl, tokens elided):
+
+```
+$ grep -rn submit_ideas apps/mcp/src      -> now matches in tools.ts, tools.test.ts, server.test.ts
+2026-11-10T15:53:54Z
+--- GET /health (no token)
+{"ok":true} [HTTP 200]
+--- read token calls submit_ideas
+{"result":{"content":[{"type":"text","text":"MCP error -32602: Tool submit_ideas not found"}],"isError":true},...,"id":1}
+--- write token: submit_ideas
+{"result":{"content":[{"type":"text","text":"{\"saved\":1,\"date\":\"2026-11-10\"}"}]},...,"id":2}
+--- write token: bad url is rejected
+{"result":{"content":[{"type":"text","text":"submission rejected, nothing was saved:\nsubmission: /ideas/0/signals/0/url must match pattern \"^https?://\\S+$\"\nsubmission: /ideas/0/signals/0/url must match format \"uri\""}],"isError":true},...,"id":3}
+--- read token: list_ideas
+{"count":4,"ideas":[{"id":"new-one",...},{"id":"real-run-idea","title":"Real run idea","summary":"Saved by curl","tags":["demo"],"first_seen":"2026-11-10","last_seen":"2026-11-10"},{"id":"old-one",...},{"id":"old-two",...}]}
+--- no token
+{"error":"unauthorized"} [HTTP 401]
+
+$ TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres pnpm test   (exit 0)
+packages/ideas 25/25, packages/db 23/23, apps/mcp 43/43, scripts 5/5; pnpm lint and pnpm typecheck pass
+```
+(The other three ideas in the list are leftovers of the test suite in the shared PGlite.)</pre>
+    </div>
+  </div>
+  <div class="delta-box">the routine can now send a day's ideas with the `submit_ideas` tool (write token); they are validated, saved in Postgres and visible to readers (read token, who cannot write) at once.</div>
+</div>
+
+<div class="section">
+  <div class="section-head"><h2>Witness</h2></div>
+  <div class="witness-box"><pre>Derived from memory/event-trace/T034.jsonl: 182 tool-call record(s), 2026-11-10T15:36:12.325595+00:00 → 2026-11-10T16:02:58.258775+00:00 (session trace, not a claimed name)</pre></div>
+</div>
+
+<div class="section">
+  <div class="section-head"><h2>Evidence Completion</h2></div>
+  <div class="evidence-summary">5 / 9 filled, 4 N/A</div>
+  <div class="matrix-wrap">
+    <table>
+      <tbody>
+        <tr><td class="ev-check"><pre>**New test(s) cover Acceptance Criteria (file paths pasted)**</pre></td><td class="ev-status ev-filled"><pre>☑ pass</pre></td><td class="ev-notes"><pre>`apps/mcp/src/auth.test.ts` (AC 1, 2), `apps/mcp/src/index.test.ts` (AC 1, 6), `apps/mcp/src/server.test.ts` (AC 1-5, 7 over HTTP with a real SDK client and a test DB), `apps/mcp/src/tools.test.ts` (AC 2-4 handlers), `apps/mcp/src/index-store.test.ts` (clamp and date helpers).</pre></td></tr>
+<tr><td class="ev-check"><pre>Verification command run</pre></td><td class="ev-status ev-filled"><pre>☑ pass</pre></td><td class="ev-notes"><pre>Re-run by the Supervisor 2026-11-10T22:5xZ against PGlite on :55432: `pnpm test` packages/ideas 25/25, packages/db 23/23, apps/mcp 43/43, scripts 5/5 = 96 pass, 0 fail; `pnpm lint` exit 0; `pnpm typecheck` exit 0. Without `TEST_DATABASE_URL` the DB tests skip cleanly (agent run: 18 pass, 0 fail).</pre></td></tr>
+<tr><td class="ev-check"><pre>verify</pre></td><td class="ev-status ev-filled"><pre>☑ pass</pre></td><td class="ev-notes"><pre>auto-run by hook, session c38593bc-2b82-4f19-865a-bf2180d6fb98, commit e42e6973e985c37f2dcae5495b03277ee7e4014a, log .claude/verify-runs/T034-e42e6973e985.log — pass</pre></td></tr>
+<tr><td class="ev-check"><pre>Review scope bounded to the change's blast radius (affected set, not whole repo)</pre></td><td class="ev-status ev-filled"><pre>☑ pass</pre></td><td class="ev-notes"><pre>Reviewed `apps/mcp/src/{auth,server,tools,index-store,index}.ts`, their tests and the `@idea-radar/db` link; `packages/db` was reviewed under T033 and only its callers' use was read. Stale-reference sweep: `.env.example` (blocked, P2), README, `package.json` and `docs/deploy.md` belong to T036. code-review: no P0/P1, P2 x2, P3 x2; lane_check warn-only `EXCEEDS (lines 1337 > 500)`, about 1,000 lines are tests. security-review: no findings. Reports: `reports/code-review_t034-mcp-submit-ideas_20261110T225706.html`, `reports/security-review_t034-mcp-submit-ideas_20261110T225706.html`.</pre></td></tr>
+<tr><td class="ev-check"><pre>Full smoke suite still green (no regression)</pre></td><td class="ev-status ev-filled"><pre>☑ pass</pre></td><td class="ev-notes"><pre>Same run: 96 pass, 0 fail across all four test groups.</pre></td></tr>
+<tr><td class="ev-check"><pre>**Companion score (easy-verifier)**</pre></td><td class="ev-status ev-n-a"><pre>☑ N/A</pre></td><td class="ev-notes"><pre>easy-verifier failed to connect in this session (CONNECT_TIMEOUT), so no score was run.</pre></td></tr>
+<tr><td class="ev-check"><pre>**UI: Visual regression (diff or verdict pasted)**</pre></td><td class="ev-status ev-n-a"><pre>☑ N/A</pre></td><td class="ev-notes"><pre>not a UI task (the dashboard is T035)</pre></td></tr>
+<tr><td class="ev-check"><pre>**UI: Design-system compliance (tokens/colors/typography verified)**</pre></td><td class="ev-status ev-n-a"><pre>☑ N/A</pre></td><td class="ev-notes"><pre>not a UI task (the dashboard is T035)</pre></td></tr>
+<tr><td class="ev-check"><pre>**UI: Responsiveness at target viewports**</pre></td><td class="ev-status ev-n-a"><pre>☑ N/A</pre></td><td class="ev-notes"><pre>not a UI task (the dashboard is T035)</pre></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  Task: T034 &nbsp;·&nbsp; Branch: <code>t034-mcp-submit-ideas</code> &nbsp;·&nbsp; Generated: 2026-11-10T16:03:03.137180+00:00
+</div>
+
+</body>
+</html>

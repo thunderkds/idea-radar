@@ -18,6 +18,8 @@
 
 ## Index
 - [v2.1: Postgres store behind the MCP](decisions.md#2026-11-10--v21-postgres-store-behind-the-mcp-v2-files-are-the-database-superseded-t033t036) — routine → `submit_ideas` → Railway Postgres; merge rule newer-date-wins; tests refuse non-loopback DB; supersedes v2 files-as-DB
+- [`/health` is {ok} only](decisions.md#2026-11-10--health-is-ok-only-no-counts-on-the-public-route-t034) — public route returns {ok} after SELECT 1 (2 s); counts not public; 3-Advocate Debate; amends T034 AC5
+- [MCP write tool gotchas](learnings.md#2026-11-10--mcp-write-tool-on-postgres-sdk-validator-and-agent-gotchas-t034) — SDK isError for unregistered tool; loose zod for submit_ideas; pool has no connect timeout; resume stalled agent; .env.example blocked
 - [Auto-mode gates (Gate 5, Debate, [admin] merge)](learnings.md#2026-11-10--auto-mode-gates-that-bit-t033-gate-5-debate-admin-merge) — `pnpm test` only counts; High risk needs a 3-Advocate Debate; name the task + commit the verify row; `main` push stays the user's
 - [Railway + routine facts](learnings.md#2026-11-10--railway-watch-patterns-routines-are-now-scheduled-tasks-t031) — leading-slash watchPatterns, start with node dist, routines push where the prompt says (toggle not in docs)
 - [v2 pivot: routine → idea files → MCP](decisions.md#2026-11-10--v2-pivot-claude-routine--idea-files-in-git--hosted-read-only-mcp-scraping-retired-t028t031) — files are the DB, CI checks, Railway redeploys apps/mcp; v1 in tag v1-scraper

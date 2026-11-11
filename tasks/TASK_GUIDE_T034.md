@@ -64,7 +64,7 @@ User (2026-11-10): "claude scan and push to the app mcp, the app will execute an
 | 2 | Auth decides the tool set per request: `MCP_WRITE_TOKEN` → 4 tools; `MCP_TOKEN` → the 3 read tools only (`submit_ideas` not listed, and a call to it → tool error, nothing written); anything else → 401 | FR-007 |
 | 3 | `submit_ideas` input is one idea file (`schema_version`, `date`, `routine`, `ideas[]`); it runs `validateIdeaFile` (same schema); invalid → tool error listing each field error, a `rejected` run row, no idea rows; valid → `saveSubmission`, result `{saved: N, date}` | FR-003, FR-004 |
 | 4 | `list_ideas` / `search_ideas` / `get_idea` keep their names, inputs, compact list shape and descriptions (idea text is external, untrusted) but read from Postgres | FR-006 |
-| 5 | `/health` → `{ok, ideas, runs, last_run}` when the DB answers; 503 `{ok:false}` when it does not; no idea text | FR-004 |
+| 5 | `/health` -> `{ok:true}` 200 after a DB probe; `{ok:false}` 503 when the DB does not answer or times out; no counts, no idea text, no error text | FR-004 |
 | 6 | The old file loader path (`IDEAS_DIR`, `loadIdeas` at boot) is no longer used by the server | FR-004 |
 | 7 | A `submit_ideas` body over 1 MB → 413 (existing cap); tool descriptions for `submit_ideas` say it is for the routine only | NFR-001 |
 
@@ -160,3 +160,7 @@ Integration tests per Success Criteria (SDK client over HTTP against a test DB);
 - [ ] Tests written AND pass — output pasted into `tasks/TASK_REVIEW_T034.md`'s Evidence table (Hard-Stop Gate 5)
 - [ ] `Skill({ skill: "verify" })` run — feature confirmed working in running app
 - [ ] Supervisor notified: task ready for Stage 4 review
+
+## Questions Log
+
+- 2026-11-10 DEBATE Should the unauthenticated GET /health expose the idea count, run count and last-run time, or only {ok}? → Option B: exactly {ok:true} 200 after a SELECT 1 with a 2 s timeout, {ok:false} 503 otherwise, no counts and no token-gated variant (Advocate 1: {ok} publicly, counts behind a bearer token on the same route; Advocate 2: {ok} publicly, counts behind a bearer token; Advocate 3: {ok} only after a trivial DB ping, details route as a later task) ⚠ decided for you — please review (reports/question_T034_20261110T225751.html)
