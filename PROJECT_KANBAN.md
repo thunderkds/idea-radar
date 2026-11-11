@@ -13,6 +13,7 @@
 ### Todo
 
 ### In Progress
+- [ ] **T040** — Cleanup — PORT wording in deploy.md, stale "idea file" wording in the schema and PRD | backend-developer | C1 | Risk: Medium | P2 | PR/branch: `t040-cleanup-wording` | Started 2026-11-11: worktree `.claude/worktrees/T040`
 
 ### Ready for Review
 

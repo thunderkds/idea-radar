@@ -239,3 +239,13 @@ and all three tokens; migrations run at boot before listening; DB down → `/hea
 **50% rule:** half the work is none: no new route, no JS, no schema, no DB change, tokens untouched.
 
 > **Approved direction**: the user chose *Search-first + bucket sections* on 2026-11-11. Chip cap, link text and what to cut are Supervisor defaults.
+
+---
+
+## Addendum 2026-11-11 — T040: cleanup (PORT wording, "idea file" wording)
+
+**Tier:** Lightweight (two known wording errors; no design choice).
+**Facts checked 2026-11-11:** `apps/mcp/src/index.ts:3` uses `PORT` and defaults to 8080 when unset; `docs/deploy.md` lines 50 and 277 say "Do not set `PORT`" while the user set `PORT=8080` for Railway's domain dialog (valid, not harmful); `ideas/schema.json:4-5` still says "Idea Radar idea file" and `ideas/<YYYY-MM-DD>[-<suffix>].json`.
+**Recommended path:** reword the doc to what the code does; change only the schema's two annotation strings; one small test each.
+**Rejected:** editing code comments that say "idea file" (surgical scope); changing `$id`/version.
+**Worktrees (Supervisor, not the agent):** T033–T038 are merged and clean and are removed; T028–T031 hold only tool folders, T032 is superseded and unmerged (its tip would delete 127 lines of hygiene tests), T039 is the other session's: all left alone.
