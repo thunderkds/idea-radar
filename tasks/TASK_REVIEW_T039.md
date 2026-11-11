@@ -19,7 +19,7 @@
 | **UI: Design-system compliance** | pass | Every colour is `var(--token)`; no new token, `tokens-css.ts` untouched. Neon: eyebrow, primary Apply (when Filters is open), focus ring, the one why-now card (idea page), and the login button/focus on login: at most 4 per screen. Glow only on those neon elements. No coloured pills (status is mono text). IBM Plex stack with system fallback, no network. Chips are outlined, no fills. |
 | **UI: Responsiveness** | pass | 375px and 1280px: `scrollWidth == clientWidth` on list, list-filtered, list-empty, list-long (200-char `q`, 100-char `tag`), idea, login, login-error, message. Tap probe (`skills/ux-evaluate/scripts/tap_probe.py`) at 375: "under 44px:" empty on list, list-filtered, list-long, idea, login, message. |
 | Review scope bounded to blast radius | pass | `git diff -- apps`: `html.ts`, `html.test.ts`, `dashboard.test.ts` only. `dashboard.ts` unchanged (no `ListView` field needed). Consumers of `html.ts`: `dashboard.ts` (page functions, `PAGE_CSP`), `dashboard.test.ts`, `server.test.ts` (all green). |
-| code-review / security-review / verify | not run (Supervisor, Stage 4/5) | The implementing agent has no `Skill` tool; the changed surface for review: `safeHttpUrl` use unchanged, new `linkText` (`new URL` on an already-safe href), new `repoItem` (strict segment regex, `rest.length === 0`, dot-only segments rejected), `raw()` used only for the two constant strings `<details open>` / `<details>` and `STYLE_TAG`. |
+| code-review / security-review / verify | pass (Supervisor, Stage 4/5, 2026-11-11) | code-review: no P0/P1/P2, P3x4 open. security-review: clean. verify: pass, run twice on the real built server (fresh PGlite, 9 ideas seeded through `submit_ideas`, headless Chromium at 375 and 1280, plus 320/719/720/1024): 0 CSP violations, whole-card click, chips, filters, search, idea page, logout, XSS probe literal. See `## Stage 4` below and `tasks/evidence/T039/verify/`. |
 
 ---
 
@@ -87,7 +87,9 @@ Limits: the native date picker pop-up and iOS Safari rendering were not exercise
 
 **BEFORE**: `tasks/evidence/T039/before/{list,idea,login}-{m,d}.png` (filter form first, identical cards with the full summary and a bold underlined link, raw URL link text).
 
-**AFTER**: `tasks/evidence/T039/after/` (see Evidence).
+**AFTER**: `tasks/evidence/T039/after/` (see Evidence). Live-server captures from `/verify`: `tasks/evidence/T039/verify/{list-m,list-d,list-filtered-m,idea-m,idea-d,login-m,p8-320}.png`.
+
+**DELTA**: the owner opens the dashboard and sees a search box and a Filters toggle first, then the ideas grouped under rising, medium and low-key, each card clickable as a whole with a 2-line summary; the idea page reads by priority with a highlighted why-now card and readable signal and repo links, instead of a form-first page of identical cards.
 
 ## Notes for the Supervisor
 
@@ -107,4 +109,4 @@ Limits: the native date picker pop-up and iOS Safari rendering were not exercise
 | code-review | pass | No P0, P1 or P2. P3 x4 open (repeated filter-key list, no bucket click-through on cards, PRD FR-010 wording, partial startup reads); 2 notes for the owner (`+N` chip count meaning, extra visible Search button). Lane check: C2, FITS. Report: `reports/code-review_t039-dashboard-ux_20261111T185451.html` |
 | security-review | pass | Clean, 0 HIGH, 0 MEDIUM (escaping, `raw()` constants only, `safeHttpUrl`, `owner/name` links, relative chip hrefs, CSP hash, no inline style or script). Report: `reports/security-review_t039-dashboard-ux_20261111T185451.html` |
 | ux-evaluate | agent-run, not rerun | 15 pass by the implementing agent (self-graded); the Supervisor read the screenshots. Not exercised: native date-picker pop-up, iOS Safari. |
-| verify | not run | The user's step (T037 precedent). The agent's own live-server check (real `apps/mcp`, CSP header applied, 0 CSP violations) is evidence, not the verify row. |
+| verify | pass | User-run `/verify`, twice (2026-11-11), on commit `c8c9b5c`: real production build, built `node dist/index.js` against a fresh loopback PGlite, seeded through the real `submit_ideas`, driven in headless Chromium. Verdict pass both times; 0 CSP violations; probes held (XSS text literal, wrong methods 405, bad dates, 260-char q, keyboard toggle, breakpoints 319-1024, 200% root font). Open findings: year clipped in the date inputs at 320px; `?since=garbage` leaves a blank date input beside a chip. |

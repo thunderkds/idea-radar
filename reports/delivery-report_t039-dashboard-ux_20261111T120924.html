@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Delivery Report — T039 — t039-dashboard-ux</title>
+<style>
+  :root {
+    --bg:        #0a0a12;
+    --surface:   #111128;
+    --surface2:  #16162e;
+    --border:    #1e1e42;
+    --text:      #e2e2f0;
+    --muted:     #6b6b9a;
+    --cyan:      #00d4ff;
+    --green:     #00ff88;
+    --amber:     #ffb800;
+    --purple:    #a855f7;
+    --cyan-dim:  rgba(0,212,255,.12);
+    --green-dim: rgba(0,255,136,.12);
+    --amber-dim: rgba(255,184,0,.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  h1 { margin: 0; font-size: 1.25rem; color: #fff; letter-spacing: .02em; }
+  h2 { font-size: .8rem; color: var(--muted); margin: 0 0 .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
+
+  .header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--cyan);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0 24px rgba(0,212,255,.08), 0 4px 24px rgba(0,0,0,.5);
+  }
+  .header-meta { color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  .header-meta code { color: var(--cyan); background: var(--cyan-dim); padding: .1rem .4rem; border-radius: 4px; font-size: .8rem; }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+  .section-head { padding: .7rem 1.25rem; background: var(--surface2); border-bottom: 1px solid var(--border); }
+
+  /* ── BEFORE/AFTER SIDE BY SIDE ── */
+  .ba-wrap { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1.25rem 1.5rem; }
+  .ba-col { flex: 1 1 320px; min-width: 0; }
+  .ba-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+  .ba-before .ba-label { color: var(--amber); }
+  .ba-after  .ba-label  { color: var(--green); }
+  .ba-col pre {
+    background: #06060c; border: 1px solid var(--border); border-radius: 6px;
+    padding: .85rem; font-size: .8rem; white-space: pre-wrap; word-break: break-word;
+    margin: 0; max-height: 320px; overflow-y: auto; font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  .delta-box {
+    padding: 1.1rem 1.5rem; font-size: 1.05rem; font-weight: 600; color: #fff;
+    border-left: 3px solid var(--cyan); box-shadow: -6px 0 12px rgba(0,212,255,.08);
+  }
+  .delta-box::before { content: 'DELTA → '; color: var(--cyan); font-size: .78rem; letter-spacing: .05em; }
+
+  .witness-box { padding: 1rem 1.5rem; font-size: .85rem; color: #b0b0d0; }
+  .witness-box pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: 'Cascadia Code', 'Fira Code', monospace; }
+
+  .no-demo-warning {
+    margin: 0 1.5rem 1rem; padding: .75rem 1rem; background: var(--amber-dim);
+    border: 1px solid rgba(255,184,0,.3); border-radius: 6px; color: var(--amber); font-size: .82rem;
+  }
+
+  /* ── EVIDENCE TABLE ── */
+  .evidence-summary {
+    padding: .9rem 1.5rem; font-size: 1rem; font-weight: 700; color: var(--green);
+    background: var(--green-dim); border-bottom: 1px solid var(--border);
+  }
+  .matrix-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: .6rem 1.25rem; font-size: .82rem; border-top: 1px solid var(--border); vertical-align: top; }
+  td pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: inherit; color: inherit; }
+  .ev-check pre { color: #cfcfe8; font-weight: 500; }
+  .ev-filled  { color: var(--green); }
+  .ev-blank   { color: var(--amber); }
+  .ev-n-a     { color: var(--muted); }
+  .ev-notes pre { color: #9090b8; }
+
+  .footer {
+    font-size: .72rem; color: var(--muted); text-align: center;
+    padding: 1rem 0 2rem; border-top: 1px solid var(--border); margin-top: .5rem;
+  }
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; background: var(--cyan-dim); color: var(--cyan); padding: .1rem .4rem; border-radius: 3px; font-size: .78rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Delivery Report — T039</h1>
+  <div class="header-meta">Branch: <code>t039-dashboard-ux</code> &nbsp;·&nbsp; 2026-11-11</div>
+</div>
+
+
+
+<div class="section">
+  <div class="section-head"><h2>Before / After</h2></div>
+  <div class="ba-wrap">
+    <div class="ba-col ba-before">
+      <div class="ba-label">Before</div>
+      <pre>`tasks/evidence/T039/before/{list,idea,login}-{m,d}.png` (filter form first, identical cards with the full summary and a bold underlined link, raw URL link text).</pre>
+    </div>
+    <div class="ba-col ba-after">
+      <div class="ba-label">After</div>
+      <pre>`tasks/evidence/T039/after/` (see Evidence). Live-server captures from `/verify`: `tasks/evidence/T039/verify/{list-m,list-d,list-filtered-m,idea-m,idea-d,login-m,p8-320}.png`.</pre>
+    </div>
+  </div>
+  <div class="delta-box">the owner opens the dashboard and sees a search box and a Filters toggle first, then the ideas grouped under rising, medium and low-key, each card clickable as a whole with a 2-line summary; the idea page reads by priority with a highlighted why-now card and readable signal and repo links, instead of a form-first page of identical cards.</div>
+</div>
+
+<div class="section">
+  <div class="section-head"><h2>Witness</h2></div>
+  <div class="witness-box"><pre>WITNESS underived — no memory/event-trace/T039.jsonl found</pre></div>
+</div>
+
+<div class="section">
+  <div class="section-head"><h2>Evidence Completion</h2></div>
+  <div class="evidence-summary">11 / 11 filled</div>
+  <div class="matrix-wrap">
+    <table>
+      <tbody>
+        <tr><td class="ev-check"><pre>**New test(s) cover Acceptance Criteria (file paths pasted)**</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>New: `apps/mcp/src/html.test.ts` (+17 tests, 20 in the file: AC1 toolbar, AC2 chips, AC3 sections, AC4 card, AC5-7 idea page, AC8 login/skip link, AC9 one `<style>`/no script/no `style=`, AC10 escaping in chips/inputs, AC12 empty states and notices). Changed: `apps/mcp/src/dashboard.test.ts` (+1 route test: `?tag=cli&since=2026-11-01` gives `<details open>` and the chip `/?since=2026-11-01`; 1 pin test repointed, see below).</pre></td></tr>
+<tr><td class="ev-check"><pre>Red before green</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>Run before any `html.ts` edit: all 17 new `html.test.ts` tests failed (`✖` on every new test in the 4 new `describe` blocks). After the implementation: 20/20.</pre></td></tr>
+<tr><td class="ev-check"><pre>Verification command run (mcp, no DB)</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>`cd apps/mcp && tsx --conditions=source --test "src/**/*.test.ts"`: tests 95, pass 94, fail 0, skipped 1 (baseline 77 / 76 / 1).</pre></td></tr>
+<tr><td class="ev-check"><pre>Verification command run (mcp, with loopback PGlite `:55432`)</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>`TEST_DATABASE_URL=postgres://postgres:pg@localhost:55432/postgres ... --test "src/**/*.test.ts"`: tests 107, pass 107, fail 0, **skipped 0** (baseline 89/89).</pre></td></tr>
+<tr><td class="ev-check"><pre>Lint / typecheck / format</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>`pnpm lint` and `pnpm typecheck` (packages/ideas, packages/db, apps/mcp): no errors; `prettier --check packages apps scripts eslint.config.js`: "All matched files use Prettier code style!".</pre></td></tr>
+<tr><td class="ev-check"><pre>Real-server check with the CSP header applied</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>`apps/mcp` on `:18039` against loopback PGlite, 5 ideas seeded through the real `submit_ideas`; headless Chromium (playwright-core): login by real form (autofocus on `#token`), list, search `q=changelog` + Enter (chip "remove search: changelog"), Filters open for `?tag=cli&since=2026-11-01` (`since` input value `2026-11-01`), chip hrefs `["/?since=2026-11-01","/?tag=cli"]`, removing the first chip lands on `/?since=2026-11-01`, a click on the card body (not the title) opens `/ideas/t039-rising`, a chip click stays on the chip target `/?tag=cli`, signal links `rel`/`target=_blank` and `title`. Computed body background `rgb(18, 20, 19)` and the token font stack on every page (proves the hashed `<style>` was applied). Console: only the expected 401 (wrong token) and 404 (`/ideas/nope`), **0 CSP violations**. Tab order: skip link, brand, Log out, search, Search, Filters, one stop for the first card, then its chips.</pre></td></tr>
+<tr><td class="ev-check"><pre>**UI: Visual regression**</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>Before: `tasks/evidence/T039/before/{list,idea,login}-{m,d}.png`. After (live server, CSP applied): `tasks/evidence/T039/after/{list,idea,login}-{m,d}.png` plus `list-filtered`, `login-error`, `message`, `list-focus` (-m/-d), `list-long-m.png`, `list-empty-m.png`. m = 375px, d = 1280px.</pre></td></tr>
+<tr><td class="ev-check"><pre>**UI: Design-system compliance**</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>Every colour is `var(--token)`; no new token, `tokens-css.ts` untouched. Neon: eyebrow, primary Apply (when Filters is open), focus ring, the one why-now card (idea page), and the login button/focus on login: at most 4 per screen. Glow only on those neon elements. No coloured pills (status is mono text). IBM Plex stack with system fallback, no network. Chips are outlined, no fills.</pre></td></tr>
+<tr><td class="ev-check"><pre>**UI: Responsiveness**</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>375px and 1280px: `scrollWidth == clientWidth` on list, list-filtered, list-empty, list-long (200-char `q`, 100-char `tag`), idea, login, login-error, message. Tap probe (`skills/ux-evaluate/scripts/tap_probe.py`) at 375: "under 44px:" empty on list, list-filtered, list-long, idea, login, message.</pre></td></tr>
+<tr><td class="ev-check"><pre>Review scope bounded to blast radius</pre></td><td class="ev-status ev-filled"><pre>pass</pre></td><td class="ev-notes"><pre>`git diff -- apps`: `html.ts`, `html.test.ts`, `dashboard.test.ts` only. `dashboard.ts` unchanged (no `ListView` field needed). Consumers of `html.ts`: `dashboard.ts` (page functions, `PAGE_CSP`), `dashboard.test.ts`, `server.test.ts` (all green).</pre></td></tr>
+<tr><td class="ev-check"><pre>code-review / security-review / verify</pre></td><td class="ev-status ev-filled"><pre>pass (Supervisor, Stage 4/5, 2026-11-11)</pre></td><td class="ev-notes"><pre>code-review: no P0/P1/P2, P3x4 open. security-review: clean. verify: pass, run twice on the real built server (fresh PGlite, 9 ideas seeded through `submit_ideas`, headless Chromium at 375 and 1280, plus 320/719/720/1024): 0 CSP violations, whole-card click, chips, filters, search, idea page, logout, XSS probe literal. See `## Stage 4` below and `tasks/evidence/T039/verify/`.</pre></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  Task: T039 &nbsp;·&nbsp; Branch: <code>t039-dashboard-ux</code> &nbsp;·&nbsp; Generated: 2026-11-11T12:09:24.058448+00:00
+</div>
+
+</body>
+</html>
