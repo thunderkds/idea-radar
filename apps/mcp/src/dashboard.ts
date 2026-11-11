@@ -35,7 +35,7 @@ function sendHtml(res: ServerResponse, status: number, body: string, headers: Re
     "cache-control": "no-store",
     "content-security-policy": PAGE_CSP,
     "x-content-type-options": "nosniff",
-    "referrer-policy": "no-referrer",
+    "referrer-policy": "same-origin",
     ...headers,
   });
   res.end(body);

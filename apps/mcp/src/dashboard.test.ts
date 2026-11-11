@@ -260,6 +260,11 @@ test("the CSP style hash equals the sha256 of the exact text of the rendered <st
   }
 });
 
+test("pages send Referrer-Policy same-origin: with no-referrer a browser posts Origin: null from the login form, which the CSRF check must refuse", async () => {
+  const url = await start(stub().store);
+  assert.equal((await fetch(`${url}/login`)).headers.get("referrer-policy"), "same-origin");
+});
+
 describe("idea list (AC3, AC5, UX rows)", () => {
   test("newest ideas first from the store, limit 50, showing title, summary, tags and last_seen", async () => {
     const { store, calls } = stub();
