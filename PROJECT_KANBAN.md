@@ -13,6 +13,7 @@
 ### Todo
 
 ### In Progress
+- [ ] **T041** — `submit_ideas` tool text says "submission", not "idea file" | backend-developer | C1 | Risk: Low | P2 | PR/branch: `t041-tool-text` | Guide: `tasks/TASK_GUIDE_T041.md` | Started 2026-11-11: worktree `.claude/worktrees/T041`
 
 ### Ready for Review
 
