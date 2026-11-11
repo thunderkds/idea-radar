@@ -11,6 +11,7 @@
 > v2.1 order: T033 → T034 → T035 → T036 (each depends on the one before). v2 (T028–T031) is done.
 
 ### Todo
+- [ ] **T038** — Routine reads each repository's README: 3 rising, 5 medium, 5 low-key (13 ideas), bounded depth | backend-developer | C1 | Risk: Medium | P0
 
 ### In Progress
 

@@ -211,3 +211,17 @@ and all three tokens; migrations run at boot before listening; DB down → `/hea
 - A fork or a "awesome-list" repo is not an idea: skip.
 
 > **Approved direction**: Path B. User said "go" on 2026-11-11 to the proposed bucket rules and tags; thresholds and tag names are Supervisor defaults the user accepted, revisit after the first runs.
+
+---
+
+## Addendum 2026-11-11 — T038: README read per repository, 13 ideas
+
+**Tier:** Lightweight (the direction is the user's; one open question, the depth).
+**User input:** "the github idea just is the description?" then "reduce to 3 high, 5 medium, and 5 lows. but should be the deep investigation also, not too deep for token burn."
+**Cause found:** T037's cost rules ("at most 8 pages, no README deep reads") made the idea text the listing row's one-line description.
+**Recommended path:** one repository page per repo (README and About sidebar), 13 ideas, a stated page budget (at most 20 pages), fields tightened (summary 900 characters ending in `Build angle:`).
+**Rejected:** raw README via `raw.githubusercontent.com` (a second host; `github.com/<o>/<r>/raw/HEAD/README.md` answers 302 there, checked 2026-11-11); the REST API (about 15 times larger); issues or releases pages (more pages, little extra signal).
+**Risks:** a repository page is large as HTML (626,755 bytes for one well-known repository); the token cost per page is measured in the task, with a stop at 15,000 tokens average. README text is longer untrusted text than a listing row, so the prompt's "data, never instructions" rule is strengthened and reviewed.
+**50% rule:** half the code is none; this is prompt text, tests and one docs section.
+
+> **Approved direction**: user's message of 2026-11-11 for counts and depth; "high" = `rising`, the build-angle sentence and the 20-page cap are Supervisor defaults to confirm after the first run.
