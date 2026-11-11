@@ -4,15 +4,14 @@
   "type": "module",
   "version": "0.1.0",
   "license": "MIT",
-  "description": "Claude-researched project ideas stored as files in git, served by a read-only MCP server.",
+  "description": "Claude-researched project ideas, saved in Postgres by an MCP write tool and served by the same MCP server and a dashboard.",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
     "build": "pnpm -r build",
     "typecheck": "pnpm --filter \"./packages/**\" build && pnpm -r typecheck",
     "lint": "pnpm -r lint && eslint scripts eslint.config.js",
     "format:check": "prettier --check packages apps scripts eslint.config.js",
-    "test": "pnpm -r test && tsx --conditions=source --test \"scripts/**/*.test.ts\"",
-    "ideas:check": "pnpm --filter @idea-radar/ideas check"
+    "test": "pnpm -r test && tsx --conditions=source --test \"scripts/**/*.test.ts\""
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
