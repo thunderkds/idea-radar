@@ -17,6 +17,7 @@
 ---
 
 ## Index
+- [CI dry run via draft PR; v2.1 green on Postgres 16](learnings.md#2026-11-11--first-real-ci-run-of-v21-dry-run-through-a-draft-pr-t033-t036) — ci.yml triggers only on main push and PRs; PR #1 131/131 on a real Postgres 16, 0 skipped
 - [Routine writes only via connector](decisions.md#2026-11-11--routine-writes-only-through-the-connector-the-write-token-stays-out-of-the-models-context-t036) — one `submit_ideas` call, no repo access; write token in connector header, not env; git ingest removed
 - [T036 docs/prompt gotchas, v2.1 close-out](learnings.md#2026-11-11--routine-ingest-over-mcp-docs-and-prompt-gotchas-v21-close-out-t036) — watchPatterns needs /packages/db/**; `.env.example` denied even to git grep; user merges when the hook verify row is missing
 - [Dashboard: stateless HMAC cookie, CSP style hash](decisions.md#2026-11-11--dashboard-stateless-hmac-session-cookie-one-inline-style-under-a-csp-hash-filters-after-search-t035) — cookie = expiry.HMAC(DASHBOARD_TOKEN), CSRF via Origin/Sec-Fetch-Site; filters apply to first 100 search hits

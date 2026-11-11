@@ -112,3 +112,8 @@ Measured the same UTC hour (12:00) across years from data.gharchive.org: 2024-10
 - Facts the doc relies on, checked against the running server: a read token gets `Tool submit_ideas not found` (not a "needs the write token" text); `ideas: []` saves 0; an older `date` only widens `first_seen`; a closed DB port fails in 0.3 s with `database setup failed: connect ECONNREFUSED`, but an address that drops packets hangs boot (missing `createPool` connect timeout).
 - `.env.example` is denied to agents for every command that names it, including `git grep -- .env.example`: ask the user to delete its `IDEAS_DIR=` line (line 7).
 - Supervisor close-out for a user-merged task: the `[admin]` merge gate needs the hook-written auto verify row, so the user merged T035 and T036 with a `!` command; confirm the merge commit and that the merged tree equals the tested tip (`git diff <tip> HEAD --stat` empty) instead of re-running the suite.
+
+### 2026-11-11 — First real CI run of v2.1: dry-run through a draft PR (T033-T036)
+**Files**: .github/workflows/ci.yml
+- `ci.yml` runs only on pushes to `main` and on pull requests, so a pushed branch alone does not start CI. To dry-run before publishing `main`: push the tip to a temporary branch, open a DRAFT PR (`gh pr create --draft --base main --head <branch>`), read `gh pr checks <n> --watch`, then publish `main` with a plain fast-forward push (GitHub marks the PR merged). Do not press the PR's merge button (it adds a merge commit your local `main` lacks).
+- PR #1 (tip `fc30d0e`): CI green in 42 s on GitHub's Postgres 16 service container: packages/ideas 11/11, packages/db 23/23, apps/mcp 88/88, scripts 9/9, 0 skipped, so the Postgres-backed tests now ran against a real Postgres 16 (before, only in-memory PGlite).
