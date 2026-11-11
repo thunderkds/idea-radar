@@ -11,10 +11,10 @@
 > v2.1 order: T033 → T034 → T035 → T036 (each depends on the one before). v2 (T028–T031) is done.
 
 ### Todo
-- [ ] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1
 - [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1
 
 ### In Progress
+- [ ] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1 | PR/branch: `t035-dashboard-pages` | Started 2026-11-11: worktree `.claude/worktrees/T035`
 
 ### Ready for Review
 
