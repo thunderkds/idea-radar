@@ -109,9 +109,38 @@ validate.ts
 
 Today the routine prompt never mentions `submit_ideas` (0), 22 lines in the docs and CI still tell a reader to commit, push or run `ideas:check`, `railway.json` still watches `/ideas/**`, and `pnpm ideas:check` still runs.
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: same commands run on the implementation working tree by the implementing agent (command output pasted verbatim; long lines cut to 110 characters). The 6 remaining `commit` hits are the prompt's prohibition (`Never clone, edit, commit or push`) and three prose uses in `docs/deploy.md` ("never in a commit", "deploys a commit only after CI", "never committed"); none tells anyone to commit or push idea files.
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+# 2026-11-11T03:58:40Z base 1146064 + T036 working tree (implementation, uncommitted)
+$ grep -rnE "git push|commit|ideas:check" routines/ README.md docs/deploy.md .github/ | wc -l
+6
+$ grep -rnE "git push|commit|ideas:check" routines/ README.md docs/deploy.md .github/ | cut -c1-110
+routines/daily-ideas.md:42:4. Never clone, edit, commit or push anything, and never write the ideas to a file.
+docs/deploy.md:53:   client config, never in a commit.
+docs/deploy.md:74:Optional: in the service settings turn on **Wait for CI**, so Railway deploys a commit only 
+docs/deploy.md:75:Actions workflow (`.github/workflows/ci.yml`) passes. A commit that fails CI is then not dep
+docs/deploy.md:117:takes the token from the routine's environment, so the token is never committed. Add this e
+docs/deploy.md:174:`"type": "http"` and `"headers": { "Authorization": "Bearer ${MCP_TOKEN}" }` so no secret i
+$ grep -c submit_ideas routines/daily-ideas.md
+4
+$ pnpm ideas:check ideas/examples  (exit code)
+exit=254
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "ideas:check" not found
+
+Did you mean "pnpm format:check"?
+$ grep -n ideas railway.json
+7:      "/ideas/schema.json",
+9:      "/packages/ideas/**",
+$ ls packages/ideas/src
+index.ts
+types.ts
+validate.test.ts
+validate.ts
+```
+
+**DELTA**: The routine now sends its ideas with one `submit_ideas` call and never touches the repository, and one setup document (`docs/deploy.md`) covers Postgres, the three tokens, the routine's connector, the dashboard login and the clients, where before the routine had to commit and push an idea file and CI ran `pnpm ideas:check`.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
