@@ -4,6 +4,7 @@ import { createPool, migrate } from "@idea-radar/db";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { checkTokens, roleFor } from "./auth.js";
+import { createDashboard } from "./dashboard.js";
 import type { Role } from "./auth.js";
 import { createStore } from "./index-store.js";
 import type { IdeaStore } from "./index-store.js";
@@ -18,7 +19,7 @@ export interface ServerOptions {
   token: string;
   /** Write token: the read tools and `submit_ideas`. */
   writeToken: string;
-  /** Not used by this server yet (the dashboard login); it is checked at boot so a bad config fails early. */
+  /** The dashboard login token. It never grants `/mcp` access. */
   dashboardToken: string;
   port: number;
   log?: (line: string) => void;
@@ -101,9 +102,10 @@ async function databaseAnswers(store: IdeaStore): Promise<boolean> {
 
 export function createHttpServer(
   store: IdeaStore,
-  tokens: { read: string; write: string },
+  tokens: { read: string; write: string; dashboard: string },
   log: (line: string) => void,
 ): Server {
+  const dashboard = createDashboard(store, tokens.dashboard, log);
   return createServer((req, res) => {
     const run = async () => {
       // Parse inside run(): a request target that is not a valid URL must become a 400, never an uncaught throw.
@@ -124,6 +126,7 @@ export function createHttpServer(
         if (req.method !== "POST") return sendJson(res, 405, { error: "method not allowed" }, { allow: "POST" });
         return await handleMcp(store, role, log, req, res);
       }
+      if (await dashboard(req, res, path)) return;
       return sendJson(res, 404, { error: "not found" });
     };
     run().catch((err: unknown) => {
@@ -156,7 +159,11 @@ export async function startServer(options: ServerOptions): Promise<{ server: Ser
       throw new Error(`database setup failed: ${err.message || err.code || "no detail"}`);
     });
     log(`migrations applied: ${applied.length}`);
-    const server = createHttpServer(createStore(pool), { read: options.token, write: options.writeToken }, log);
+    const server = createHttpServer(
+      createStore(pool),
+      { read: options.token, write: options.writeToken, dashboard: options.dashboardToken },
+      log,
+    );
     server.on("close", () => void pool.end());
     await new Promise<void>((resolveListen, reject) => {
       server.once("error", reject);

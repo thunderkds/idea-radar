@@ -91,7 +91,7 @@ describe("HTTP surface (no database needed)", () => {
   let url: string;
   const { store, submitted } = stubStore();
   before(async () => {
-    url = await listen(createHttpServer(store, { read: READ, write: WRITE }, () => {}));
+    url = await listen(createHttpServer(store, { read: READ, write: WRITE, dashboard: DASH }, () => {}));
   });
 
   test("a read token lists exactly the three read tools, all read-only", async () => {
@@ -152,6 +152,10 @@ describe("HTTP surface (no database needed)", () => {
       }
     }
     assert.equal((await fetch(`${url}/nope`)).status, 404);
+    // `/` is the dashboard now: without a cookie it redirects to the login page instead of answering 404.
+    const home = await fetch(`${url}/`, { redirect: "manual" });
+    assert.equal(home.status, 303);
+    assert.equal(home.headers.get("location"), "/login");
     assert.equal((await fetch(`${url}/health`, { method: "POST" })).status, 405);
   });
 
@@ -207,7 +211,9 @@ describe("/health when the database does not answer", () => {
   test("an unreachable database is 503 with exactly { ok: false } and nothing logged", async () => {
     const lines: string[] = [];
     const pool = createPool(await closedPortUrl());
-    const url = await listen(createHttpServer(createStore(pool), { read: READ, write: WRITE }, (l) => lines.push(l)));
+    const url = await listen(
+      createHttpServer(createStore(pool), { read: READ, write: WRITE, dashboard: DASH }, (l) => lines.push(l)),
+    );
     const res = await fetch(`${url}/health`);
     assert.equal(res.status, 503);
     const raw = await res.text();
@@ -218,7 +224,7 @@ describe("/health when the database does not answer", () => {
 
   test("a probe that hangs times out instead of hanging", async () => {
     const { store } = stubStore({ ping: () => new Promise<void>(() => {}) });
-    const url = await listen(createHttpServer(store, { read: READ, write: WRITE }, () => {}));
+    const url = await listen(createHttpServer(store, { read: READ, write: WRITE, dashboard: DASH }, () => {}));
     const started = Date.now();
     const res = await fetch(`${url}/health`);
     assert.equal(res.status, 503);
@@ -449,5 +455,58 @@ describe("with a Postgres (needs TEST_DATABASE_URL)", { skip }, () => {
     assert.equal((await call("get_idea", { id: "ne\u0000w-one" })).isError, undefined);
     assert.equal((await call("list_ideas", { tag: "a\u0000i" })).body.count, 2);
     await writer.close();
+  });
+
+  const dashboardCookie = async (): Promise<string> => {
+    const res = await fetch(`${url}/login`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token: DASH }).toString(),
+      redirect: "manual",
+    });
+    return (res.headers.get("set-cookie") ?? "").split(";")[0]!;
+  };
+
+  test("a submitted idea shows on the dashboard list and idea page at once, escaped (NFR-001, NFR-003)", async () => {
+    await reset();
+    const file = ideaFile("2026-11-10", ["dash-idea"]);
+    file.ideas[0]!.title = "<script>alert(1)</script> & co";
+    const writer = await connect(url, WRITE);
+    assert.equal((await submit(writer, file)).isError, undefined);
+    await writer.close();
+    const cookie = await dashboardCookie();
+    const list = await (await fetch(`${url}/`, { headers: { cookie } })).text();
+    assert.match(list, /&lt;script&gt;alert\(1\)&lt;\/script&gt; &amp; co/);
+    assert.doesNotMatch(list, /<script>alert/);
+    const page = await fetch(`${url}/ideas/dash-idea`, { headers: { cookie } });
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /https:\/\/github\.com\/o\/r/);
+    assert.equal((await fetch(`${url}/ideas/missing`, { headers: { cookie } })).status, 404);
+    const found = await (await fetch(`${url}/?q=dash-idea&tag=ai`, { headers: { cookie } })).text();
+    assert.match(found, /href="\/ideas\/dash-idea"/);
+  });
+
+  test("dashboard pages answer in under 1 s with 10,000 ideas (NFR-004)", async () => {
+    await reset();
+    await pool.query(
+      `INSERT INTO ideas (id, title, summary, why_now, tags, signals, related_repos, version_date, first_seen, last_seen, search_text)
+       SELECT 'perf-' || g, 'Perf idea ' || g, 'Summary text ' || g, 'why', ARRAY['perf', 'ai'], '[]'::jsonb, ARRAY[]::text[],
+              DATE '2026-01-01', DATE '2026-01-01', DATE '2026-01-01' + (g % 300),
+              lower('Perf idea ' || g || ' summary text ' || g || ' why perf ai')
+         FROM generate_series(1, 10000) g`,
+    );
+    try {
+      const cookie = await dashboardCookie();
+      for (const path of ["/", "/?tag=ai&since=2026-03-01&until=2026-09-01", "/?q=idea%209999", "/ideas/perf-5000"]) {
+        const started = Date.now();
+        const res = await fetch(`${url}${path}`, { headers: { cookie } });
+        await res.text();
+        const ms = Date.now() - started;
+        assert.equal(res.status, 200, path);
+        assert.ok(ms < 1000, `${path} took ${ms} ms`);
+      }
+    } finally {
+      await reset();
+    }
   });
 });
