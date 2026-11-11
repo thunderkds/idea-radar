@@ -38,3 +38,44 @@ test("ci.yml runs lint, typecheck and test", () => {
     assert.ok(ci.includes(`run: ${step}`), `ci.yml is missing "run: ${step}"`);
   }
 });
+
+test("the routine prompt sends ideas with submit_ideas and never touches the repository", () => {
+  const prompt = read("routines/daily-ideas.md");
+  assert.match(prompt, /submit_ideas/);
+  for (const banned of [/git push/i, /git commit/i, /git clone/i, /pnpm/i, /ideas:check/i]) {
+    assert.doesNotMatch(prompt, banned, `routine prompt must not match ${banned}`);
+  }
+  assert.match(prompt, /never clone, edit, commit or push/i);
+});
+
+test("railway.json does not watch idea data in git but still watches the schema", () => {
+  const { build } = JSON.parse(read("railway.json")) as { build: { watchPatterns: string[] } };
+  assert.ok(!build.watchPatterns.includes("/ideas/**"), "/ideas/** must not be watched");
+  assert.ok(build.watchPatterns.includes("/ideas/schema.json"), "/ideas/schema.json must be watched");
+});
+
+test("git idea-file ingest is gone from CI and the root scripts", () => {
+  assert.doesNotMatch(read(".github/workflows/ci.yml"), /ideas:check/);
+  const scripts = (JSON.parse(read("package.json")) as { scripts: Record<string, string> }).scripts;
+  assert.equal(scripts["ideas:check"], undefined);
+});
+
+test("docs/deploy.md covers Postgres, the three tokens and the dashboard login, with no real token", () => {
+  const deploy = read("docs/deploy.md");
+  for (const name of ["DATABASE_URL", "MCP_TOKEN", "MCP_WRITE_TOKEN", "DASHBOARD_TOKEN", "/login"]) {
+    assert.ok(deploy.includes(name), `deploy.md does not mention ${name}`);
+  }
+  assert.doesNotMatch(deploy, /git push|ideas:check|IDEAS_DIR/);
+  // The env-var route exposes the write token to the routine's model; the doc must warn and prefer the connector.
+  assert.match(deploy, /prefer the connector/i, "deploy.md must prefer the connector over the env-var route");
+  assert.match(
+    deploy,
+    /write token[^.]*visible to the (routine's )?model/i,
+    "deploy.md must say the env-var route exposes the write token",
+  );
+  assert.match(deploy, /prefer \*\*Custom\*\*/i, "deploy.md must prefer Custom network access over Full");
+  assert.doesNotMatch(deploy, /\b[0-9a-f]{32,}\b/i, "deploy.md shows a long hex string that looks like a token");
+  for (const m of deploy.matchAll(/Bearer\s+(\S+)/g)) {
+    assert.match(m[1] ?? "", /^["<$]/, `Bearer is followed by a non-placeholder: ${m[0]}`);
+  }
+});

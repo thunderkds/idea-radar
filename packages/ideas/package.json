@@ -16,8 +16,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "tsx --conditions=source --test \"src/**/*.test.ts\"",
-    "check": "tsx --conditions=source src/cli.ts"
+    "test": "tsx --conditions=source --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "ajv": "^8.20.0",

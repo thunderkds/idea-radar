@@ -11,7 +11,7 @@
 ## Readiness
 
 - **Requirements**: PRD.md
-- **Direction**: BRAINSTORMING_LOG.md (Option C — files are the database; auto-selected, please review)
+- **Direction**: BRAINSTORMING_LOG.md (Option C was superseded by the v2.1 addendum: Postgres behind the MCP write tool)
 - **Codebase map**: memory/codebase-map.md
 - **Tech stack**: TypeScript (Node 22), pnpm 9 workspaces, `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), Railway Postgres (`pg`), server-rendered dashboard pages in `apps/mcp`, Railway hosting, GitHub Actions CI
 - **Main flow**: PROJECT_SPEC.md (§ Architecture Summary)
@@ -24,7 +24,7 @@
 - **Name**: Idea Radar
 - **Repo**: git@github.com:thunderkds/idea-radar.git
 - **Primary tech**: TypeScript (Node 22+), pnpm 9 workspaces, MCP TypeScript SDK
-- **Type**: idea-file contract + hosted read-only MCP server
+- **Type**: idea submission contract + hosted MCP server (read and write tools) with a dashboard
 - **Deployment target**: Railway (one service: `apps/mcp`)
 - **Tracker**: `PROJECT_KANBAN.md` (v2 tasks T028+ have no Linear issue)
 
@@ -113,10 +113,10 @@ Frontend-Implementer is not used in v2 (no UI; dashboard deferred).
 | Term | Meaning |
 |---|---|
 | idea | One researched project idea; keyed by `id` (slug) |
-| idea file | One routine run's output: `ideas/<YYYY-MM-DD>[-<suffix>].json` |
-| routine | The Claude scheduled cloud agent that writes idea files (`routines/daily-ideas.md`) |
+| idea file | A submission object sent to `submit_ideas`; its shape is `ideas/schema.json` (not a file in git) |
+| routine | The Claude scheduled cloud agent that sends ideas with `submit_ideas`; it does not write files (`routines/daily-ideas.md`) |
 | signal | Evidence attached to an idea: `{ kind, url, note }` (not the v1 `signals` table) |
-| schema_version | Integer in every idea file; the loader serves only versions it knows |
+| schema_version | Integer in every submission; the server accepts only versions it knows |
 
 ---
 

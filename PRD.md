@@ -13,9 +13,10 @@
 
 Idea Radar v1 scraped GitHub and third-party sources and scored repos into tiers. Keeping those scrapers
 alive costs more than they return: GH Archive thinned ~55× and OSS Insight returns no data. v2 lets a
-**Claude scheduled routine** do the research. Each day it commits an idea file to this repo; the committed
-files are the database (`BRAINSTORMING_LOG.md` Option C), the deployed server loads them at boot, and the owner and a few people query the ideas from Claude
-(Code/Desktop) through a hosted **MCP server**. The app does not decide what an idea is about; the
+**Claude scheduled routine** do the research. Each day it sends its ideas to the app with the MCP write tool
+`submit_ideas`; the server saves them in Railway Postgres (`BRAINSTORMING_LOG.md`, v2.1 addendum), and the owner and a
+few people query the ideas from Claude (Code/Desktop) through the same hosted **MCP server**, or read them in a
+token-gated dashboard. The app does not decide what an idea is about; the
 routine's prompt does.
 
 ---
