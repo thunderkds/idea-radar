@@ -47,16 +47,18 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `scripts/repo-hygiene.test.ts` (3 new: kinds and limits from the schema, GitHub-only and buckets, cost and safety rules, 550-word budget); `packages/ideas/src/validate.test.ts` (2 new: enum values named, other messages unchanged); `apps/mcp/src/server.test.ts` (1 new database test: 10, 11 and 25 bad ideas, count line, no rows written) |
+| Verification command run | ☑ pass | Run by the implementing agent 2026-11-11T09:02:34Z and again after d1e16e1 (agent report); re-run by the Supervisor on f920ec3 (full suite) and after d1e16e1 (hygiene tests only, 12 pass), PGlite on 55432, exit 0: `pnpm lint` and `pnpm typecheck` clean, `pnpm format:check` "All matched files use Prettier code style!", `pnpm test` ideas 13, db 23, mcp 89 (pass 89, fail 0, skipped 0), scripts 12 (pass 12, fail 0, skipped 0); 137 pass, 0 skipped |
+| Negative cases hold | ☑ pass | Four mutations each turned a test red (table above): drop a kind from the prompt, drop the enum suffix, raise MAX_ANSWER_ERRORS to 50, add Reddit to the prompt; red-before-green runs recorded for the enum test, the cap test and the three prompt tests |
+| verify | ☐ pass / ☐ fail / ☐ N/A | pending: the user runs `/verify` (user-invoked only) |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed the 10 changed files, the callers of `validateIdeaFile` (`index-store.ts`), `capErrors`/`MAX_ERRORS` (only `index-store.ts`), the run-log write and the pinned T034 cap test, and `scripts/repo-hygiene.test.ts`; stale-wording grep over `routines docs README.md ideas PRD.md PROJECT_SPEC.md scripts apps packages` found only the example JSON. `lane_check`: C2, 9 files, FITS; unpredicted `index-store.ts`, `server.test.ts` (explained in AC7). Not reviewed: dashboard, auth, db package (unchanged) |
+| Full smoke suite still green (no regression) | ☑ pass | 137 pass, 0 fail, 0 skipped (see the verification row); the four GitHub URL forms re-checked by the Supervisor: HTTP 200 each |
+| **Companion score (easy-verifier)** | ☑ N/A | easy-verifier did not connect this session (CONNECT_TIMEOUT); no companion score |
+| **UI: Visual regression (diff or verdict pasted)** | ☑ N/A | no UI change: prompt text, validator message, store cap, docs |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☑ N/A | no UI change |
+| **UI: Responsiveness at target viewports** | ☑ N/A | no UI change |
+
+**Stage 4 reviews (Supervisor, 2026-11-11):** code-review: no P0/P1; P2×3 resolved in d1e16e1 (low-key "revived" claim, repeated-error resend clause, AC7 cap location and wording), P3×3 open (plural in "... and 1 more errors", "Hacker News" in the example JSON, revived repos not searched). Report: `reports/code-review_t037-routine-github_20261111T162000.html`. security-review: no finding at confidence 8 or higher. Report: `reports/security-review_t037-routine-github_20261111T162000.html`.
 
 ---
 
@@ -128,5 +130,4 @@ Red-before-green: the enum test and the first cap test were run red before the c
 **Verification command**, 2026-11-11T09:02:34Z, with `TEST_DATABASE_URL` set to a PGlite server on 55432; exit 0:
 `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` gave packages/ideas 13 pass, packages/db 23 pass, apps/mcp 89 pass, scripts 12 pass, 0 failed, 0 skipped; lint, typecheck and `All matched files use Prettier code style!`.
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**WITNESS**: the implementing agent's tool calls are attributed to T037 by the spawn binding (`memory/event-trace/T037.jsonl`). The Supervisor's own re-run of lint, typecheck, format, the 137 tests and the four GitHub URL checks (2026-11-11, after d1e16e1) was issued from the Supervisor session, whose tool calls land in `memory/event-trace/_untagged.jsonl` because no active-task state file is bound. Re-run after d1e16e1: the hygiene tests alone (12 pass, 0 fail, 0 skipped); the full suite was last run before d1e16e1, which changed only the prompt text and the guide, and the implementing agent reported the full suite green after d1e16e1 (137 pass, 0 skipped).
