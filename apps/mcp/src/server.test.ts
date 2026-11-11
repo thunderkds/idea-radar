@@ -91,7 +91,7 @@ describe("HTTP surface (no database needed)", () => {
   let url: string;
   const { store, submitted } = stubStore();
   before(async () => {
-    url = await listen(createHttpServer(store, { read: READ, write: WRITE }, () => {}));
+    url = await listen(createHttpServer(store, { read: READ, write: WRITE, dashboard: DASH }, () => {}));
   });
 
   test("a read token lists exactly the three read tools, all read-only", async () => {
@@ -207,7 +207,9 @@ describe("/health when the database does not answer", () => {
   test("an unreachable database is 503 with exactly { ok: false } and nothing logged", async () => {
     const lines: string[] = [];
     const pool = createPool(await closedPortUrl());
-    const url = await listen(createHttpServer(createStore(pool), { read: READ, write: WRITE }, (l) => lines.push(l)));
+    const url = await listen(
+      createHttpServer(createStore(pool), { read: READ, write: WRITE, dashboard: DASH }, (l) => lines.push(l)),
+    );
     const res = await fetch(`${url}/health`);
     assert.equal(res.status, 503);
     const raw = await res.text();
@@ -218,7 +220,7 @@ describe("/health when the database does not answer", () => {
 
   test("a probe that hangs times out instead of hanging", async () => {
     const { store } = stubStore({ ping: () => new Promise<void>(() => {}) });
-    const url = await listen(createHttpServer(store, { read: READ, write: WRITE }, () => {}));
+    const url = await listen(createHttpServer(store, { read: READ, write: WRITE, dashboard: DASH }, () => {}));
     const started = Date.now();
     const res = await fetch(`${url}/health`);
     assert.equal(res.status, 503);
