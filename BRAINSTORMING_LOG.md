@@ -225,3 +225,17 @@ and all three tokens; migrations run at boot before listening; DB down → `/hea
 **50% rule:** half the code is none; this is prompt text, tests and one docs section.
 
 > **Approved direction**: user's message of 2026-11-11 for counts and depth; "high" = `rising`, the build-angle sentence and the 20-page cap are Supervisor defaults to confirm after the first run.
+
+---
+
+## Addendum 2026-11-11 — T039: dashboard UX redesign
+
+**Tier:** Standard (three viable layouts; the user chose with ASCII mockups).
+**User input:** "for the UI, should investigate and update for best UX, the current implementation is bad". Picked **Search-first + bucket sections** over *Compact scan list* and *Polish the current cards*.
+**Audit (code + screenshots at 375px and 1280px, 2026-11-11):** the filter form (4 fields + button) sits above the content and fills most of the first mobile screen; since/until are free-text boxes; every card is identical with a full-length summary (up to 2000 characters) and a bold underlined mint link; only the title is clickable; no active-filter chips; idea page headings are 12px muted mono, signals are loose lines with a raw URL as the link text, related repos are not linked, no hierarchy.
+**Recommended path:** same routes and query params (`q`, `tag`, `since`, `until`); only `apps/mcp/src/html.ts` markup/CSS changes. Native `<details>` for Filters (no script, CSP-safe), `type="date"` for since/until (browser sends `YYYY-MM-DD`, the server contract is unchanged), sections from the first tag (`rising`, `medium`, `low-key`, else `other`), stretched-link cards, 2-line summary clamp, idea page with real headings, a highlighted why-now card, host/path link text, `owner/name` repos linked to github.com.
+**Rejected:** compact table (poor at 375px, loses the summary); polish only (leaves the form above the content); signal count or relative dates on cards (need an `index-store`/`packages/db` change or a clock, cut); a client-side script for the filter toggle (CSP allows no script).
+**Risks:** the CSP hash covers the exact `<style>` text (hash is computed from the same string, test AC7 guards it); inline `style=""` attributes would be blocked by `style-src` hash-only; `html.test.ts` pins `<a class="chip" href="/?tag=notes">` and `class="back"`; 44px touch targets on mobile (design-system rule) make chips tall, so cap chips per card; an `owner/name` such as `../x` must not become a link.
+**50% rule:** half the work is none: no new route, no JS, no schema, no DB change, tokens untouched.
+
+> **Approved direction**: the user chose *Search-first + bucket sections* on 2026-11-11. Chip cap, link text and what to cut are Supervisor defaults.
