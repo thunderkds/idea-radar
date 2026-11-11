@@ -4,6 +4,9 @@ The routine in `routines/daily-ideas.md` sends one submission per run to the MCP
 `submit_ideas`. The server checks it against the schema and saves the ideas in Postgres. This folder holds the
 contract only; no idea data is kept in git. The routine cannot read this folder, so its prompt repeats the allowed
 signal kinds and the length limits; a test keeps them in line with `schema.json`.
+The routine sends 13 ideas a day (3 `rising`, 5 `medium`, 5 `low-key` repositories), each written from the
+repository's own README; the prompt's tighter targets (`summary` 900 characters ending in `Build angle:`, `why_now` two
+sentences) sit inside the limits below.
 
 - **Contract**: [`schema.json`](schema.json) (JSON Schema draft 2020-12). Every submission must pass it, or
   nothing is saved.
