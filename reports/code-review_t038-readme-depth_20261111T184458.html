@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Code Review Report — t038-readme-depth</title>
+<style>
+  :root {
+    --bg:        #0a0a12;
+    --surface:   #111128;
+    --surface2:  #16162e;
+    --border:    #1e1e42;
+    --border-glow: #2a2a6e;
+    --text:      #e2e2f0;
+    --muted:     #6b6b9a;
+    --cyan:      #00d4ff;
+    --green:     #00ff88;
+    --amber:     #ffb800;
+    --red:       #ff3b6b;
+    --purple:    #a855f7;
+    --cyan-dim:  rgba(0,212,255,.12);
+    --green-dim: rgba(0,255,136,.12);
+    --red-dim:   rgba(255,59,107,.12);
+    --amber-dim: rgba(255,184,0,.12);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  h1 { margin: 0; font-size: 1.25rem; color: #fff; letter-spacing: .02em; }
+  h2 { font-size: .85rem; color: var(--muted); margin: 0 0 .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--cyan);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 0 24px rgba(0,212,255,.08), 0 4px 24px rgba(0,0,0,.5);
+  }
+  .header-meta { color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  .header-meta code { color: var(--cyan); background: var(--cyan-dim); padding: .1rem .4rem; border-radius: 4px; font-size: .8rem; }
+
+  /* ── OVERALL BADGE ── */
+  .badge { display: inline-block; padding: .3rem .9rem; border-radius: 999px; font-weight: 700; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+  .badge-green  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,255,136,.3); box-shadow: 0 0 8px rgba(0,255,136,.2); }
+  .badge-yellow { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,184,0,.3); box-shadow: 0 0 8px rgba(255,184,0,.2); }
+  .badge-red    { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,59,107,.3); box-shadow: 0 0 8px rgba(255,59,107,.2); }
+
+  /* ── SEVERITY BADGES ── */
+  .sev { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-weight: 700; font-size: .75rem; white-space: nowrap; letter-spacing: .04em; }
+  .sev-high { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,59,107,.25); }
+  .sev-med  { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,184,0,.25); }
+  .sev-low  { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(0,212,255,.25); }
+  .sev-info { background: rgba(168,85,247,.1); color: var(--purple); border: 1px solid rgba(168,85,247,.25); }
+
+  /* ── GAUGE CARDS ── */
+  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .gauge-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    transition: border-color .2s;
+  }
+  .gauge-card:hover { border-color: var(--border-glow); }
+  .gauge-label { font-size: .7rem; font-weight: 700; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-bottom: .5rem; }
+  .gauge-value { font-size: 2rem; font-weight: 700; margin-bottom: .6rem; font-variant-numeric: tabular-nums; }
+  .gauge-value-risk    { color: var(--red); text-shadow: 0 0 12px rgba(255,59,107,.5); }
+  .gauge-value-quality { color: var(--green); text-shadow: 0 0 12px rgba(0,255,136,.5); }
+  .gauge-value-effort  { color: var(--amber); text-shadow: 0 0 12px rgba(255,184,0,.5); }
+  .bar-bg   { background: var(--border); border-radius: 999px; height: 6px; overflow: hidden; }
+  .bar-fill { height: 6px; border-radius: 999px; }
+  .bar-risk    { background: linear-gradient(90deg, #ff3b6b, #ff006e); box-shadow: 0 0 8px rgba(255,59,107,.6); }
+  .bar-quality { background: linear-gradient(90deg, #00c96e, #00ff88); box-shadow: 0 0 8px rgba(0,255,136,.6); }
+  .bar-effort  { background: linear-gradient(90deg, #e0a000, #ffb800); box-shadow: 0 0 8px rgba(255,184,0,.6); }
+
+  /* ── SECTION CARD ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+  .section-head {
+    padding: .7rem 1.25rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: .6rem 1.25rem;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: .8rem 1.25rem;
+    font-size: .875rem;
+    border-top: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td pre {
+    margin: 0;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: .78rem;
+    background: #0d0d1f;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 4px;
+    padding: .5rem .75rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #b0c4ff;
+    line-height: 1.6;
+  }
+  td code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    background: var(--cyan-dim);
+    color: var(--cyan);
+    padding: .1rem .4rem;
+    border-radius: 3px;
+    font-size: .78rem;
+  }
+
+  /* ── PROSE ── */
+  .prose {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+    font-size: .9rem;
+    color: #c0c0e0;
+    box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    font-size: .72rem;
+    color: var(--muted);
+    text-align: center;
+    padding-bottom: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    margin-top: .5rem;
+  }
+  .footer code { color: var(--purple); background: rgba(168,85,247,.1); padding: .1rem .4rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div>
+    <h1>Code Review</h1>
+    <div class="header-meta">
+      Branch: <code>t038-readme-depth</code> &nbsp;·&nbsp; 2026-11-11
+    </div>
+  </div>
+  <span class="badge badge-green">Healthy</span>
+</div>
+
+<!-- ═══ DIMENSION GAUGES ═════════════════════════════════════════════════ -->
+<!--
+  OVERALL_CLASS  : green | yellow | red
+  OVERALL_LABEL  : e.g. "Healthy" | "Needs Attention" | "Critical"
+  RISK_SCORE     : integer 0–100 (higher = more risk)
+  QUALITY_SCORE  : integer 0–100 (higher = better quality)
+  EFFORT_SCORE   : integer 0–100 (higher = more adaptation work needed)
+-->
+<div class="gauges">
+  <div class="gauge-card">
+    <div class="gauge-label">Risk</div>
+    <div class="gauge-value gauge-value-risk">6%</div>
+    <div class="bar-bg"><div class="bar-fill bar-risk" style="width:6%"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">Code Quality</div>
+    <div class="gauge-value gauge-value-quality">90%</div>
+    <div class="bar-bg"><div class="bar-fill bar-quality" style="width:90%"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">Adaptation Effort</div>
+    <div class="gauge-value gauge-value-effort">10%</div>
+    <div class="bar-bg"><div class="bar-fill bar-effort" style="width:10%"></div></div>
+  </div>
+</div>
+
+<!-- ═══ FINDINGS TABLE ═══════════════════════════════════════════════════ -->
+<!--
+  Replace <tr>
+  <td><span class="sev sev-info">Info</span></td>
+  <td><code>tasks/TASK_GUIDE_T038.md</code></td>
+  <td>—</td>
+  <td><pre>Scope: 5 changed files (prompt, hygiene test, deploy.md, PRD.md, ideas/README.md) plus the review file and board row. lane_check: &quot;C1, 5 files, 117 lines, FITS&quot;. Startup-reads line present in the agent report. Stale-wording sweep (20 ideas, 20 GitHub, 10 rising, at most 8, no README) over routines/ docs/ README.md ideas/README.md PRD.md PROJECT_SPEC.md scripts/: no stale instruction.</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-info">Info</span></td>
+  <td><code>docs/deploy.md; tasks/TASK_REVIEW_T038.md</code></td>
+  <td>171-185</td>
+  <td><pre>P2 found and fixed in 8fff7eb: the agent wrote that the search page &quot;may need script rendering&quot;. Re-measured by the Supervisor: HTTP 200, 225,858 bytes, the ten repository rows sit in the embedded script JSON (&quot;hl_name&quot;:&quot;owner/name&quot;), which the agent&#x27;s tag-stripping converter dropped. The note now says it is not known whether the routine&#x27;s own fetch keeps them and tells the user to check the first run in History. Confidence 100 (measured).</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-low">Low</span></td>
+  <td><code>scripts/repo-hygiene.test.ts</code></td>
+  <td>153-166</td>
+  <td><pre>P3 (confidence 75): the depth-step test asserts /About/ and /once/i, which match anywhere in the prompt. The other assertions in the same test (the repository page URL form, &quot;no links&quot;, &quot;not read the rest of a long README&quot;, `Build angle:`) carry the real pin, so the weak ones add nothing but cost nothing. Optional: drop them or anchor them to the &quot;Read each repository once&quot; section.</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-low">Low</span></td>
+  <td><code>routines/daily-ideas.md</code></td>
+  <td>whole file</td>
+  <td><pre>P3 (confidence 75): the prompt body is 669 of the 700-word budget. A later addition (a new source, a new rule) will need the budget raised or something removed; the test message says so clearly.</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-low">Low</span></td>
+  <td><code>routines/daily-ideas.md; docs/deploy.md</code></td>
+  <td>section 1, Cost rules</td>
+  <td><pre>P3 (confidence 75), first-run unknowns, not defects: (a) whether the routine&#x27;s fetch returns text or raw HTML (about 4,200 tokens against 60,000 to 160,000 tokens per run of pages); (b) whether the search rows survive its fetch, which decides if the low-key bucket fills. Both are in docs/deploy.md as first-run checks.</pre></td>
+</tr> with one <tr> per finding.
+  Severity class: sev-high | sev-med | sev-low | sev-info
+  Finding description goes inside <pre>...</pre> — do NOT HTML-escape manually;
+  wrap the text in <pre> and let the browser handle rendering safely.
+
+  Example row:
+  <tr>
+    <td><span class="sev sev-high">High</span></td>
+    <td><code>scripts/setup.sh</code></td>
+    <td>42–55</td>
+    <td><pre>Unquoted variable $TARGET_DIR in rm call — word-splitting can delete wrong path.</pre></td>
+  </tr>
+-->
+<div class="section">
+  <div class="section-head"><h2>Findings</h2></div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:90px">Severity</th>
+        <th style="width:200px">File</th>
+        <th style="width:80px">Lines</th>
+        <th>Finding</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+  <td><span class="sev sev-info">Info</span></td>
+  <td><code>tasks/TASK_GUIDE_T038.md</code></td>
+  <td>—</td>
+  <td><pre>Scope: 5 changed files (prompt, hygiene test, deploy.md, PRD.md, ideas/README.md) plus the review file and board row. lane_check: &quot;C1, 5 files, 117 lines, FITS&quot;. Startup-reads line present in the agent report. Stale-wording sweep (20 ideas, 20 GitHub, 10 rising, at most 8, no README) over routines/ docs/ README.md ideas/README.md PRD.md PROJECT_SPEC.md scripts/: no stale instruction.</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-info">Info</span></td>
+  <td><code>docs/deploy.md; tasks/TASK_REVIEW_T038.md</code></td>
+  <td>171-185</td>
+  <td><pre>P2 found and fixed in 8fff7eb: the agent wrote that the search page &quot;may need script rendering&quot;. Re-measured by the Supervisor: HTTP 200, 225,858 bytes, the ten repository rows sit in the embedded script JSON (&quot;hl_name&quot;:&quot;owner/name&quot;), which the agent&#x27;s tag-stripping converter dropped. The note now says it is not known whether the routine&#x27;s own fetch keeps them and tells the user to check the first run in History. Confidence 100 (measured).</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-low">Low</span></td>
+  <td><code>scripts/repo-hygiene.test.ts</code></td>
+  <td>153-166</td>
+  <td><pre>P3 (confidence 75): the depth-step test asserts /About/ and /once/i, which match anywhere in the prompt. The other assertions in the same test (the repository page URL form, &quot;no links&quot;, &quot;not read the rest of a long README&quot;, `Build angle:`) carry the real pin, so the weak ones add nothing but cost nothing. Optional: drop them or anchor them to the &quot;Read each repository once&quot; section.</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-low">Low</span></td>
+  <td><code>routines/daily-ideas.md</code></td>
+  <td>whole file</td>
+  <td><pre>P3 (confidence 75): the prompt body is 669 of the 700-word budget. A later addition (a new source, a new rule) will need the budget raised or something removed; the test message says so clearly.</pre></td>
+</tr>
+<tr>
+  <td><span class="sev sev-low">Low</span></td>
+  <td><code>routines/daily-ideas.md; docs/deploy.md</code></td>
+  <td>section 1, Cost rules</td>
+  <td><pre>P3 (confidence 75), first-run unknowns, not defects: (a) whether the routine&#x27;s fetch returns text or raw HTML (about 4,200 tokens against 60,000 to 160,000 tokens per run of pages); (b) whether the search rows survive its fetch, which decides if the low-key bucket fills. Both are in docs/deploy.md as first-run checks.</pre></td>
+</tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ SUMMARY PROSE ════════════════════════════════════════════════════ -->
+<!--
+  Replace T038 (C1, Risk Medium): no P0 or P1. One P2 (the search-page note) was found by the Supervisor and fixed in 8fff7eb. Three P3 notes stay open. Independent checks: hygiene tests 13/13, 0 skipped, run by the Supervisor on 8fff7eb; the agent reports the full suite at 138 pass, 0 skipped, with three mutations each turning a test red. The new prompt reads cleanly: 13 ideas, one page per repository, a stated 20-page cap, the injection rule and the Build angle sentence are present; the T037 rules that should survive (one list_ideas call, one resend, GitHub hosts only) do. with the LLM's full narrative text.
+  Plain text is safe here; no HTML escaping needed for prose.
+-->
+<div class="prose">
+  T038 (C1, Risk Medium): no P0 or P1. One P2 (the search-page note) was found by the Supervisor and fixed in 8fff7eb. Three P3 notes stay open. Independent checks: hygiene tests 13/13, 0 skipped, run by the Supervisor on 8fff7eb; the agent reports the full suite at 138 pass, 0 skipped, with three mutations each turning a test red. The new prompt reads cleanly: 13 ideas, one page per repository, a stated 20-page cap, the injection rule and the Build angle sentence are present; the T037 rules that should survive (one list_ideas call, one resend, GitHub hosts only) do.
+</div>
+
+<!-- ═══ FOOTER ═══════════════════════════════════════════════════════════ -->
+<!--
+  MODEL     : e.g. claude-sonnet-4-6
+  TASK_ID   : e.g. T001 (or "—" if not task-scoped)
+  TIMESTAMP : ISO-8601, e.g. 2026-06-18T14:30:22
+-->
+<div class="footer">
+  Model: <code>claude-sonnet-5-5</code> &nbsp;·&nbsp; Task: T038 &nbsp;·&nbsp; Generated: 2026-11-11T18:44:58
+</div>
+
+</body>
+</html>

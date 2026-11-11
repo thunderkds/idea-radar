@@ -150,3 +150,12 @@ Raw README URL form: `https://github.com/expressjs/express/raw/HEAD/Readme.md` a
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
+
+---
+
+## Stage 4 review (Supervisor, 2026-11-11, on `8fff7eb`)
+
+- **Code review**: no P0, no P1. One P2 found and fixed in `8fff7eb` (the search-page note: the agent's tag-stripping converter dropped the page's embedded script JSON, where the ten repository rows are; the doc now says it is not known whether the routine's fetch keeps them). Three P3 notes stay open: weak `/About/` and `/once/i` assertions, 669 of 700 words, and the two first-run unknowns (fetch returns text or raw HTML; search rows survive its fetch). Report: `reports/code-review_t038-readme-depth_20261111T184458.html`.
+- **Security review**: nothing at confidence 8 or higher. The new exposure is README text read as untrusted data (the low-key bucket is reachable by anyone); the prompt says it is data, never instructions, and the architecture caps the damage (Custom network `github.com` only, write token outside the model's context, escaped dashboard). Hardening note for the extra-sources task: the schema accepts any http(s) signal url. Report: `reports/security-review_t038-readme-depth_20261111T184458.html`.
+- **Independent checks**: `lane_check` "C1, 5 files, 117 lines, FITS"; `scripts/repo-hygiene.test.ts` 13/13, 0 skipped, run by the Supervisor on `8fff7eb`; the search page re-measured (HTTP 200, 225,858 bytes, 10 `hl_name` rows in script JSON).
+- **Not run**: `/verify` (the user's); the prompt itself is not run live (needs claude.ai and live GitHub); easy-verifier (not connected).
