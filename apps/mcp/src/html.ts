@@ -111,6 +111,9 @@ input{width:100%;min-height:36px;padding:0 var(--space-3);font:inherit;color:var
 
 const CSS = `${TOKENS_CSS}${PAGE_CSS}`;
 
+/** Built outside the `html` tag on purpose: a CSP hash covers the element text exactly, and Prettier reformats whitespace inside `html` templates. */
+const STYLE_TAG = `<style>${CSS}</style>`;
+
 /** Sent with every page: the one inline `<style>` is allowed by its hash, and nothing else may load. */
 export const PAGE_CSP = [
   "default-src 'none'",
@@ -129,9 +132,7 @@ function layout(title: string, body: Safe, signedIn: boolean): string {
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta name="robots" content="noindex" />
           <title>${title} - idea-radar</title>
-          <style>
-            ${raw(CSS)}
-          </style>
+          ${raw(STYLE_TAG)}
         </head>
         <body>
           <header class="bar">

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import type { Server } from "node:http";
 import { after, before, describe, test } from "node:test";
 import type { StoredIdea } from "@idea-radar/db";
@@ -239,6 +240,24 @@ test("the page styles use only var(--token) colours: no raw colour outside the g
   assert.doesNotMatch(afterTokens, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|\b(white|black)\b/i);
   assert.match(afterTokens, /var\(--neon\)/);
   assert.equal((body.match(/<style>/g) ?? []).length, 1);
+});
+
+test("the CSP style hash equals the sha256 of the exact text of the rendered <style> element, on every page kind (AC7)", async () => {
+  const url = await start(stub().store);
+  const pages = [
+    await fetch(`${url}/login`),
+    await authed("/", url),
+    await authed("/ideas/nope", url), // a message page
+    await authed("/ideas/markdown-notes", url),
+  ];
+  for (const res of pages) {
+    const csp = res.headers.get("content-security-policy") ?? "";
+    const body = await res.text();
+    const text = /<style>([\s\S]*?)<\/style>/.exec(body)?.[1];
+    assert.ok(text !== undefined && text.length > 0, "page has a <style> element");
+    const hash = createHash("sha256").update(text).digest("base64");
+    assert.ok(csp.includes(`style-src 'sha256-${hash}'`), `CSP ${csp} does not hash the style text (${hash})`);
+  }
 });
 
 describe("idea list (AC3, AC5, UX rows)", () => {
