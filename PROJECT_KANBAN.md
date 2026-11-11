@@ -13,9 +13,9 @@
 ### Todo
 
 ### In Progress
-- [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t036-mcp-ingest` | Started 2026-11-11: worktree `.claude/worktrees/T036`
 
 ### Ready for Review
+- [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1 | PR/branch: `t036-mcp-ingest` | Started 2026-11-11: worktree `.claude/worktrees/T036` | Ready 2026-11-11: code-review (no P0/P1; P2×3 — security caution, stale PRD/SPEC text fixed; `.env.example` `IDEAS_DIR` is the user's; P3×3), security-review clean, tests 131/131 + lint + typecheck + format, mutation red 4/4
 
 ### Done
 - [x] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1 | PR/branch: `t035-dashboard-pages` | Started 2026-11-11: worktree `.claude/worktrees/T035` | Ready 2026-11-11: code-review (no P0; P1×2 fixed — CSP style hash, UX evidence redone live; login `Origin: null` bug found live and fixed; P2×1, P3×2 open), security-review clean, tests 141/141 + lint + typecheck + format, mutation red 3/3, ux-evaluate 13 pass | Done 2026-11-11: `/verify` pass on `97aa9c0` (user-run, real browser + curl, 0 CSP violations), tests 141/141 | Merge pending: branch `t035-dashboard-pages` is not merged into main; needs a request that names T035 with the `[admin]` tag (or the user's merge). T036 depends on it. Open: P2 search-then-filter covers only the first 100 text matches (needs a packages/db change); `createPool` connect timeout (see Follow-ups)
