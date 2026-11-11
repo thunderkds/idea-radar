@@ -47,12 +47,12 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `scripts/repo-hygiene.test.ts`: new test "the routine prompt skips bait, tags borderline repositories caution, and never runs a repository (T042)" (security or toolkit, re-upload, captcha, cheats, nonexistent, `caution`, skip rule, tags order, skipped count in the reply, run/install); the cap test is now 740. Red first on the 669-word prompt: `AssertionError: the caution sign for a security or toolkit pitch is missing` (15 pass, 1 fail). |
+| Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` exit 0, run with `TEST_DATABASE_URL` on my own PGlite (port 55438, stopped by PID after). Tests: ideas 13/13, db 23/23, mcp 108/108, scripts 16/16; 0 failed, 0 skipped in every package. `Checking formatting... All matched files use Prettier code style!` |
+| Negative cases hold | ☑ pass | Mutation 1: removed the `caution` tag rule (the `add the tag` clause and the tags-line tail); `git diff --stat -- routines/daily-ideas.md` non-empty; red: `ℹ pass 15 / ℹ fail 1`, `the caution tag is missing`. Mutation 2: changed `Clearly bait: skip it` to `ignore it`; red: `the skip rule for clearly bait is missing`. Restored: `ℹ pass 16 / ℹ fail 0`, prompt body 739 words. |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
+| Full smoke suite still green (no regression) | ☑ pass | the full `pnpm test` above, 0 skipped |
 | **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
 | **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
 | **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
@@ -67,10 +67,22 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-11-11T15:04:34Z in the T042 worktree at HEAD 5b41bf3, before any implementation commit):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+$ awk 'f{print} /^---$/{f=1}' routines/daily-ideas.md | wc -w
+669
+$ grep -n '^- `tags`' routines/daily-ideas.md
+58:- `tags`: at most 4, kebab-case, the bucket first.
+```
+
+**AFTER**:
+
+```
+$ awk 'f{print} /^---$/{f=1}' routines/daily-ideas.md | wc -w
+739
+- `tags`: at most 4, kebab-case, the bucket first, `caution` second when flagged.
+```
 
 **DELTA**: [one sentence — what a user can now do that they could not before]
 
