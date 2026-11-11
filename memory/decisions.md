@@ -74,3 +74,9 @@
 **Why**: Railway's deploy gate needs only a status code (`railway.json`, `docs/deploy.md`: "no token needed"); the earlier "counts only" security verdicts covered static counts from git files, not live run totals and last-run time.
 **Revisit when**: the owner wants a one-curl freshness check → add a bearer-gated details view (a token on `/health` or a status tool) as its own task.
 **Files**: `apps/mcp/src/server.ts`, `apps/mcp/src/server.test.ts`, `tasks/TASK_GUIDE_T034.md`
+
+### 2026-11-11 — Dashboard: stateless HMAC session cookie, one inline style under a CSP hash, filters after search (T035)
+**Decision**: the dashboard (`/login`, `/logout`, `/`, `/ideas/:id`) lives in `apps/mcp` and answers only after `/health` and `/mcp`. The session is a stateless cookie `<expiry>.<HMAC-SHA256 keyed by DASHBOARD_TOKEN>` (HttpOnly, SameSite=Lax, 7 days, `Secure` behind HTTPS), never the token. Pages are server-rendered HTML with every value escaped by an `html` tagged template, one inline `<style>` generated from the Graphite Mint tokens, and a CSP that allows only that style by its hash. POST `/login` and `/logout` check `Sec-Fetch-Site` and `Origin`. Tag and date filters on a search are applied to the store's first 100 text matches.
+**Why**: no per-user accounts and no JavaScript (guide scope); a stateless cookie needs no table or `packages/db` change, and rotating `DASHBOARD_TOKEN` invalidates every cookie. The search-then-filter limit comes from the store's `search`, which takes no filters, and `packages/db` was off limits.
+**Revisit when**: logout must revoke a stolen cookie (needs a server-side session list), or filter hits beyond the first 100 text matches matter (add filters to `searchIdeas` in `packages/db`).
+**Files**: `apps/mcp/src/dashboard.ts`, `apps/mcp/src/html.ts`, `apps/mcp/src/session.ts`, `apps/mcp/src/tokens-css.ts`, `apps/mcp/src/server.ts`, `tasks/TASK_GUIDE_T035.md`

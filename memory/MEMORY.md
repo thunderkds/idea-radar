@@ -17,6 +17,8 @@
 ---
 
 ## Index
+- [Dashboard: stateless HMAC cookie, CSP style hash](decisions.md#2026-11-11--dashboard-stateless-hmac-session-cookie-one-inline-style-under-a-csp-hash-filters-after-search-t035) — cookie = expiry.HMAC(DASHBOARD_TOKEN), CSRF via Origin/Sec-Fetch-Site; filters apply to first 100 search hits
+- [Dashboard CSP/CSRF/verify gotchas](learnings.md#2026-11-11--dashboard-on-the-mcp-server-csp-csrf-and-verification-gotchas-t035) — CSP hash covers exact style text; no-referrer gives Origin null; check pages live in a real browser
 - [v2.1: Postgres store behind the MCP](decisions.md#2026-11-10--v21-postgres-store-behind-the-mcp-v2-files-are-the-database-superseded-t033t036) — routine → `submit_ideas` → Railway Postgres; merge rule newer-date-wins; tests refuse non-loopback DB; supersedes v2 files-as-DB
 - [`/health` is {ok} only](decisions.md#2026-11-10--health-is-ok-only-no-counts-on-the-public-route-t034) — public route returns {ok} after SELECT 1 (2 s); counts not public; 3-Advocate Debate; amends T034 AC5
 - [MCP write tool gotchas](learnings.md#2026-11-10--mcp-write-tool-on-postgres-sdk-validator-and-agent-gotchas-t034) — SDK isError for unregistered tool; loose zod for submit_ideas; pool has no connect timeout; resume stalled agent; .env.example blocked
