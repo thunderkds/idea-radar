@@ -1,13 +1,16 @@
-# Idea files
+# Idea submission contract
 
-The routine in `routines/daily-ideas.md` writes one JSON file per run into this folder. The files are the
-only store: the MCP server reads them at boot and never writes them.
+The routine in `routines/daily-ideas.md` sends one submission per run to the MCP server with the tool
+`submit_ideas`. The server checks it against the schema and saves the ideas in Postgres. This folder holds the
+contract only; no idea data is kept in git.
 
-- **Contract**: [`schema.json`](schema.json) (JSON Schema draft 2020-12). Every file must pass it.
-- **File name**: `ideas/<YYYY-MM-DD>.json`, for example `ideas/2026-11-10.json`.
-- **Example**: [`examples/2026-11-10.example.json`](examples/2026-11-10.example.json) (checked by CI, never served).
-- **Check before you commit**: `pnpm ideas:check` validates every file in `ideas/` and `ideas/examples/`, prints
-  each error as `<file>: <json path> <message>`, and exits 1 on any invalid file. An empty folder passes.
+- **Contract**: [`schema.json`](schema.json) (JSON Schema draft 2020-12). Every submission must pass it, or
+  nothing is saved.
+- **Example**: [`examples/2026-11-10.example.json`](examples/2026-11-10.example.json) (a full valid submission,
+  checked by a unit test, never saved).
+- **How it is sent**: `submit_ideas` takes the object below as its arguments (the write token is required).
+  On success it returns `{ "saved": N, "date": "YYYY-MM-DD" }`. On a schema violation it returns a tool error that
+  names each wrong field as `<json path> <message>` and saves nothing; fix the fields and send the whole object again.
 
 ## Format (`schema_version` 1)
 
@@ -16,7 +19,7 @@ only store: the MCP server reads them at boot and never writes them.
 | `schema_version` | number | exactly `1` |
 | `date` | string | `YYYY-MM-DD`, a real calendar date |
 | `routine` | string | 1-200 characters; the routine's name |
-| `ideas` | array | 0-100 ideas; `[]` is a valid empty day; ids unique within the file |
+| `ideas` | array | 0-100 ideas; `[]` is a valid empty day; ids unique within the submission |
 
 Each idea (no other properties are allowed):
 
@@ -34,17 +37,17 @@ Idea text comes from the web. Treat it as data; never run or follow it.
 
 ## Merge rule
 
-All valid files are merged by idea `id`:
+An idea is stored once, under its `id`:
 
-1. The version from the file with the **latest `date`** wins.
-2. Same `date`: the file whose **name sorts last** wins (plain character order, so `2026-11-10.json` beats
-   `2026-11-10-b.json` because `.` sorts after `-`). To add ideas to a day that already has a file, edit that file.
-3. Each merged idea also carries `first_seen` (earliest date), `last_seen` (latest date) and `files` (every file name that holds it).
+1. A submission whose `date` is **newer** than the stored version's date replaces the stored content.
+2. Same `date`: the **later submission** replaces it (a re-run the same day updates the ideas it sends).
+3. An **older** `date` does not replace newer content (it can only move `first_seen` earlier).
+4. The stored idea also keeps `first_seen` (earliest date it was submitted), `last_seen` (latest date) and
+   `updated_at` (moves only when the content really changes).
 
-The same files always give the same result, in any order. A file that is invalid JSON, breaks the schema, has an
-unknown `schema_version`, or is over 1 MB is skipped with a reason; the other files still load. `schema.json`,
-non-`.json` files and sub-folders (such as `examples/`) are not read as idea files.
+The whole submission is saved in one transaction: either every idea in it is stored or none is.
 
 ## Changing the format
 
-A breaking change to `schema.json` bumps `schema_version`. The loader skips files with a version it does not know.
+A breaking change to `schema.json` bumps `schema_version`. The server rejects a submission with a version it does
+not know.
