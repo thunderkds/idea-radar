@@ -281,3 +281,165 @@ describe("idea list (AC3, AC5, UX rows)", () => {
     assert.ok(lines.some((l) => l.includes("secret db detail")));
   });
 });
+
+describe("filters and search (AC3)", () => {
+  test("tag, since and until go to the store; the form keeps them", async () => {
+    const { store, calls } = stub();
+    const url = await start(store);
+    const body = await (await authed("/?tag=Notes&since=2026-11-01&until=2026-11-09", url)).text();
+    assert.deepEqual(calls.list, [{ tag: "Notes", since: "2026-11-01", until: "2026-11-09", limit: 50 }]);
+    assert.equal(calls.search.length, 0);
+    assert.match(body, /name="tag"[^>]*value="Notes"/);
+    assert.match(body, /name="since"[^>]*value="2026-11-01"/);
+    assert.match(body, /name="until"[^>]*value="2026-11-09"/);
+  });
+
+  test("a bad date is ignored with a visible notice, and the list still shows", async () => {
+    const { store, calls } = stub();
+    const url = await start(store);
+    const body = await (await authed("/?since=yesterday&until=2026-02-30", url)).text();
+    assert.equal(calls.list[0]?.since, undefined);
+    assert.equal(calls.list[0]?.until, undefined);
+    assert.match(body, /since: write the date as YYYY-MM-DD/);
+    assert.match(body, /until: write the date as YYYY-MM-DD/);
+    assert.match(body, /Markdown notes/);
+  });
+
+  test("a search uses the store's search (same as the MCP search_ideas), keeps the query in the box and lists matches", async () => {
+    const { store, calls } = stub();
+    const url = await start(store);
+    const body = await (await authed("/?q=markdown", url)).text();
+    assert.deepEqual(calls.search, [{ query: "markdown", limit: 100 }]);
+    assert.equal(calls.list.length, 0);
+    assert.match(body, /name="q"[^>]*value="markdown"/);
+    assert.match(body, /Found one/);
+  });
+
+  test("search results are narrowed by the tag and date filters", async () => {
+    const hits = [
+      summary({ id: "a", title: "A", tags: ["ai"], last_seen: "2026-11-09" }),
+      summary({ id: "b", title: "B", tags: ["web"], last_seen: "2026-11-09" }),
+      summary({ id: "c", title: "C", tags: ["ai"], last_seen: "2026-10-01" }),
+    ];
+    const url = await start(stub({ search: () => Promise.resolve(hits) }).store);
+    const body = await (await authed("/?q=x&tag=AI&since=2026-11-01", url)).text();
+    assert.match(body, />A<\/a>/);
+    assert.doesNotMatch(body, />B<\/a>/);
+    assert.doesNotMatch(body, />C<\/a>/);
+  });
+
+  test("no match says so; a blank or over-long query is ignored with a notice (blank: silently)", async () => {
+    const { store, calls } = stub({ search: () => Promise.resolve([]) });
+    const url = await start(store);
+    assert.match(await (await authed("/?q=zzz", url)).text(), /No ideas match/);
+    await (await authed("/?q=%20%20", url)).text();
+    assert.equal(calls.list.length, 1);
+    const long = await (await authed(`/?q=${"x".repeat(201)}`, url)).text();
+    assert.match(long, /search: at most 200 characters/);
+    assert.equal(calls.list.length, 2);
+  });
+
+  test("query parameters are echoed escaped, in the form and in the messages", async () => {
+    const url = await start(stub().store);
+    const evil = encodeURIComponent(`"><script>alert(1)</script>`);
+    const body = await (await authed(`/?q=${evil}&tag=${evil}&since=${evil}`, url)).text();
+    assert.doesNotMatch(body, /<script|"><script/);
+    assert.match(body, /&quot;&gt;&lt;script&gt;/);
+  });
+
+  test("a NUL in a parameter never reaches the store", async () => {
+    const { store, calls } = stub();
+    const url = await start(store);
+    await (await authed("/?tag=a%00b&q=c%00d", url)).text();
+    assert.equal(calls.search[0]?.query, "cd");
+    await (await authed("/?tag=a%00b", url)).text();
+    assert.equal(calls.list[0]?.tag, "ab");
+  });
+
+  test("tag chips on the list link to that tag's filter", async () => {
+    const url = await start(stub().store);
+    const body = await (await authed("/", url)).text();
+    assert.match(body, /<a class="chip" href="\/\?tag=notes">notes<\/a>/);
+  });
+});
+
+describe("idea page (AC4, AC5)", () => {
+  test("shows why_now, signals as safe links, related repos, first and last seen, and a back link", async () => {
+    const { store, calls } = stub();
+    const url = await start(store);
+    const res = await authed("/ideas/markdown-notes", url);
+    assert.equal(res.status, 200);
+    const body = await res.text();
+    assert.deepEqual(calls.get, ["markdown-notes"]);
+    assert.match(body, /<h1>Markdown notes<\/h1>/);
+    assert.match(body, /Models got cheap\./);
+    assert.match(
+      body,
+      /<a href="https:\/\/github\.com\/o\/r" rel="noopener noreferrer nofollow" target="_blank">https:\/\/github\.com\/o\/r<\/a>/,
+    );
+    assert.match(body, /popular/);
+    assert.match(body, /o\/r/);
+    assert.match(body, /2026-11-01/);
+    assert.match(body, /2026-11-09/);
+    assert.match(body, /<a class="back" href="\/">/);
+  });
+
+  test("a javascript:, data: or relative signal url is text, never a link; every field is escaped", async () => {
+    const evil = full({
+      title: `<script>alert(1)</script>`,
+      summary: `"q" 'q' & <b>`,
+      why_now: `<img src=x onerror=alert(1)>`,
+      tags: [`<u>t</u>`],
+      related_repos: [`<s>o/r</s>`],
+      signals: [
+        { kind: "repo", url: "javascript:alert(1)", note: `"><script>1</script>` },
+        { kind: "<k>" as never, url: "data:text/html,<script>1</script>", note: "n'&" },
+        { kind: "repo", url: "/relative", note: "n" },
+        { kind: "repo", url: `https://example.com/?a="b"&c='d'<e>`, note: "ok" },
+      ],
+    });
+    const url = await start(stub({ get: () => Promise.resolve(evil) }).store);
+    const body = await (await authed("/ideas/x", url)).text();
+    assert.doesNotMatch(body, /<script|<img|<b>|<u>|<s>|<k>/);
+    assert.doesNotMatch(body, /href="javascript|href="data:|href="\/relative/i);
+    assert.equal((body.match(/target="_blank"/g) ?? []).length, 1);
+    assert.match(body, /javascript:alert\(1\)/);
+    assert.match(body, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.match(body, /href="https:\/\/example\.com\/\?a=%22b%22&amp;c=%27d%27%3Ce%3E"/);
+  });
+
+  test("an idea with no why_now, signals or repos still renders", async () => {
+    const bare = { ...full({ signals: [], related_repos: [] }) } as Partial<StoredIdea>;
+    delete bare.why_now;
+    const url = await start(stub({ get: () => Promise.resolve(bare as StoredIdea) }).store);
+    assert.equal((await authed("/ideas/x", url)).status, 200);
+  });
+
+  test("an unknown id is an HTML 404 with a way back; an id with a bad escape is 404 too", async () => {
+    const url = await start(stub().store);
+    for (const path of ["/ideas/nope", "/ideas/%E0%A4%A", "/ideas/a%00b"]) {
+      const res = await authed(path, url);
+      assert.equal(res.status, 404, path);
+      assert.match(res.headers.get("content-type") ?? "", /^text\/html/);
+      assert.match(await res.text(), /Idea not found[\s\S]*href="\/"/);
+    }
+  });
+
+  test("without a cookie the idea page is a redirect to /login and the store is not asked", async () => {
+    const { store, calls } = stub();
+    const url = await start(store);
+    const res = await fetch(`${url}/ideas/markdown-notes`, manual);
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.get("location"), "/login");
+    assert.equal(calls.get.length, 0);
+  });
+
+  test("only GET is allowed on / and /ideas/:id", async () => {
+    const url = await start(stub().store);
+    for (const path of ["/", "/ideas/markdown-notes"]) {
+      const res = await fetch(`${url}${path}`, { method: "POST", headers: { cookie: goodCookie() }, ...manual });
+      assert.equal(res.status, 405);
+      assert.equal(res.headers.get("allow"), "GET");
+    }
+  });
+});

@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { TLSSocket } from "node:tls";
-import { PAGE_CSP, listPage, loginPage, messagePage } from "./html.js";
-import type { IdeaStore } from "./index-store.js";
+import { PAGE_CSP, ideaPage, listPage, loginPage, messagePage } from "./html.js";
+import { isRealDate } from "./index-store.js";
+import type { IdeaStore, IdeaSummary } from "./index-store.js";
 import {
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
@@ -14,6 +15,13 @@ import {
 /** The list shows this many ideas; tag, date and search filters narrow it down. */
 export const LIST_LIMIT = 50;
 const MAX_FORM_BYTES = 8 * 1024;
+const MAX_QUERY = 200;
+const MAX_TAG = 100;
+/** The store's search returns at most this many; tag and date filters then narrow them. */
+const SEARCH_FETCH = 100;
+
+/** Postgres text cannot hold NUL; drop it from every value that reaches the store. */
+const clean = (value: string | null): string => (value ?? "").replaceAll("\u0000", "").trim();
 
 /** Answers dashboard routes; resolves false for any other path so the caller can carry on. */
 export type DashboardHandler = (req: IncomingMessage, res: ServerResponse, path: string) => Promise<boolean>;
@@ -107,20 +115,81 @@ export function createDashboard(
     redirect(res, "/login", { "set-cookie": sessionCookie("", 0, isHttps(req)) });
   };
 
-  const list = async (res: ServerResponse): Promise<void> => {
-    const ideas = await store.list({ limit: LIST_LIMIT });
-    sendHtml(res, 200, listPage(ideas));
+  const list = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    const params = new URL(req.url ?? "/", "http://localhost").searchParams;
+    const notices: string[] = [];
+    let q = clean(params.get("q"));
+    const tag = clean(params.get("tag")).slice(0, MAX_TAG);
+    const dates = { since: clean(params.get("since")), until: clean(params.get("until")) };
+    const valid = { since: dates.since, until: dates.until } as Record<"since" | "until", string | undefined>;
+    for (const key of ["since", "until"] as const) {
+      if (dates[key] !== "" && !isRealDate(dates[key])) {
+        notices.push(`${key}: write the date as YYYY-MM-DD`);
+        valid[key] = undefined;
+      } else if (dates[key] === "") valid[key] = undefined;
+    }
+    const echo = q;
+    if (q.length > MAX_QUERY) {
+      notices.push(`search: at most ${MAX_QUERY} characters`);
+      q = "";
+    }
+    let ideas: IdeaSummary[];
+    if (q === "") {
+      ideas = await store.list({
+        tag: tag === "" ? undefined : tag,
+        since: valid.since,
+        until: valid.until,
+        limit: LIST_LIMIT,
+      });
+    } else {
+      const wanted = tag.toLowerCase();
+      ideas = (await store.search(q, SEARCH_FETCH))
+        .filter(
+          (i) =>
+            (tag === "" || i.tags.includes(wanted)) &&
+            (valid.since === undefined || i.last_seen >= valid.since) &&
+            (valid.until === undefined || i.last_seen <= valid.until),
+        )
+        .slice(0, LIST_LIMIT);
+    }
+    sendHtml(
+      res,
+      200,
+      listPage({
+        ideas,
+        q: echo.slice(0, MAX_QUERY),
+        tag,
+        since: dates.since.slice(0, 10),
+        until: dates.until.slice(0, 10),
+        notices,
+        limit: LIST_LIMIT,
+      }),
+    );
+  };
+
+  const idea = async (res: ServerResponse, rawId: string): Promise<void> => {
+    let id: string;
+    try {
+      id = decodeURIComponent(rawId);
+    } catch {
+      id = "\u0000";
+    }
+    const found = id.includes("\u0000") ? undefined : await store.get(id);
+    if (found === undefined)
+      return sendHtml(res, 404, messagePage("Idea not found", "There is no idea with that id.", true));
+    sendHtml(res, 200, ideaPage(found));
   };
 
   return async (req, res, path) => {
-    const isIdea = /^\/ideas\/[^/]+$/.test(path);
-    if (path !== "/login" && path !== "/logout" && path !== "/" && !isIdea) return false;
+    const ideaId = /^\/ideas\/([^/]+)$/.exec(path)?.[1];
+    if (path !== "/login" && path !== "/logout" && path !== "/" && ideaId === undefined) return false;
     try {
       if (path === "/login") await login(req, res);
       else if (path === "/logout") logout(req, res);
       else if (!signedIn(req)) redirect(res, "/login");
       else if (req.method !== "GET") notAllowed(res, "GET", true);
-      else await list(res);
+      else if (ideaId !== undefined) await idea(res, ideaId);
+      else await list(req, res);
     } catch (err) {
       log(`dashboard error: ${err instanceof Error ? err.message.slice(0, 200) : "unknown error"}`);
       if (!res.headersSent)

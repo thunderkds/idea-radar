@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { StoredIdea } from "@idea-radar/db";
 import type { IdeaSummary } from "./index-store.js";
 import { TOKENS_CSS } from "./tokens-css.js";
 
@@ -81,6 +82,13 @@ input{width:100%;min-height:36px;padding:0 var(--space-3);font:inherit;color:var
 .notice-error{color:var(--danger);border-color:var(--danger)}
 .notice-warn{color:var(--warn);border-color:var(--warn-line)}
 .field{margin:0 0 var(--space-4)}
+.filters{display:grid;gap:0 var(--space-3);grid-template-columns:1fr}
+.filters .field{margin:0 0 var(--space-3)}
+.actions{display:flex;gap:var(--space-3)}
+@media (min-width:720px){
+  .filters{grid-template-columns:repeat(3,1fr)}
+  .filters .wide{grid-column:1/-1}
+}
 .ideas{list-style:none;margin:0;padding:0}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin-top:var(--space-3)}
 .chip{display:inline-block;padding:0 var(--space-2);font:12px/20px var(--font-mono);color:var(--text-2);text-decoration:none;border:1px solid var(--line-strong);border-radius:var(--radius-xs)}
@@ -162,23 +170,133 @@ export function messagePage(title: string, message: string, signedIn: boolean): 
 
 const chip = (tag: string) => html`<a class="chip" href="/?tag=${encodeURIComponent(tag)}">${tag}</a>`;
 
-export function listPage(ideas: IdeaSummary[]): string {
+export interface ListView {
+  ideas: IdeaSummary[];
+  /** The filter values as typed, already cut to a sane length; shown back in the form. */
+  q: string;
+  tag: string;
+  since: string;
+  until: string;
+  notices: string[];
+  /** The page holds only this many ideas; say so when it is full. */
+  limit: number;
+}
+
+function filterForm(v: ListView) {
+  const active = v.q !== "" || v.tag !== "" || v.since !== "" || v.until !== "";
+  return html`<form class="filters card" method="get" action="/">
+    <div class="field wide">
+      <label for="q">search</label>
+      <input id="q" name="q" type="search" maxlength="200" value="${v.q}" />
+    </div>
+    <div class="field">
+      <label for="tag">tag</label>
+      <input id="tag" name="tag" type="text" maxlength="100" value="${v.tag}" />
+    </div>
+    <div class="field">
+      <label for="since">since</label>
+      <input
+        id="since"
+        name="since"
+        type="text"
+        inputmode="numeric"
+        placeholder="YYYY-MM-DD"
+        maxlength="10"
+        value="${v.since}"
+      />
+    </div>
+    <div class="field">
+      <label for="until">until</label>
+      <input
+        id="until"
+        name="until"
+        type="text"
+        inputmode="numeric"
+        placeholder="YYYY-MM-DD"
+        maxlength="10"
+        value="${v.until}"
+      />
+    </div>
+    <div class="actions wide">
+      <button class="btn btn-primary" type="submit">Apply</button>
+      ${active ? html`<a class="btn" href="/">Reset</a>` : ""}
+    </div>
+  </form>`;
+}
+
+export function listPage(v: ListView): string {
+  const filtered = v.q !== "" || v.tag !== "" || v.since !== "" || v.until !== "";
+  const n = v.ideas.length;
   return layout(
     "Ideas",
     html`<p class="eyebrow">&gt; newest ideas</p>
       <h1>Ideas</h1>
+      ${v.notices.map((m) => html`<p class="notice notice-warn" role="alert">${m}</p>`)} ${filterForm(v)}
       ${
-        ideas.length === 0
-          ? html`<p class="notice">No ideas yet.</p>`
-          : html`<ul class="ideas">
-              ${ideas.map(
-                (i) =>
-                  html`<li class="card">
-                    <h2><a href="/ideas/${encodeURIComponent(i.id)}">${i.title}</a></h2>
-                    <p>${i.summary}</p>
-                    <div class="meta">${i.tags.map(chip)}<span class="mono muted">last seen ${i.last_seen}</span></div>
-                  </li>`,
-              )}
+        n === 0
+          ? html`<p class="notice">${filtered ? "No ideas match." : "No ideas yet."}</p>`
+          : html`<p class="mono muted">
+                ${n}
+                ${n === 1 ? "idea" : "ideas"}${n >= v.limit ? `, the newest ${v.limit}: use the filters or search to find others` : ""}
+              </p>
+              <ul class="ideas">
+                ${v.ideas.map(
+                  (i) =>
+                    html`<li class="card">
+                      <h2><a href="/ideas/${encodeURIComponent(i.id)}">${i.title}</a></h2>
+                      <p>${i.summary}</p>
+                      <div class="meta">
+                        ${i.tags.map(chip)}<span class="mono muted">last seen ${i.last_seen}</span>
+                      </div>
+                    </li>`,
+                )}
+              </ul>`
+      }`,
+    true,
+  );
+}
+
+function signalItem(s: StoredIdea["signals"][number]) {
+  const href = safeHttpUrl(s.url);
+  return html`<li>
+    <span class="mono muted">${s.kind}</span>
+    <p>${s.note}</p>
+    ${
+      href === undefined
+        ? html`<span class="mono muted">${s.url}</span>`
+        : html`<a href="${href}" rel="noopener noreferrer nofollow" target="_blank">${s.url}</a>`
+    }
+  </li>`;
+}
+
+export function ideaPage(idea: StoredIdea): string {
+  return layout(
+    idea.title,
+    html`<a class="back" href="/">&larr; All ideas</a>
+      <h1>${idea.title}</h1>
+      <p class="lede">${idea.summary}</p>
+      <div class="meta">${idea.tags.map(chip)}</div>
+      <p class="mono muted">first seen ${idea.first_seen} &middot; last seen ${idea.last_seen}</p>
+      ${
+        idea.why_now === undefined
+          ? ""
+          : html`<h3>why now</h3>
+              <p>${idea.why_now}</p>`
+      }
+      <h3>signals</h3>
+      ${
+        idea.signals.length === 0
+          ? html`<p class="muted">No signals.</p>`
+          : html`<ul class="signals">
+              ${idea.signals.map(signalItem)}
+            </ul>`
+      }
+      <h3>related repos</h3>
+      ${
+        idea.related_repos.length === 0
+          ? html`<p class="muted">None.</p>`
+          : html`<ul class="signals">
+              ${idea.related_repos.map((r) => html`<li class="mono">${r}</li>`)}
             </ul>`
       }`,
     true,
