@@ -26,23 +26,3 @@ export interface IdeaFile {
   routine: string;
   ideas: Idea[];
 }
-
-/** An idea after merging all files by `id`. */
-export interface MergedIdea extends Idea {
-  /** Date of the earliest file that holds this id. */
-  first_seen: string;
-  /** Date of the latest file that holds this id (the file whose version is served). */
-  last_seen: string;
-  /** Names of every file that holds this id, sorted ascending. */
-  files: string[];
-}
-
-export interface SkippedFile {
-  file: string;
-  reason: string;
-}
-
-export interface LoadResult {
-  ideas: MergedIdea[];
-  skipped: SkippedFile[];
-}
