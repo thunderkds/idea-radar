@@ -11,9 +11,9 @@
 > v2.1 order: T033 → T034 → T035 → T036 (each depends on the one before). v2 (T028–T031) is done.
 
 ### Todo
-- [ ] **T038** — Routine reads each repository's README: 3 rising, 5 medium, 5 low-key (13 ideas), bounded depth | backend-developer | C1 | Risk: Medium | P0
 
 ### In Progress
+- [ ] **T038** — Routine reads each repository's README: 3 rising, 5 medium, 5 low-key (13 ideas), bounded depth | backend-developer | C1 | Risk: Medium | P0 | PR/branch: `t038-readme-depth` | Started 2026-11-11: worktree `.claude/worktrees/T038`
 
 ### Ready for Review
 - [x] **T037** — GitHub-only routine (10 rising, 5 low-key, 5 medium), cheaper daily run, clearer `submit_ideas` rejection | backend-developer | C2 | Risk: Medium | P0 | PR/branch: `t037-routine-github` | Started 2026-11-11: worktree `.claude/worktrees/T037` | Ready 2026-11-11: code-review (no P0/P1; P2×3 fixed in d1e16e1; P3×3 open), security-review clean, tests 137/137 (ideas 13, db 23, mcp 89, scripts 12) + lint + typecheck + format, 0 skipped, mutation red 4/4, GitHub URL forms checked live (HTTP 200); `/verify` is the user's. Deviation: the answer cap lives in `index-store.ts` (T034 already capped there), count line `... and N more errors` | Done 2026-11-11: `/verify` pass on `597aba3` (real build on PGlite: enum values named, 10-line cap and count, valid 20 saved and resend idempotent, read token cannot submit, dashboard lists 20); prompt not run live, the first routine run is the user's
