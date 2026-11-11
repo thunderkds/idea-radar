@@ -175,8 +175,12 @@ Where the tokens go, largest first (estimate):
    one, 8,609 characters (about 2,150 tokens); a long one (a README of about 40,000 characters), 38,070 characters
    (about 9,500 tokens). The average of the three is about 4,200 tokens, so 13 pages are about 55,000 tokens (estimate;
    a repository with a very long README costs up to about 14,000, and the prompt tells the routine to read only the
-   top of it). A listing page measured about 3,300 tokens (trending); the search page converted to far less, so it
-   may need script rendering the routine's fetch tool does not do. Raw HTML is 5 to 20 times larger (the same pages
+   top of it). A listing page measured about 3,300 tokens (trending); the search page converted to far less because
+   its ten repository rows sit in the page's embedded script JSON (`"hl_name":"owner/name"`), which a converter that
+   drops script content loses. It is not known whether the routine's own fetch tool keeps them: open the first run in
+   **History** and check that the `low-key` and `medium` repositories came from search rows. If the search rows are
+   missing, the routine sends fewer than 13 (the prompt says never pad), and the `low-key` bucket is the one that
+   goes empty. Raw HTML is 5 to 20 times larger (the same pages
    are 229 KB to 655 KB), so check in **History** that the routine's fetch returns text and not raw HTML.
 2. The `list_ideas` call that avoids repeats. The prompt allows one call with `limit` 40. The size grows with the
    table, about 6,000 tokens or more when the summaries are long (estimate). It is not cut further because the

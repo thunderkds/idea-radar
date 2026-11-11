@@ -140,7 +140,7 @@ in English.
 | `facebook/react` (extra) | 322,813 | 7,525 | 1,881 | |
 | `vinta/awesome-python` (extra, longest seen) | 655,189 | 56,826 | 14,206 | an awesome list, which the prompt skips |
 | `github.com/trending?since=daily` (listing) | 530,481 | 13,299 | 3,324 | |
-| a search listing page | 224,721 | 4,870 | 1,217 | looks script-rendered; its rows may be missing from the converted text |
+| a search listing page | 224,721 | 4,870 | 1,217 | the ten repository rows are in the page's embedded script JSON (`"hl_name":"owner/name"`), which this tag-stripping converter drops; not known whether the routine's own fetch tool keeps them (check the first run in History) |
 
 Raw README URL form: `https://github.com/expressjs/express/raw/HEAD/Readme.md` and `https://github.com/sindresorhus/is-up/raw/HEAD/readme.md` both answered 302 to `raw.githubusercontent.com` (a second host); the prompt uses only the `github.com` repository page. (`.../raw/HEAD/README.md` on express answered 404 because the file is `Readme.md`.)
 
