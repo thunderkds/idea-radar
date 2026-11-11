@@ -6,8 +6,10 @@ type Pool = ReturnType<typeof createPool>;
 
 export const DEFAULT_LIMIT = 20;
 export const MAX_LIMIT = 100;
-/** At most this many field errors are returned to the caller and written to the run log, each cut to MAX_ERROR_CHARS. */
+/** At most this many field errors are written to the run log, each cut to MAX_ERROR_CHARS. */
 export const MAX_ERRORS = 50;
+/** The caller (the routine) gets fewer: the first errors name the fix, and every extra line costs tokens on a resend. */
+export const MAX_ANSWER_ERRORS = 10;
 const MAX_ERROR_CHARS = 300;
 
 /** The short form that list and search return; `get` returns the full idea. */
@@ -66,10 +68,10 @@ function summarize(i: StoredIdea): IdeaSummary {
 
 const clip = (line: string): string => (line.length > MAX_ERROR_CHARS ? `${line.slice(0, MAX_ERROR_CHARS)}...` : line);
 
-/** At most MAX_ERRORS lines, each clipped, with a last line counting what was left out. */
-function capErrors(errors: string[]): string[] {
-  const shown = errors.slice(0, MAX_ERRORS).map(clip);
-  return errors.length > MAX_ERRORS ? [...shown, `... and ${errors.length - MAX_ERRORS} more errors`] : shown;
+/** At most `max` lines, each clipped, with a last line counting what was left out. */
+function capErrors(errors: string[], max: number): string[] {
+  const shown = errors.slice(0, max).map(clip);
+  return errors.length > max ? [...shown, `... and ${errors.length - max} more errors`] : shown;
 }
 
 /** The store over Postgres. Callers pass already-cleaned input (see tools.ts); a database error rejects. */
@@ -97,9 +99,8 @@ export function createStore(pool: Pool): IdeaStore {
     async submit(payload) {
       const checked = validateIdeaFile(payload, "submission");
       if (!checked.ok) {
-        const errors = capErrors(checked.errors);
-        await record(payload, errors.join("\n"));
-        return { ok: false, errors };
+        await record(payload, capErrors(checked.errors, MAX_ERRORS).join("\n"));
+        return { ok: false, errors: capErrors(checked.errors, MAX_ANSWER_ERRORS) };
       }
       try {
         await saveSubmission(pool, checked.file);

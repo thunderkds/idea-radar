@@ -48,8 +48,8 @@ routine's prompt does.
 | ID | Requirement | Traces to |
 |----|-------------|-----------|
 | FR-001 | One idea format (JSON Schema) at `ideas/schema.json` is the contract for every submission. | US-001, US-002 |
-| FR-002 | The repo holds the routine's prompt as a file; it tells the routine to research ideas and send them with the MCP tool `submit_ideas`, and never to edit the repository. | US-001 |
-| FR-003 | `submit_ideas` rejects a submission that breaks the schema with a tool error naming each field; nothing is written for a rejected submission. | US-002 |
+| FR-002 | The repo holds the routine's prompt as a file; it tells the routine to research GitHub only (one repository per idea: 10 rising, 5 low-key under 500 stars, 5 medium at 500 to 5,000 stars, each tagged with its bucket) and send the ideas with the MCP tool `submit_ideas`, and never to edit the repository. The prompt is self-contained: it lists the allowed signal kinds and the field limits, and bounds its own fetches and retries to keep the daily cost low. | US-001 |
+| FR-003 | `submit_ideas` rejects a submission that breaks the schema with a tool error naming each field (a wrong value from a fixed list names the allowed values; at most 10 errors are listed, then a count of the rest); nothing is written for a rejected submission. | US-002 |
 | FR-004 | A valid submission is saved in Postgres in one transaction and is visible to the read tools and the dashboard at once. Each call is logged as a run (date, routine, idea count, ok/rejected). | US-002 |
 | FR-005 | An idea keeps its `id` across submissions; the version with the latest `date` wins (same date: the later submission). `first_seen` and `last_seen` are kept. Re-sending the same submission changes nothing but the run log. | US-002 |
 | FR-006 | Read tools `list_ideas` (newest first, tag and date filters, limit), `search_ideas` (text over title/summary/tags/why_now) and `get_idea` (one idea with signals and sources) read from Postgres. | US-003 |

@@ -79,3 +79,66 @@ test("docs/deploy.md covers Postgres, the three tokens and the dashboard login, 
     assert.match(m[1] ?? "", /^["<$]/, `Bearer is followed by a non-placeholder: ${m[0]}`);
   }
 });
+
+// --- T037: the routine prompt is GitHub-only, self-contained, and short. It has no repository to read, so it must
+// carry the schema's allowed values and limits itself; these tests read them from ideas/schema.json.
+const schema = JSON.parse(read("ideas/schema.json")) as {
+  $defs: {
+    idea: { properties: Record<string, { maxLength?: number; items?: { maxLength?: number } }> };
+    signal: { properties: { kind: { enum: string[] }; note: { maxLength: number } } };
+  };
+};
+const promptBody = (): string => read("routines/daily-ideas.md").split(/^---$/m).slice(1).join("---");
+
+test("the routine prompt lists every signal kind and every length limit the schema sets", () => {
+  const body = promptBody();
+  for (const kind of schema.$defs.signal.properties.kind.enum) {
+    assert.ok(body.includes(`\`${kind}\``), `the prompt does not list the signal kind \`${kind}\``);
+  }
+  const idea = schema.$defs.idea.properties;
+  const limits: Array<[string, number | undefined]> = [
+    ["`id`", idea.id?.maxLength],
+    ["`title`", idea.title?.maxLength],
+    ["`summary`", idea.summary?.maxLength],
+    ["`why_now`", idea.why_now?.maxLength],
+    ["each tag", idea.tags?.items?.maxLength],
+    ["`note`", schema.$defs.signal.properties.note.maxLength],
+  ];
+  for (const [label, max] of limits) {
+    assert.ok(typeof max === "number", `schema has no maxLength for ${label}`);
+    assert.ok(body.includes(`${label} ≤${max}`), `the prompt does not state the limit "${label} ≤${max}"`);
+  }
+});
+
+test("the routine prompt researches GitHub only: three buckets (10 rising, 5 low-key, 5 medium), no other source", () => {
+  const body = promptBody();
+  assert.match(body, /`rising` \(10\)/);
+  assert.match(body, /`low-key` \(5\)/);
+  assert.match(body, /`medium` \(5\)/);
+  assert.match(body, /under 500 stars/i);
+  assert.match(body, /500 to 5,000 stars/i);
+  assert.match(body, /github\.com\/trending/);
+  assert.match(body, /github\.com\/search/);
+  assert.match(body, /forks/i);
+  assert.match(body, /awesome/i);
+  for (const banned of [/hacker news/i, /reddit/i, /\bblogs?\b/i, /\ba few times\b/i]) {
+    assert.doesNotMatch(body, banned, `routine prompt must not match ${banned}`);
+  }
+  const hosts = [...body.matchAll(/https?:\/\/([^/\s`)"]+)/g)].map((m) => m[1]);
+  assert.ok(hosts.length > 0);
+  for (const host of hosts) assert.equal(host, "github.com", `the prompt names a non-GitHub host: ${host}`);
+});
+
+test("the routine prompt carries the cost rules and the safety rules, in 550 words or fewer", () => {
+  const body = promptBody();
+  const words = body.split(/\s+/).filter(Boolean).length;
+  assert.ok(words <= 550, `the prompt body has ${words} words; the budget is 550`);
+  assert.match(body, /`limit` 40/);
+  assert.match(body, /at most 8 /i);
+  assert.match(body, /resend once/i);
+  assert.match(body, /unreachable/i);
+  assert.match(body, /untrusted/i);
+  assert.match(body, /never write the ideas to a file/i);
+  assert.match(body, /write token/i);
+  assert.doesNotMatch(body, /\b[0-9a-f]{32,}\b/i, "the prompt shows a long hex string that looks like a token");
+});

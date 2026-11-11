@@ -91,3 +91,30 @@ test("more than 100 ideas is rejected", () => {
   f.ideas = Array.from({ length: 101 }, (_, i) => ({ ...f.ideas?.[0], id: `idea-${i}` }));
   assert.ok(errorsOf(f).some((e) => e.startsWith("ideas/t.json: /ideas ")));
 });
+
+test("an enum error names the allowed values, so a wrong signal kind can be fixed in one resend", () => {
+  const f = example();
+  f.ideas[0].signals[0].kind = "github";
+  const errors = errorsOf(f);
+  assert.ok(
+    errors.includes(
+      "ideas/t.json: /ideas/0/signals/0/kind must be equal to one of the allowed values (repo, article, post, discussion, other)",
+    ),
+    errors.join("\n"),
+  );
+});
+
+test("only enum errors get the allowed-values suffix; other messages keep their text", () => {
+  const f = example();
+  f.ideas[0].id = "Not A Slug";
+  f.ideas[0].score = 9;
+  const errors = errorsOf(f);
+  assert.ok(
+    errors.some((e) => e.includes("/id must match pattern")),
+    errors.join("\n"),
+  );
+  assert.ok(
+    errors.every((e) => !e.includes("allowed values")),
+    errors.join("\n"),
+  );
+});
