@@ -4,9 +4,10 @@
     "builder": "RAILPACK",
     "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @idea-radar/mcp... build",
     "watchPatterns": [
-      "/ideas/**",
+      "/ideas/schema.json",
       "/apps/mcp/**",
       "/packages/ideas/**",
+      "/packages/db/**",
       "/package.json",
       "/pnpm-lock.yaml",
       "/pnpm-workspace.yaml",
