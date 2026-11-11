@@ -391,6 +391,18 @@ describe("filters and search (AC3)", () => {
     assert.equal(calls.list[0]?.tag, "ab");
   });
 
+  test("an active filter opens the Filters panel and shows a removable chip that keeps the other filters (T039)", async () => {
+    const url = await start(stub().store);
+    const body = (await (await authed("/?tag=cli&since=2026-11-01", url)).text())
+      .replace(/\s+/g, " ")
+      .replace(/ >/g, ">");
+    assert.match(body, /<details open>/);
+    assert.match(body, /<a class="chip chip-x" href="\/\?since=2026-11-01">/);
+    const none = await (await authed("/", url)).text();
+    assert.match(none, /<details>/);
+    assert.doesNotMatch(none, /chip-x"/);
+  });
+
   test("tag chips on the list link to that tag's filter", async () => {
     const url = await start(stub().store);
     const body = await (await authed("/", url)).text();
@@ -410,7 +422,7 @@ describe("idea page (AC4, AC5)", () => {
     assert.match(body, /Models got cheap\./);
     assert.match(
       body,
-      /<a href="https:\/\/github\.com\/o\/r" rel="noopener noreferrer nofollow" target="_blank">https:\/\/github\.com\/o\/r<\/a>/,
+      /<a href="https:\/\/github\.com\/o\/r" title="https:\/\/github\.com\/o\/r" rel="noopener noreferrer nofollow" target="_blank"\s*>\s*github\.com\/o\/r\s*<\/a\s*>/,
     );
     assert.match(body, /popular/);
     assert.match(body, /o\/r/);
