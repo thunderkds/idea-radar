@@ -17,6 +17,8 @@
 ---
 
 ## Index
+- [Routine writes only via connector](decisions.md#2026-11-11--routine-writes-only-through-the-connector-the-write-token-stays-out-of-the-models-context-t036) — one `submit_ideas` call, no repo access; write token in connector header, not env; git ingest removed
+- [T036 docs/prompt gotchas, v2.1 close-out](learnings.md#2026-11-11--routine-ingest-over-mcp-docs-and-prompt-gotchas-v21-close-out-t036) — watchPatterns needs /packages/db/**; `.env.example` denied even to git grep; user merges when the hook verify row is missing
 - [Dashboard: stateless HMAC cookie, CSP style hash](decisions.md#2026-11-11--dashboard-stateless-hmac-session-cookie-one-inline-style-under-a-csp-hash-filters-after-search-t035) — cookie = expiry.HMAC(DASHBOARD_TOKEN), CSRF via Origin/Sec-Fetch-Site; filters apply to first 100 search hits
 - [Dashboard CSP/CSRF/verify gotchas](learnings.md#2026-11-11--dashboard-on-the-mcp-server-csp-csrf-and-verification-gotchas-t035) — CSP hash covers exact style text; no-referrer gives Origin null; check pages live in a real browser
 - [v2.1: Postgres store behind the MCP](decisions.md#2026-11-10--v21-postgres-store-behind-the-mcp-v2-files-are-the-database-superseded-t033t036) — routine → `submit_ideas` → Railway Postgres; merge rule newer-date-wins; tests refuse non-loopback DB; supersedes v2 files-as-DB
