@@ -14,9 +14,9 @@
 - [ ] **T036** — Replace git ingest with MCP ingest (routine prompt, CI, deploy docs) | common-infrastructure | C2 | Risk: Medium | P1
 
 ### In Progress
-- [ ] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1 | PR/branch: `t035-dashboard-pages` | Started 2026-11-11: worktree `.claude/worktrees/T035`
 
 ### Ready for Review
+- [ ] **T035** — Token-gated dashboard pages in apps/mcp | frontend-developer | C2 | Risk: High | P1 | PR/branch: `t035-dashboard-pages` | Started 2026-11-11: worktree `.claude/worktrees/T035` | Ready 2026-11-11: code-review (no P0; P1×2 fixed — CSP style hash, UX evidence redone live; login `Origin: null` bug found live and fixed; P2×1, P3×2 open), security-review clean, tests 141/141 + lint + typecheck + format, mutation red 3/3, ux-evaluate 13 pass
 
 ### Done
 - [x] **T034** — MCP `submit_ideas` write tool + read tools on Postgres | backend-developer | C2 | Risk: High | P0 | PR/branch: `t034-mcp-submit-ideas` | Started 2026-11-10: worktree `.claude/worktrees/T034` | Ready 2026-11-10: code-review (no P0/P1; P2×2: `.env.example` not updated (permission rule, user applies), `createPool` has no connect timeout (packages/db follow-up); P3×2), security-review clean, tests 96/96 + lint + typecheck, mutation red 1/1, 1 Debate (/health is {ok} only, AC5 amended) | Done 2026-11-10: auto verify pass (session c38593bc-2b82-4f19-865a-bf2180d6fb98, commit e42e6973e985c37f2dcae5495b03277ee7e4014a) | Merged 2026-11-11 into main (228341d) on the user's `[admin]` request naming T034; full suite on merged main 96/96 against a loopback PGlite (TEST_DATABASE_URL), 0 skipped. T035 and T036 are unblocked. `.env.example` still needs the user's edit (permission rule)
