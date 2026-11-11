@@ -47,12 +47,14 @@ token). You read them in a browser on the dashboard (dashboard token). The routi
    | `RAILPACK_NODE_VERSION` | `22` (the project targets Node 22; the root `engines` only says `>=20`) |
 
    The server exits at boot if one of the four required variables is missing, a token is shorter than 32
-   characters, or two tokens are the same. Do not set `PORT` (Railway injects it and uses it for the health
-   check). The server creates and updates its tables itself at boot; there is no migration command to run.
+   characters, or two tokens are the same. `PORT` is optional: Railway injects it, the server reads it and
+   uses 8080 when it is unset, and you may set it yourself (for example `8080`). The server creates and
+   updates its tables itself at boot; there is no migration command to run.
    The tokens and `DATABASE_URL` live only in Railway variables, in the routine's connector and in your own
    client config, never in a commit.
-6. Open **Settings** -> **Networking** -> **Generate Domain**. Your server is `https://<domain>/mcp`, and the
-   dashboard is `https://<domain>/login`.
+6. Open **Settings** -> **Networking** -> **Generate Domain**. If it asks which port the app listens on,
+   enter the number in the deploy log line `listening on port N` (8080 when you set `PORT=8080`). Your server
+   is `https://<domain>/mcp`, and the dashboard is `https://<domain>/login`.
 7. Check it once the deploy is green:
 
    ```bash
@@ -274,7 +276,7 @@ Rotate whenever a token appears in a screenshot, chat or log, or when someone wh
 | Deploy fails, logs say a token "must be at least 32 characters" or "is not set" | variable missing or short | set it again with `openssl rand -hex 32` |
 | Deploy fails, logs say the tokens "must all be different" | two of the three tokens are equal | generate a new one for each |
 | Deploy fails with a database error | `DATABASE_URL` missing, or the Postgres service is not in the same project | add the reference `${{Postgres.DATABASE_URL}}` (step 1.5) |
-| Health check fails and the deploy never goes live | server crashed at boot (see the deploy log) or the service listens on a fixed port | do not set `PORT`; read the log |
+| Health check fails and the deploy never goes live | server crashed at boot (see the deploy log) | read the deploy log for the error |
 | `/health` returns `503` `{"ok":false}` | the database does not answer | check the Postgres service in Railway |
 | `401 unauthorized` from `/mcp` | wrong or missing bearer token in the client | re-add the server with the current token |
 | `/login` says "Wrong token" | you used `MCP_TOKEN` or `MCP_WRITE_TOKEN`, or an old value | use `DASHBOARD_TOKEN` |

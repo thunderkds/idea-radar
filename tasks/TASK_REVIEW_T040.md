@@ -47,12 +47,12 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `scripts/repo-hygiene.test.ts`: "docs/deploy.md states the same default PORT as apps/mcp/src/index.ts and does not forbid setting PORT" (AC 1, 2) and "ideas/schema.json describes a submission, not an idea file" (AC 3, 5). Both were red on the prior content (`deploy.md does not say the server uses 8080 when PORT is unset`; `schema wording is stale: Idea Radar idea file`), green after the edits. AC 3 validation behaviour: `git diff ideas/schema.json` shows only the `title` and `description` lines, and the 13 `packages/ideas` tests plus the 107 `apps/mcp` tests (valid and invalid submissions) pass |
+| Verification command run | ☑ pass | 2026-11-11T19:17:56+07:00, `TEST_DATABASE_URL=postgres://postgres:pg@localhost:55434/postgres` (PGlite on 55434, stopped afterwards). `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` exit 0. `packages/ideas`: tests 13, pass 13, fail 0, skipped 0. `packages/db`: tests 23, pass 23, fail 0, skipped 0. `apps/mcp`: tests 107, pass 107, fail 0, skipped 0. `scripts`: tests 15, pass 15, fail 0, skipped 0 (13 before, +2 new). `All matched files use Prettier code style!` |
+| Negative cases hold | ☑ pass | Mutation 1: the sentence "Do not set PORT." put back in `docs/deploy.md` step 5 (`git diff --stat -- docs/deploy.md`: 1 file changed, 7 insertions, 5 deletions, non-empty) -> `ℹ pass 14 / fail 1`, `AssertionError: deploy.md must not forbid setting PORT`; restored, re-run `pass 15 / fail 0`. Mutation 2: `"title": "Idea Radar idea file"` put back in `ideas/schema.json` (`git diff --stat -- ideas/schema.json`: 1 file changed, 1 insertion, 1 deletion) -> `ℹ pass 14 / fail 1`, `AssertionError: schema wording is stale: Idea Radar idea file`; restored, re-run `pass 15 / fail 0` |
+| verify | ☑ pass | Run by the Supervisor on 2026-11-11 on `f266000` (the user asked the Supervisor to do the cleanup end to end; not a `/verify` the user typed); cold start, no verifier skill. Real build, `node apps/mcp/dist/index.js` on port 18090 against PGlite on 55435 (55432 belongs to another session and was left alone): `/health` `{"ok":true}`; log line `listening on port 18090` matches the doc wording. The schema still behaves the same through the real server: a valid 13-idea submission `{"saved":13,"date":"2026-11-11"}`, again on resend, `list_ideas` count 13; a 2,001-character summary rejected naming `/ideas/0/summary` (count stays 13); kind `github` gave 12 lines with the allowed values named and `... and 3 more errors`; a `javascript:` signal url rejected; the read token got `Tool submit_ideas not found`; the dashboard list returned 200 with the ideas. PORT probe for the new doc text: with PORT unset the server printed `listening on port 8080` and `/health` answered `{"ok":true}`. Both processes stopped by PID; ports free. Not run: a Railway deploy (the doc's Generate Domain step is the user's to follow). |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | Reviewed: the two schema strings (no code or test prints or compares them: grep for the old title/description finds only `ideas/schema.json`, `BRAINSTORMING_LOG.md` and the guide), `docs/deploy.md`, the new tests, and the tests that read `docs/deploy.md` or `ideas/schema.json` (only `scripts/repo-hygiene.test.ts`). Skipped: `dist/` (build output), `apps/mcp/src/**` comments (out of scope) |
+| Full smoke suite still green (no regression) | ☑ pass | the full `pnpm test` above: 158 tests, 0 failed, 0 skipped |
 | **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
 | **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
 | **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
@@ -67,12 +67,70 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (2026-11-11, verbatim prior content; no executable code changes):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+`docs/deploy.md:50` (step 5):
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+   characters, or two tokens are the same. Do not set `PORT` (Railway injects it and uses it for the health
+```
+
+`docs/deploy.md:277` (troubleshooting row):
+
+```
+| Health check fails and the deploy never goes live | server crashed at boot (see the deploy log) or the service listens on a fixed port | do not set `PORT`; read the log |
+```
+
+`ideas/schema.json:4-5`:
+
+```
+  "title": "Idea Radar idea file",
+  "description": "One routine run's output: ideas/<YYYY-MM-DD>[-<suffix>].json",
+```
+
+Pre-flight: no code or test prints or compares the schema `title` or `description` (grep over the repo for `Idea Radar idea file` and `One routine run` finds only `ideas/schema.json`, `BRAINSTORMING_LOG.md` and the guide).
+
+**AFTER** (verbatim new content):
+
+`docs/deploy.md:50-52` (step 5):
+
+```
+   characters, or two tokens are the same. `PORT` is optional: Railway injects it, the server reads it and
+   uses 8080 when it is unset, and you may set it yourself (for example `8080`). The server creates and
+   updates its tables itself at boot; there is no migration command to run.
+```
+
+`docs/deploy.md` step 6:
+
+```
+6. Open **Settings** -> **Networking** -> **Generate Domain**. If it asks which port the app listens on,
+   enter the number in the deploy log line `listening on port N` (8080 when you set `PORT=8080`). Your server
+   is `https://<domain>/mcp`, and the dashboard is `https://<domain>/login`.
+```
+
+`docs/deploy.md` troubleshooting row:
+
+```
+| Health check fails and the deploy never goes live | server crashed at boot (see the deploy log) | read the deploy log for the error |
+```
+
+`ideas/schema.json:4-5`:
+
+```
+  "title": "Idea Radar submission",
+  "description": "One routine run's output: the argument of the submit_ideas MCP tool",
+```
+
+**DELTA**: A reader of the deploy guide can set `PORT=8080` and enter 8080 in Railway's domain dialog without being told it is wrong, and the schema no longer describes a file in `ideas/`, with two tests that keep both wordings from coming back.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
+
+---
+
+## Stage 4 review (Supervisor, 2026-11-11, on `f266000`)
+
+- **Code review**: no P0, P1 or P2. Two P3 notes: the PORT test reads the default with a regex over `index.ts` (fails loudly if the line is reformatted), and the `submit_ideas` tool description in `apps/mcp/src/tools.ts:16` still says "one idea file ... send the whole file again" (runtime-visible, out of T040 scope, follow-up). Report: `reports/code-review_t040-cleanup-wording_20261111T192044.html`.
+- **Security review**: nothing at confidence 8 or higher. Report: `reports/security-review_t040-cleanup-wording_20261111T192044.html`.
+- **Independent checks**: lane_check "C1, 3 files, 34 lines, FITS"; schema compared key by key with `main`: only `title` and `description` differ; real-server probes and the PORT-unset probe are in the `verify` row.
+- **Not run**: easy-verifier (not connected); a Railway deploy.

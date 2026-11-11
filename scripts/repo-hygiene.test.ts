@@ -80,6 +80,24 @@ test("docs/deploy.md covers Postgres, the three tokens and the dashboard login, 
   }
 });
 
+test("docs/deploy.md states the same default PORT as apps/mcp/src/index.ts and does not forbid setting PORT", () => {
+  const match = /process\.env\.PORT === "" \? (\d+) :/.exec(read("apps/mcp/src/index.ts"));
+  assert.ok(match, "apps/mcp/src/index.ts no longer has the default-port expression this test reads");
+  const deploy = read("docs/deploy.md");
+  assert.ok(
+    deploy.includes(`uses ${match[1]} when it is unset`),
+    `deploy.md does not say the server uses ${match[1]} when PORT is unset`,
+  );
+  assert.doesNotMatch(deploy, /do not set `PORT`/i, "deploy.md must not forbid setting PORT");
+});
+
+test("ideas/schema.json describes a submission, not an idea file", () => {
+  const { title, description } = JSON.parse(read("ideas/schema.json")) as { title: string; description: string };
+  for (const text of [title, description]) {
+    assert.doesNotMatch(text, /idea file|ideas\/</i, `schema wording is stale: ${text}`);
+  }
+});
+
 // --- T037: the routine prompt is GitHub-only, self-contained, and short. It has no repository to read, so it must
 // carry the schema's allowed values and limits itself; these tests read them from ideas/schema.json.
 const schema = JSON.parse(read("ideas/schema.json")) as {
