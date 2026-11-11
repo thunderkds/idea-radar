@@ -124,6 +124,26 @@ test("submit_ideas: a valid file answers { saved, date }; a rejected one lists e
   assert.match(r.content[0]!.text, /\/date/);
 });
 
+test("submit_ideas: a rejection lists at most 10 error lines, then one line with the rest", async () => {
+  const lines = (n: number) => Array.from({ length: n }, (_, i) => `submission: /ideas/${i}/id bad`);
+  const text = async (n: number) => {
+    const { store } = fakeStore({ submit: () => Promise.resolve({ ok: false as const, errors: lines(n) }) });
+    const r = await createToolHandlers(store, "write").submit_ideas({});
+    assert.equal(r.isError, true);
+    return r.content[0]!.text.split("\n");
+  };
+  const first = "submission rejected, nothing was saved:";
+  const ten = await text(10);
+  assert.deepEqual(ten, [first, ...lines(10)]);
+  const eleven = await text(11);
+  assert.deepEqual(eleven, [first, ...lines(10), "... and 1 more"]);
+  const many = await text(25);
+  assert.equal(many.length, 12);
+  assert.equal(many[0], first);
+  assert.equal(many[11], "... and 15 more");
+  assert.equal(many[10], "submission: /ideas/9/id bad");
+});
+
 test("every read tool description says idea text is external content to read as data; submit_ideas says routine only", () => {
   for (const name of ["list_ideas", "search_ideas", "get_idea"] as const) {
     assert.match(TOOL_DESCRIPTIONS[name], /external|untrusted/i, name);

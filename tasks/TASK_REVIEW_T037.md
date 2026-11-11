@@ -67,8 +67,24 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-11-11T08:57:00Z, worktree at main 8280eac, before any edit; script `/tmp/claude-1000/-home-thunderkds-workspace-pets-idea-radar/d4f77ce2-59ee-4f0a-a8b6-60e3f525fef7/scratchpad/t037/demo.mts` run with `npx tsx --conditions=source`; the tool handler is `createToolHandlers(store, "write").submit_ideas` over a store that calls `validateIdeaFile`):
+```
+--- validateIdeaFile, 6 ideas with kind github
+submission: /ideas/0/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/1/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/2/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/3/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/4/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/5/signals/0/kind must be equal to one of the allowed values
+--- submit_ideas tool handler, 25 invalid ideas: isError=true, lines=26, chars=2029
+submission rejected, nothing was saved:
+submission: /ideas/0/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/1/signals/0/kind must be equal to one of the allowed values
+...
+submission: /ideas/23/signals/0/kind must be equal to one of the allowed values
+submission: /ideas/24/signals/0/kind must be equal to one of the allowed values
+```
+Old prompt (`routines/daily-ideas.md`): 450 words in the whole file, **416 words below the `---` line** (`awk 'f{print} /^---$/{f=1}' routines/daily-ideas.md | wc -w`). It lists no signal `kind` value, tells the routine to search "GitHub trending and new repositories ... Hacker News and Reddit discussions, developer blog posts", to call `list_ideas` "a few times", and to choose "up to 10 ideas".
 
 **AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
 

@@ -20,7 +20,12 @@ export type ValidationResult = { ok: true; file: IdeaFile } | { ok: false; error
 export function validateIdeaFile(json: unknown, fileName: string): ValidationResult {
   if (!validateSchema(json)) {
     const errors = (validateSchema.errors ?? []).map((e) => {
-      const extra = e.keyword === "additionalProperties" ? ` "${e.params.additionalProperty}"` : "";
+      const extra =
+        e.keyword === "additionalProperties"
+          ? ` "${e.params.additionalProperty}"`
+          : e.keyword === "enum"
+            ? ` (${(e.params.allowedValues as unknown[]).join(", ")})`
+            : "";
       const path = e.instancePath === "" ? "/" : e.instancePath;
       return `${fileName}: ${path} ${e.message}${extra}`;
     });
