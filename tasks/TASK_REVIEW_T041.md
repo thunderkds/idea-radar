@@ -47,16 +47,16 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
-| verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
-| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
-| Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
-| **Companion score (easy-verifier)** | ☐ pass / ☐ fail / ☐ N/A | [`overall` and `change_risk` as the tool returned them, the scope, the ref, and the absolute path of the verifier report after a literal `report:` label — e.g. "overall 86 (>= 80), change_risk pass, scope changes, ref `main...HEAD`, report: `/home/me/.easy-verifier-reports/kit/score_changes_20261028T0530Z.html`". The gate reads the path that follows `report:` and nothing else, so with no label, or a path that is absent, the row is unscored — write ☑ N/A instead. ☑ N/A with a reason when neither companion tool was run: the merge gate blocks on ☑ fail only, never on an absent or N/A row] |
-| **UI: Visual regression (diff or verdict pasted)** | ☐ pass / ☐ fail / ☐ N/A | [screenshot path or LLM verdict — required for UI tasks, Hard-Stop Gate 6] |
-| **UI: Design-system compliance (tokens/colors/typography verified)** | ☐ pass / ☐ fail / ☐ N/A | [method used + output] |
-| **UI: Responsiveness at target viewports** | ☐ pass / ☐ fail / ☐ N/A | [viewports tested, any overflow findings] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/mcp/src/tools.test.ts`: `submit_ideas description calls the input a submission, not a file` (asserts `routine only`, `submission`, and no `idea file` / `whole file` / `idea schema`) |
+| Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` exit 0 with `TEST_DATABASE_URL=postgres://postgres:pg@localhost:55436/postgres`. ideas 13/13, db 23/23, apps/mcp 108/108, scripts 15/15; 0 skipped in every suite; `All matched files use Prettier code style!` |
+| Negative cases hold | ☑ pass | RED before the reword (2026-11-11): `AssertionError: The input did not match the regular expression /submission/i`, `pass 9 fail 1`. Mutation: put `one idea file (schema_version` back in `tools.ts:16`, `git diff --stat` non-empty (4 files, `tools.ts` 1 line), test red `pass 9 fail 1`, `AssertionError: stale file wording: ...The input is one idea file...`. Restored, green `pass 10 fail 0` |
+| verify | ☑ pass | Run by the Supervisor on commit `36056fb`, not a user-typed `/verify` (the user said "do T041 now"): a real production build on a fresh PGlite (port 55437) and a server on port 18091. `tools/list` with the write token returned the four tools and the `submit_ideas` text says "one submission", "the submission schema" and "send the whole submission again" (no `idea file`, `whole file` or `idea schema`; `routine only` kept); the read token listed three tools. A valid 13-idea submission saved 13, and sent again saved 13 with `list_ideas` count 13. Probes rejected: a 2,001-character summary, kind `github` (12 lines, `... and 3 more errors`), a `javascript:` url; the read token got `Tool submit_ideas not found`; the dashboard list returned 200. Both processes stopped by PID — pass |
+| Review scope bounded to the change's blast radius (affected set, not whole repo) | ☑ pass | `git diff main...t041-tool-text`: `tools.ts`, `index-store.ts`, `tools.test.ts` plus this file. Callers and tests read: `server.test.ts:111` and `tools.test.ts:127` (both match `routine only`, kept). Stale sweep over `apps packages scripts routines docs README.md PRD.md PROJECT_SPEC.md` listed in the code-review report; `lane_check`: C1, 3 files, 11 lines, FITS |
+| Full smoke suite still green (no regression) | ☑ pass | The agent's full run (ideas 13, db 23, mcp 108, scripts 15, 0 skipped). The Supervisor did not re-run the full suite; the real-server drive above is the Supervisor's own run |
+| **Companion score (easy-verifier)** | ☒ N/A | The easy-verifier server failed to connect in this session (CONNECT_TIMEOUT), so there is no score |
+| **UI: Visual regression (diff or verdict pasted)** | ☒ N/A | No UI change (a tool description string, a comment and a test) |
+| **UI: Design-system compliance (tokens/colors/typography verified)** | ☒ N/A | No UI change (a tool description string, a comment and a test) |
+| **UI: Responsiveness at target viewports** | ☒ N/A | No UI change (a tool description string, a comment and a test) |
 
 ---
 
@@ -67,12 +67,32 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-11-11T14:42:34Z, before any implementation commit; `sed -n 16p apps/mcp/src/tools.ts` and `sed -n 39p apps/mcp/src/index-store.ts`):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+apps/mcp/src/tools.ts:16
+    "For the daily research routine only: readers must not call this. Save one day's ideas. The input is one idea file (schema_version 1, date YYYY-MM-DD, routine, ideas[]). It is checked against the idea schema; if any field is wrong nothing is saved and each field error is listed, so fix them and send the whole file again. An idea with an id that already exists is updated when the date is the same or newer. Returns { saved, date }.",
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+apps/mcp/src/index-store.ts:39
+  /** Validate one idea file against the schema and save it; a rejected call is written to the run log. */
+```
 
-**WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
-implementing agent alone]
+**AFTER** (same two lines, post-change):
+
+```
+apps/mcp/src/tools.ts:16
+    "For the daily research routine only: readers must not call this. Save one day's ideas. The input is one submission (schema_version 1, date YYYY-MM-DD, routine, ideas[]). It is checked against the submission schema; if any field is wrong nothing is saved and each field error is listed, so fix them and send the whole submission again. An idea with an id that already exists is updated when the date is the same or newer. Returns { saved, date }.",
+
+apps/mcp/src/index-store.ts:39
+  /** Validate one submission against the schema and save it; a rejected call is written to the run log. */
+```
+
+**DELTA**: The routine's model is told to send one submission (and to send the whole submission again), the same word the routine prompt uses, instead of a file it never writes.
+
+**WITNESS**: the Supervisor, 2026-11-11, ran the real production build and drove `tools/list` plus the submit probes on port 18091 (see the `verify` row). The `memory/event-trace/T041.jsonl` file was not consulted.
+
+## Stage 4 reviews (2026-11-11, by the Supervisor; the agent did not run the review skills)
+
+- **Code review**: no P0, P1 or P2. Three P3 notes: the new test checks the word `submission` loosely and bans three exact phrases; `.env.example:6` still says "idea files" (the owner deletes line 7 and can drop the comment; a permission rule stops the Supervisor); the `PROJECT_SPEC.md` glossary keeps `idea file` as a defined term. Report: `reports/code-review_t041-tool-text_20261111T144543.html`.
+- **Security review**: nothing at confidence 8 or higher. Report: `reports/security-review_t041-tool-text_20261111T144543.html`.
+- **lane_check**: C1, 3 files, 11 lines, FITS.

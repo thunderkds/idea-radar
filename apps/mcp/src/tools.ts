@@ -13,7 +13,7 @@ export const TOOL_DESCRIPTIONS = {
   search_ideas: `Case-insensitive text search over idea title, summary, tags and why_now; title matches rank first. query is 1-${MAX_QUERY} characters. Returns short summaries; call get_idea for signals, related_repos and why_now. ${EXTERNAL}`,
   get_idea: `Get one idea by id with its signals, related_repos, first_seen, last_seen and updated_at. ${EXTERNAL}`,
   submit_ideas:
-    "For the daily research routine only: readers must not call this. Save one day's ideas. The input is one idea file (schema_version 1, date YYYY-MM-DD, routine, ideas[]). It is checked against the idea schema; if any field is wrong nothing is saved and each field error is listed, so fix them and send the whole file again. An idea with an id that already exists is updated when the date is the same or newer. Returns { saved, date }.",
+    "For the daily research routine only: readers must not call this. Save one day's ideas. The input is one submission (schema_version 1, date YYYY-MM-DD, routine, ideas[]). It is checked against the submission schema; if any field is wrong nothing is saved and each field error is listed, so fix them and send the whole submission again. An idea with an id that already exists is updated when the date is the same or newer. Returns { saved, date }.",
 };
 
 export type ToolResult = {
