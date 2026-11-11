@@ -18,7 +18,7 @@ bucket it fits, in this order:
   https://github.com/trending?since=weekly.
 - `medium` (5): 500 to 5,000 stars and clear momentum in the last 30 days; weekly trending, or the search
   `stars:500..5000 created:>DATE30`.
-- `low-key` (5): under 500 stars, created or revived in the last 90 days, with commits in the last 14 days; the search
+- `low-key` (5): under 500 stars, created in the last 90 days, with commits in the last 14 days; the search
   `stars:<500 created:>DATE90 pushed:>DATE14`.
 
 Search at `https://github.com/search?type=repositories&s=stars&o=desc&q=<URL-encoded query>`; each DATEn is the UTC
@@ -52,7 +52,7 @@ Limits, in characters (the tool rejects more): `id` ≤80, `title` ≤200, `summ
 ## 3. Submit
 
 1. Call `submit_ideas` once with the whole object. It returns `{ "saved": N, "date": "<date>" }`.
-2. On a tool error nothing was saved. The error names the wrong fields and the allowed values: fix only those fields
-   and resend once. If the second call fails too, stop and report the exact error.
+2. On a tool error nothing was saved. The error names up to 10 wrong fields and the allowed values. The same wrong value usually repeats in every
+   idea, so fix it in all ideas, not only the ones listed, then resend once. If the second call fails too, stop and report the exact error.
 3. If the tool is missing or says it needs the write token, stop and report that. Do not look for another way to
    store the ideas.
