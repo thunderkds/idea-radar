@@ -13,6 +13,7 @@
 ### Todo
 
 ### In Progress
+- [ ] **T042** — Routine prompt flags suspicious repositories: caution tag, skip clear bait | backend-developer | C1 | Risk: Medium | P2 | PR/branch: `t042-caution-flags` | Guide: `tasks/TASK_GUIDE_T042.md` | Started 2026-11-11: worktree `.claude/worktrees/T042`; planned 2026-11-11: user chose caution/skip rules now, `github.com` pages only; API source deferred to T043
 
 ### Ready for Review
 

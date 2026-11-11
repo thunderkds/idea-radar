@@ -249,3 +249,26 @@ and all three tokens; migrations run at boot before listening; DB down → `/hea
 **Recommended path:** reword the doc to what the code does; change only the schema's two annotation strings; one small test each.
 **Rejected:** editing code comments that say "idea file" (surgical scope); changing `$id`/version.
 **Worktrees (Supervisor, not the agent):** T033–T038 are merged and clean and are removed; T028–T031 hold only tool folders, T032 is superseded and unmerged (its tip would delete 127 lines of hygiene tests), T039 is the other session's: all left alone.
+
+---
+
+## Addendum 2026-11-11 — T042: the routine flags suspicious repositories
+
+**Tier:** Lightweight (one prompt file plus its text tests; the direction came from the user).
+**User input:** the user pasted a morning-brief prompt they use elsewhere and said it "can split the good repos, and bad repos, which fit with my idea also"; then "let go" to the Supervisor's recommendation (caution and skip rules now, still `github.com` pages only; the API switch waits for the first live run).
+
+### Claims checked against files (2026-11-11)
+- `apps/mcp/src/html.ts:224` buckets an idea by `tags[0]` only (`rising`, `medium`, `low-key`, else `other`); `:298` shows `tags.slice(1)` on a card. A `caution` tag in second place leaves the bucket unchanged and shows as a chip.
+- `ideas/schema.json:29-33` allows up to 20 tags, each kebab-case up to 40 characters, so `caution` needs no schema, validator or database change. The prompt caps tags at 4.
+- `scripts/repo-hygiene.test.ts:159` caps the prompt body at 700 words; the body is 669 now, so the new rules need a small budget raise (to 740) after trimming.
+- The prompt already says "Never clone, edit, commit or push anything" and treats page text as untrusted data.
+
+### Paths
+| Path | Invasiveness | Verdict |
+|---|---|---|
+| A. Caution signs and skip rule in the prompt; flagged repos get the tag `caution` | Low (prompt text + text tests) | **Chosen** |
+| B. A `risk` field in the schema, validator, database and dashboard | High (contract change) | Cut |
+| C. Move data to `api.github.com` (structured stars and dates) | Medium (second host, network allowlist) | Deferred to T043; decided after the first live run shows whether the search rows survive the fetch |
+
+### Why this might fail
+The routine's model judges only from a listing row and one page, so it can wrongly flag a good repo or miss a bad one. The rule therefore skips only the clearly bait and tags the borderline ones, so the owner keeps the call and can filter by the tag. The model's real behaviour cannot be tested here; the live run is the check.
