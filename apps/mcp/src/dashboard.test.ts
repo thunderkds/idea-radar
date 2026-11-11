@@ -230,6 +230,17 @@ describe("login and session (FR-010)", () => {
   });
 });
 
+test("the page styles use only var(--token) colours: no raw colour outside the generated :root block (AC7)", async () => {
+  const url = await start(stub().store);
+  const body = await (await fetch(`${url}/login`)).text();
+  const css = /<style>([\s\S]*?)<\/style>/.exec(body)?.[1] ?? "";
+  const afterTokens = css.slice(css.indexOf("}") + 1);
+  assert.ok(afterTokens.length > 500, "page styles are present");
+  assert.doesNotMatch(afterTokens, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|\b(white|black)\b/i);
+  assert.match(afterTokens, /var\(--neon\)/);
+  assert.equal((body.match(/<style>/g) ?? []).length, 1);
+});
+
 describe("idea list (AC3, AC5, UX rows)", () => {
   test("newest ideas first from the store, limit 50, showing title, summary, tags and last_seen", async () => {
     const { store, calls } = stub();

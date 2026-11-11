@@ -82,25 +82,30 @@ input{width:100%;min-height:36px;padding:0 var(--space-3);font:inherit;color:var
 .notice-error{color:var(--danger);border-color:var(--danger)}
 .notice-warn{color:var(--warn);border-color:var(--warn-line)}
 .field{margin:0 0 var(--space-4)}
-.filters{display:grid;gap:0 var(--space-3);grid-template-columns:1fr}
+.filters{display:grid;gap:0 var(--space-3);grid-template-columns:1fr 1fr}
+.filters .wide,.filters .tag{grid-column:1/-1}
 .filters .field{margin:0 0 var(--space-3)}
 .actions{display:flex;gap:var(--space-3)}
 @media (min-width:720px){
   .filters{grid-template-columns:repeat(3,1fr)}
-  .filters .wide{grid-column:1/-1}
+  .filters .tag{grid-column:auto}
 }
 .ideas{list-style:none;margin:0;padding:0}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin-top:var(--space-3)}
 .chip{display:inline-block;padding:0 var(--space-2);font:12px/20px var(--font-mono);color:var(--text-2);text-decoration:none;border:1px solid var(--line-strong);border-radius:var(--radius-xs)}
 .chip:hover{color:var(--text-strong);background:var(--bg-raised)}
+.meta+p{margin-top:var(--space-3)}
 .back{display:inline-block;margin:0 0 var(--space-4)}
 .signals{list-style:none;margin:0;padding:0}
 .signals li{padding:var(--space-3) 0;border-bottom:1px solid var(--line-subtle)}
 .signals li:last-child{border-bottom:0}
 @media (max-width:719px){
   main{padding-top:var(--space-5)}
+  body{font-size:16px}
   input,.btn{min-height:44px}
-  .chip{line-height:28px}
+  .brand,.back,h2 a,.signals a,.chip{display:inline-flex;align-items:center;min-height:44px}
+  h2 a{display:flex}
+  .chip{justify-content:center;min-width:44px;padding:0 var(--space-3)}
 }
 `;
 
@@ -189,7 +194,7 @@ function filterForm(v: ListView) {
       <label for="q">search</label>
       <input id="q" name="q" type="search" maxlength="200" value="${v.q}" />
     </div>
-    <div class="field">
+    <div class="field tag">
       <label for="tag">tag</label>
       <input id="tag" name="tag" type="text" maxlength="100" value="${v.tag}" />
     </div>

@@ -81,9 +81,25 @@ $ curl -s http://127.0.0.1:18035/health -> {"ok":true}
 
 The service has no login page, idea list or idea page; only `/mcp` and `/health` exist.
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+**AFTER**: captured 2026-11-11T03:20:27Z by the implementing agent on branch `t035-dashboard-pages` (working tree after the T035 implementation commits). Same server start as BEFORE (`apps/mcp`, `tsx --conditions=source src/index.ts`, port 18036, throwaway in-memory PGlite `127.0.0.1:55432`, 3 demo ideas submitted through `submit_ideas`). `<hmac>` replaces the cookie signature:
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+```
+$ curl http://127.0.0.1:18036/login -> 200
+$ curl http://127.0.0.1:18036/ -> 303
+$ curl http://127.0.0.1:18036/ideas/abc -> 303
+$ curl http://127.0.0.1:18036/health -> 200
+$ curl -X POST -d token=<wrong> /login -> 401
+$ curl -X POST -H 'Origin: https://evil.example' -d token=<right> /login -> 403
+HTTP/1.1 303 See Other
+location: /
+set-cookie: ir_session=1794972027.<hmac>; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800
+$ curl -b cookie / -> 200  titles: Averyvery...|Markdown notes that sync through git|&lt;script&gt;alert(1)&lt;/script&gt; probe &amp; &quot;quotes&quot;|
+$ curl -b cookie '/?q=markdown' -> Markdown notes that sync through git
+$ curl -b cookie /ideas/markdown-notes -> 200; signal links: 2
+$ curl -b cookie POST /mcp -> 401
+```
+
+**DELTA**: A reader who holds the dashboard token can now log in at `/login`, browse the newest ideas at `/`, filter by tag and date, search, and open an idea with its signals as safe links at `/ideas/:id`, where before every one of these paths was a 404.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
