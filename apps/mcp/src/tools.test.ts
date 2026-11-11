@@ -131,3 +131,10 @@ test("every read tool description says idea text is external content to read as 
   }
   assert.match(TOOL_DESCRIPTIONS.submit_ideas, /routine only/i);
 });
+
+test("submit_ideas description calls the input a submission, not a file", () => {
+  const text = TOOL_DESCRIPTIONS.submit_ideas;
+  assert.match(text, /routine only/i);
+  assert.match(text, /submission/i);
+  assert.doesNotMatch(text, /idea file|whole file|idea schema/i, `stale file wording: ${text}`);
+});

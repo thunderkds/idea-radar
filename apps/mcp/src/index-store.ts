@@ -36,7 +36,7 @@ export interface IdeaStore {
   list(filter: ListFilter): Promise<IdeaSummary[]>;
   search(query: string, limit: number): Promise<IdeaSummary[]>;
   get(id: string): Promise<StoredIdea | undefined>;
-  /** Validate one idea file against the schema and save it; a rejected call is written to the run log. */
+  /** Validate one submission against the schema and save it; a rejected call is written to the run log. */
   submit(payload: unknown): Promise<SubmitOutcome>;
   /** Resolves when the database answers a trivial query; rejects otherwise. */
   ping(): Promise<void>;

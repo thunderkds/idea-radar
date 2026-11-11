@@ -47,9 +47,9 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 
 | Check | Result | Notes / output snippet |
 |-------|--------|------------------------|
-| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☐ pass / ☐ fail | [test file path(s) — required before Done] |
-| Verification command run | ☐ pass / ☐ fail | [paste actual output] |
-| Negative cases hold | ☐ pass / ☐ fail | [paste the red run against the prior content, or the mutation diff (`git diff --stat`, non-empty) before each verdict] |
+| **New test(s) cover Acceptance Criteria (file paths pasted)** | ☑ pass | `apps/mcp/src/tools.test.ts`: `submit_ideas description calls the input a submission, not a file` (asserts `routine only`, `submission`, and no `idea file` / `whole file` / `idea schema`) |
+| Verification command run | ☑ pass | `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` exit 0 with `TEST_DATABASE_URL=postgres://postgres:pg@localhost:55436/postgres`. ideas 13/13, db 23/23, apps/mcp 108/108, scripts 15/15; 0 skipped in every suite; `All matched files use Prettier code style!` |
+| Negative cases hold | ☑ pass | RED before the reword (2026-11-11): `AssertionError: The input did not match the regular expression /submission/i`, `pass 9 fail 1`. Mutation: put `one idea file (schema_version` back in `tools.ts:16`, `git diff --stat` non-empty (4 files, `tools.ts` 1 line), test red `pass 9 fail 1`, `AssertionError: stale file wording: ...The input is one idea file...`. Restored, green `pass 10 fail 0` |
 | verify | ☐ pass / ☐ fail / ☐ N/A | [what was observed — must literally state "pass" or "fail" here too, e.g. "skill run, feature confirmed working — pass": the merge gate scans this Notes column for the word "pass", not just the Result column] |
 | Review scope bounded to the change's blast radius (affected set, not whole repo) | ☐ pass / ☐ fail | [what was reviewed vs. skipped, and why] |
 | Full smoke suite still green (no regression) | ☐ pass / ☐ fail | |
@@ -67,12 +67,27 @@ Not done: merge (yours); <auto verify: running (T182) | auto verify: <result> | 
 > **before any implementation commit exists**; if it does not (docs, templates, skill-instruction
 > text), BEFORE is the **verbatim prior content** of what changed — a quoted excerpt, not a command.
 
-**BEFORE**: [pasted timestamped command output showing the thing absent/failing, captured before the
-first implementation commit] OR [verbatim excerpt of the prior content, for non-executable changes]
+**BEFORE** (captured 2026-11-11T14:42:34Z, before any implementation commit; `sed -n 16p apps/mcp/src/tools.ts` and `sed -n 39p apps/mcp/src/index-store.ts`):
 
-**AFTER**: [same command, post-change] OR [verbatim excerpt of the new content]
+```
+apps/mcp/src/tools.ts:16
+    "For the daily research routine only: readers must not call this. Save one day's ideas. The input is one idea file (schema_version 1, date YYYY-MM-DD, routine, ideas[]). It is checked against the idea schema; if any field is wrong nothing is saved and each field error is listed, so fix them and send the whole file again. An idea with an id that already exists is updated when the date is the same or newer. Returns { saved, date }.",
 
-**DELTA**: [one sentence — what a user can now do that they could not before]
+apps/mcp/src/index-store.ts:39
+  /** Validate one idea file against the schema and save it; a rejected call is written to the run log. */
+```
+
+**AFTER** (same two lines, post-change):
+
+```
+apps/mcp/src/tools.ts:16
+    "For the daily research routine only: readers must not call this. Save one day's ideas. The input is one submission (schema_version 1, date YYYY-MM-DD, routine, ideas[]). It is checked against the submission schema; if any field is wrong nothing is saved and each field error is listed, so fix them and send the whole submission again. An idea with an id that already exists is updated when the date is the same or newer. Returns { saved, date }.",
+
+apps/mcp/src/index-store.ts:39
+  /** Validate one submission against the schema and save it; a rejected call is written to the run log. */
+```
+
+**DELTA**: The routine's model is told to send one submission (and to send the whole submission again), the same word the routine prompt uses, instead of a file it never writes.
 
 **WITNESS**: [who ran it and when — derived from `memory/event-trace/Txxx.jsonl`, never the
 implementing agent alone]
